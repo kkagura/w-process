@@ -9,7 +9,9 @@ import type {
   HitTestResult,
   NodeId,
   Point,
-  SceneSnapshot,
+  EditorUiState,
+  SceneEvent,
+  SceneSummary,
   Selection,
   ViewportData,
 } from '../types/flow'
@@ -20,7 +22,7 @@ export class SceneManager {
   private edgeLayer = new EdgeLayer()
   private selection: Selection = null
   private hovered: Selection = null
-  private listeners = new Set<(snapshot: SceneSnapshot) => void>()
+  private listeners = new Set<(event: SceneEvent) => void>()
   private viewport: ViewportData = { x: 0, y: 0, zoom: 1 }
   private theme: FlowTheme = defaultTheme
   private registry: ElementRegistry
@@ -37,14 +39,24 @@ export class SceneManager {
     if (!parent) throw new Error(`Unknown parent box: ${parentBoxId}`)
 
     parent.add(node)
-    this.select({ type: 'node', id: node.id })
+    this.selection = { type: 'node', id: node.id }
+    this.hovered = null
+    this.emit({
+      type: 'node-added',
+      node: node.serialize(),
+      selection: this.selection,
+    })
   }
 
   moveNode(id: NodeId, position: Point) {
     const node = this.rootBox.find(id)
     if (node instanceof BaseNode) {
       node.moveTo(position)
-      this.emitChange()
+      this.emit({
+        type: 'node-moved',
+        nodeId: id,
+        position: node.getPosition(),
+      })
     }
   }
 
@@ -53,23 +65,40 @@ export class SceneManager {
 
     if (this.selection.type === 'node') {
       this.rootBox.remove(this.selection.id)
-      this.edgeLayer.removeByNode(this.selection.id)
+      const removedEdgeCount = this.edgeLayer.removeByNode(this.selection.id)
+      const nodeId = this.selection.id
+      this.selection = null
+      this.hovered = null
+      this.emit({
+        type: 'node-removed',
+        nodeId,
+        removedEdgeCount,
+      })
+      return
     }
 
     this.selection = null
     this.hovered = null
-    this.emitChange()
+    this.emit({
+      type: 'selection-changed',
+      selection: null,
+      selectedNode: null,
+    })
   }
 
   select(selection: Selection) {
     this.selection = selection
-    this.emitChange()
+    this.emit({
+      type: 'selection-changed',
+      selection,
+      selectedNode: this.getSelectedNodeData(),
+    })
   }
 
   setHovered(hovered: Selection) {
     if (this.isSameSelection(this.hovered, hovered)) return
     this.hovered = hovered
-    this.emitChange()
+    this.emit({ type: 'hover-changed', hovered })
   }
 
   clearSelection() {
@@ -128,7 +157,10 @@ export class SceneManager {
     }
 
     this.viewport = { ...viewport }
-    this.emitChange()
+    this.emit({
+      type: 'viewport-changed',
+      viewport: this.getViewport(),
+    })
   }
 
   getTheme() {
@@ -157,26 +189,45 @@ export class SceneManager {
     this.viewport = document.viewport ?? { x: 0, y: 0, zoom: 1 }
     this.selection = null
     this.hovered = null
-    this.emitChange()
+    this.emit({
+      type: 'document-loaded',
+      uiState: this.getUiState(),
+    })
   }
 
-  getSnapshot(): SceneSnapshot {
+  getUiState(): EditorUiState {
     return {
-      document: this.toDocument(),
       selection: this.selection,
       hovered: this.hovered,
+      viewport: this.getViewport(),
+      selectedNode: this.getSelectedNodeData(),
+      summary: this.getCanvasSummary(),
     }
   }
 
-  subscribe(listener: (snapshot: SceneSnapshot) => void) {
+  getSelectedNodeData() {
+    if (this.selection?.type !== 'node') return null
+    return this.getNodeData(this.selection.id)
+  }
+
+  getNodeData(id: NodeId) {
+    return this.getNode(id)?.serialize() ?? null
+  }
+
+  getCanvasSummary(): SceneSummary {
+    return {
+      nodeCount: this.getNodes().length,
+      edgeCount: this.getEdges().length,
+    }
+  }
+
+  subscribe(listener: (event: SceneEvent) => void) {
     this.listeners.add(listener)
-    listener(this.getSnapshot())
     return () => this.listeners.delete(listener)
   }
 
-  private emitChange() {
-    const snapshot = this.getSnapshot()
-    for (const listener of this.listeners) listener(snapshot)
+  private emit(event: SceneEvent) {
+    for (const listener of this.listeners) listener(event)
   }
 
   private isSameSelection(left: Selection, right: Selection) {

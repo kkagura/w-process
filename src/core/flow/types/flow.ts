@@ -94,11 +94,27 @@ export type Selection =
   | { type: 'box'; id: BoxId }
   | null
 
-export interface SceneSnapshot {
-  document: FlowDocument
+export interface SceneSummary {
+  nodeCount: number
+  edgeCount: number
+}
+
+export interface EditorUiState {
   selection: Selection
   hovered: Selection
+  viewport: ViewportData
+  selectedNode: FlowNode | null
+  summary: SceneSummary
 }
+
+export type SceneEvent =
+  | { type: 'node-added'; node: FlowNode; selection: Selection }
+  | { type: 'node-moved'; nodeId: NodeId; position: Point }
+  | { type: 'node-removed'; nodeId: NodeId; removedEdgeCount: number }
+  | { type: 'selection-changed'; selection: Selection; selectedNode: FlowNode | null }
+  | { type: 'hover-changed'; hovered: Selection }
+  | { type: 'viewport-changed'; viewport: ViewportData }
+  | { type: 'document-loaded'; uiState: EditorUiState }
 
 export type HitTestResult =
   | { type: 'port'; nodeId: NodeId; portId: PortId }

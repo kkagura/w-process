@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, shallowRef, useTemplateRef } from 'vue'
-import type { BoxData, SceneElementData, SceneSnapshot, ViewportData } from '../../../core/flow/types/flow'
+import type { EditorUiState, ViewportData } from '../../../core/flow/types/flow'
 import CanvasStatusBar from './CanvasStatusBar.vue'
 
 interface Props {
-  snapshot: SceneSnapshot | null
+  uiState: EditorUiState | null
 }
 
 interface Emits {
@@ -23,9 +23,9 @@ const canvasSize = shallowRef({ width: 0, height: 0 })
 let resizeObserver: ResizeObserver | null = null
 
 const defaultViewport: ViewportData = { x: 0, y: 0, zoom: 1 }
-const viewport = computed(() => props.snapshot?.document.viewport ?? defaultViewport)
-const nodeCount = computed(() => countNodes(props.snapshot?.document.root))
-const edgeCount = computed(() => props.snapshot?.document.edges.length ?? 0)
+const viewport = computed(() => props.uiState?.viewport ?? defaultViewport)
+const nodeCount = computed(() => props.uiState?.summary.nodeCount ?? 0)
+const edgeCount = computed(() => props.uiState?.summary.edgeCount ?? 0)
 
 onMounted(() => {
   if (!backgroundCanvas.value || !mainCanvas.value) return
@@ -51,23 +51,6 @@ function updateCanvasSize() {
     width: rect.width,
     height: rect.height,
   }
-}
-
-function countNodes(root?: BoxData) {
-  if (!root) return 0
-  return root.children.reduce((total, child) => total + countElementNodes(child), 0)
-}
-
-function countElementNodes(element: SceneElementData): number {
-  if (isBoxData(element)) {
-    return element.children.reduce((total, child) => total + countElementNodes(child), 0)
-  }
-
-  return 1
-}
-
-function isBoxData(element: SceneElementData): element is BoxData {
-  return 'children' in element
 }
 </script>
 

@@ -1,34 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { BoxData, FlowNode, SceneElementData, SceneSnapshot } from '../../../core/flow/types/flow'
+import type { EditorUiState } from '../../../core/flow/types/flow'
 
 const props = defineProps<{
-  snapshot: SceneSnapshot | null
+  uiState: EditorUiState | null
 }>()
 
-const selectedNode = computed(() => {
-  const selection = props.snapshot?.selection
-  if (selection?.type !== 'node' || !props.snapshot) return null
-  return findNode(props.snapshot.document.root, selection.id)
-})
-
-function findNode(box: BoxData, id: string): FlowNode | null {
-  for (const child of box.children) {
-    if (isBoxData(child)) {
-      const found = findNode(child, id)
-      if (found) return found
-      continue
-    }
-
-    if (child.id === id) return child
-  }
-
-  return null
-}
-
-function isBoxData(data: SceneElementData): data is BoxData {
-  return 'children' in data
-}
+const selectedNode = computed(() => props.uiState?.selectedNode ?? null)
 </script>
 
 <template>

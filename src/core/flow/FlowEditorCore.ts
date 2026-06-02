@@ -41,7 +41,14 @@ export class FlowEditorCore {
     this.renderBackground()
     this.renderMain()
 
-    this.unsubscribeScene = this.scene.subscribe(() => this.requestMainRender())
+    this.unsubscribeScene = this.scene.subscribe((event) => {
+      if (event.type === 'viewport-changed' || event.type === 'document-loaded') {
+        this.requestRender({ background: true, main: true })
+        return
+      }
+
+      this.requestMainRender()
+    })
     this.resizeObserver = new ResizeObserver(() => {
       if (this.layers.syncSize()) {
         this.requestBackgroundRender()

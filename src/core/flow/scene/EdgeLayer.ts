@@ -13,11 +13,16 @@ export class EdgeLayer {
   }
 
   removeByNode(nodeId: NodeId) {
+    let removedCount = 0
+
     for (const edge of this.edges.values()) {
       if (edge.hasEndpointNode(nodeId)) {
         this.edges.delete(edge.id)
+        removedCount += 1
       }
     }
+
+    return removedCount
   }
 
   getEdges() {
