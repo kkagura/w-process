@@ -31,7 +31,7 @@ export class FlowEditorCore {
     this.interaction = new InteractionController({
       canvas: options.mainCanvas,
       scene: this.scene,
-      requestRender: () => this.requestMainRender(),
+      requestRender: options => this.requestRender(options),
     })
 
     options.mainCanvas.addEventListener('dragover', this.handleDragOver)
@@ -69,6 +69,16 @@ export class FlowEditorCore {
   requestMainRender() {
     cancelAnimationFrame(this.mainFrame)
     this.mainFrame = requestAnimationFrame(() => this.renderMain())
+  }
+
+  private requestRender(options: { background?: boolean; main?: boolean } = { main: true }) {
+    if (options.background) {
+      this.requestBackgroundRender()
+    }
+
+    if (options.main ?? !options.background) {
+      this.requestMainRender()
+    }
   }
 
   private renderBackground() {

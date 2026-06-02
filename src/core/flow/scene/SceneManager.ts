@@ -118,6 +118,19 @@ export class SceneManager {
     return this.viewport
   }
 
+  setViewport(viewport: ViewportData) {
+    if (
+      this.viewport.x === viewport.x
+      && this.viewport.y === viewport.y
+      && this.viewport.zoom === viewport.zoom
+    ) {
+      return
+    }
+
+    this.viewport = { ...viewport }
+    this.emitChange()
+  }
+
   getTheme() {
     return this.theme
   }

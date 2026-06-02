@@ -66,5 +66,7 @@ onMounted(() => {
 .canvas-main {
   cursor: default;
   outline: none;
+  touch-action: none;
+  user-select: none;
 }
 </style>
