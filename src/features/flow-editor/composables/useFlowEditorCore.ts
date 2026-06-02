@@ -68,6 +68,21 @@ function applySceneEvent(current: EditorUiState | null, event: SceneEvent): Edit
     }
   }
 
+  if (event.type === 'nodes-moved') {
+    if (!state.selectedNode) return state
+
+    const selectedNodeMove = event.moves.find(move => move.nodeId === state.selectedNode?.id)
+    if (!selectedNodeMove) return state
+
+    return {
+      ...state,
+      selectedNode: {
+        ...state.selectedNode,
+        position: selectedNodeMove.position,
+      },
+    }
+  }
+
   if (event.type === 'nodes-removed') {
     return {
       ...state,

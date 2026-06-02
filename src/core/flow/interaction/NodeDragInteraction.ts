@@ -1,4 +1,4 @@
-import type { HitTestResult, NodeId, Point, SelectableRef } from '../types/flow'
+import type { HitTestResult, NodeId, NodeMove, Point, SelectableRef } from '../types/flow'
 import type { SceneManager } from '../scene/SceneManager'
 import type { InteractionMode } from './InteractionTypes'
 
@@ -16,19 +16,41 @@ export function createNodeDragMode(options: {
   const node = options.scene.getNode(options.nodeId)
   if (!node) return null
 
+  const selection = { type: 'node' as const, id: options.nodeId }
+  const targetNodeIds = options.scene.isSelected(selection)
+    ? options.scene.getSelectedNodeIds()
+    : [options.nodeId]
+
   return {
     type: 'dragging-node',
     nodeId: options.nodeId,
     start: options.start,
-    origin: node.getPosition(),
+    origins: targetNodeIds
+      .map((nodeId) => {
+        const selectedNode = options.scene.getNode(nodeId)
+        if (!selectedNode) return null
+        return {
+          nodeId,
+          origin: selectedNode.getPosition(),
+        }
+      })
+      .filter((origin): origin is { nodeId: NodeId; origin: Point } => Boolean(origin)),
   }
 }
 
-export function getDraggedNodePosition(mode: Extract<InteractionMode, { type: 'dragging-node' }>, current: Point): Point {
-  return {
-    x: mode.origin.x + current.x - mode.start.x,
-    y: mode.origin.y + current.y - mode.start.y,
+export function getDraggedNodeMoves(mode: Extract<InteractionMode, { type: 'dragging-node' }>, current: Point): NodeMove[] {
+  const delta = {
+    x: current.x - mode.start.x,
+    y: current.y - mode.start.y,
   }
+
+  return mode.origins.map(item => ({
+    nodeId: item.nodeId,
+    position: {
+      x: item.origin.x + delta.x,
+      y: item.origin.y + delta.y,
+    },
+  }))
 }
 
 export function getHoveredSelection(hit: HitTestResult): SelectableRef | null {

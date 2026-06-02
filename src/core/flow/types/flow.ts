@@ -98,6 +98,11 @@ export interface SelectionState {
   primary: SelectableRef | null
 }
 
+export interface NodeMove {
+  nodeId: NodeId
+  position: Point
+}
+
 export interface SceneSummary {
   nodeCount: number
   edgeCount: number
@@ -114,6 +119,7 @@ export interface EditorUiState {
 export type SceneEvent =
   | { type: 'node-added'; node: FlowNode; selection: SelectionState }
   | { type: 'node-moved'; nodeId: NodeId; position: Point }
+  | { type: 'nodes-moved'; moves: NodeMove[] }
   | { type: 'nodes-removed'; nodeIds: NodeId[]; removedEdgeCount: number }
   | { type: 'selection-changed'; selection: SelectionState; selectedNode: FlowNode | null }
   | { type: 'hover-changed'; hovered: SelectableRef | null }

@@ -2,7 +2,7 @@ import { CoordinateTransformer } from '../viewport/CoordinateTransformer'
 import type { InteractionControllerOptions, InteractionMode } from './InteractionTypes'
 import {
   createNodeDragMode,
-  getDraggedNodePosition,
+  getDraggedNodeMoves,
   getHoveredSelection,
   getNodeIdFromHit,
 } from './NodeDragInteraction'
@@ -141,7 +141,7 @@ export class InteractionController {
     const point = this.getWorldPoint(event)
 
     if (this.mode.type === 'dragging-node') {
-      this.options.scene.moveNode(this.mode.nodeId, getDraggedNodePosition(this.mode, point))
+      this.options.scene.moveNodes(getDraggedNodeMoves(this.mode, point))
       this.options.requestRender()
       return
     }

@@ -7,6 +7,7 @@ import type {
   FlowDocument,
   FlowTheme,
   HitTestResult,
+  NodeMove,
   NodeId,
   Point,
   EditorUiState,
@@ -61,6 +62,28 @@ export class SceneManager {
         position: node.getPosition(),
       })
     }
+  }
+
+  moveNodes(moves: NodeMove[]) {
+    const appliedMoves: NodeMove[] = []
+
+    for (const move of moves) {
+      const node = this.rootBox.find(move.nodeId)
+      if (!(node instanceof BaseNode)) continue
+
+      node.moveTo(move.position)
+      appliedMoves.push({
+        nodeId: move.nodeId,
+        position: node.getPosition(),
+      })
+    }
+
+    if (appliedMoves.length === 0) return
+
+    this.emit({
+      type: 'nodes-moved',
+      moves: appliedMoves,
+    })
   }
 
   removeSelection() {
@@ -177,6 +200,12 @@ export class SceneManager {
 
   getNodes() {
     return this.rootBox.getNodesDeep()
+  }
+
+  getSelectedNodeIds(): NodeId[] {
+    return this.selection.items
+      .filter((item): item is Extract<SelectableRef, { type: 'node' }> => item.type === 'node')
+      .map(item => item.id)
   }
 
   getBoxes() {
