@@ -1,11 +1,12 @@
 import type { ElementRegistry } from '../elements/ElementRegistry'
 import type { BaseNode } from '../elements/BaseNode'
 import type { SceneManager } from '../scene/SceneManager'
-import type { FlowTheme, NodeDrawContext, ViewportData } from '../types/flow'
+import type { FlowTheme, NodeDrawContext, Rect, ViewportData } from '../types/flow'
 import type { CanvasLayerManager } from './CanvasLayerManager'
 
 export interface CanvasInteractionState {
   draggingNodeId: string | null
+  selectionRect: Rect | null
 }
 
 export interface RenderContext {
@@ -46,6 +47,7 @@ export class CanvasRenderer {
 
     this.drawBoxes(ctx, context)
     this.drawNodes(ctx, context)
+    this.drawSelectionRect(ctx, context)
 
     ctx.restore()
   }
@@ -109,5 +111,22 @@ export class CanvasRenderer {
       theme: context.scene.getTheme(),
       viewport: context.scene.getViewport(),
     }
+  }
+
+  private drawSelectionRect(ctx: CanvasRenderingContext2D, context: RenderContext) {
+    const rect = context.interaction.selectionRect
+    if (!rect) return
+
+    const viewport = context.scene.getViewport()
+    const theme = context.scene.getTheme()
+
+    ctx.save()
+    ctx.fillStyle = 'rgba(37, 99, 235, 0.08)'
+    ctx.strokeStyle = theme.colors.selected
+    ctx.lineWidth = 1 / viewport.zoom
+    ctx.setLineDash([6 / viewport.zoom, 4 / viewport.zoom])
+    ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
+    ctx.strokeRect(rect.x, rect.y, rect.width, rect.height)
+    ctx.restore()
   }
 }

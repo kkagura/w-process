@@ -12,16 +12,19 @@ import type {
   EditorUiState,
   SceneEvent,
   SceneSummary,
-  Selection,
+  SelectableRef,
+  SelectionState,
+  Rect,
   ViewportData,
 } from '../types/flow'
 import { defaultTheme } from '../types/flow'
+import { rectsIntersect } from '../utils/geometry'
 
 export class SceneManager {
   private rootBox = new RootBox()
   private edgeLayer = new EdgeLayer()
-  private selection: Selection = null
-  private hovered: Selection = null
+  private selection: SelectionState = createSelectionState()
+  private hovered: SelectableRef | null = null
   private listeners = new Set<(event: SceneEvent) => void>()
   private viewport: ViewportData = { x: 0, y: 0, zoom: 1 }
   private theme: FlowTheme = defaultTheme
@@ -39,7 +42,7 @@ export class SceneManager {
     if (!parent) throw new Error(`Unknown parent box: ${parentBoxId}`)
 
     parent.add(node)
-    this.selection = { type: 'node', id: node.id }
+    this.selection = createSelectionState([{ type: 'node', id: node.id }])
     this.hovered = null
     this.emit({
       type: 'node-added',
@@ -61,41 +64,64 @@ export class SceneManager {
   }
 
   removeSelection() {
-    if (!this.selection) return
+    if (this.selection.items.length === 0) return
 
-    if (this.selection.type === 'node') {
-      this.rootBox.remove(this.selection.id)
-      const removedEdgeCount = this.edgeLayer.removeByNode(this.selection.id)
-      const nodeId = this.selection.id
-      this.selection = null
+    const nodeIds = this.selection.items
+      .filter((item): item is Extract<SelectableRef, { type: 'node' }> => item.type === 'node')
+      .map(item => item.id)
+
+    if (nodeIds.length > 0) {
+      let removedEdgeCount = 0
+      for (const nodeId of nodeIds) {
+        this.rootBox.remove(nodeId)
+        removedEdgeCount += this.edgeLayer.removeByNode(nodeId)
+      }
+
+      this.selection = createSelectionState()
       this.hovered = null
       this.emit({
-        type: 'node-removed',
-        nodeId,
+        type: 'nodes-removed',
+        nodeIds,
         removedEdgeCount,
       })
       return
     }
 
-    this.selection = null
+    this.selection = createSelectionState()
     this.hovered = null
     this.emit({
       type: 'selection-changed',
-      selection: null,
+      selection: this.selection,
       selectedNode: null,
     })
   }
 
-  select(selection: Selection) {
-    this.selection = selection
+  select(selection: SelectableRef | null) {
+    this.selectMany(selection ? [selection] : [])
+  }
+
+  selectMany(items: SelectableRef[], primary = items[0] ?? null) {
+    this.selection = createSelectionState(items, primary)
     this.emit({
       type: 'selection-changed',
-      selection,
+      selection: this.selection,
       selectedNode: this.getSelectedNodeData(),
     })
   }
 
-  setHovered(hovered: Selection) {
+  selectNodesInRect(rect: Rect) {
+    const selectedNodes = this.getNodes()
+      .filter((node) => {
+        const position = node.getPosition()
+        const size = node.getSize()
+        return rectsIntersect(rect, { ...position, ...size })
+      })
+      .map<SelectableRef>(node => ({ type: 'node', id: node.id }))
+
+    this.selectMany(selectedNodes)
+  }
+
+  setHovered(hovered: SelectableRef | null) {
     if (this.isSameSelection(this.hovered, hovered)) return
     this.hovered = hovered
     this.emit({ type: 'hover-changed', hovered })
@@ -167,11 +193,11 @@ export class SceneManager {
     return this.theme
   }
 
-  isSelected(selection: Exclude<Selection, null>) {
-    return this.isSameSelection(this.selection, selection)
+  isSelected(selection: SelectableRef) {
+    return this.selection.items.some(item => this.isSameSelection(item, selection))
   }
 
-  isHovered(selection: Exclude<Selection, null>) {
+  isHovered(selection: SelectableRef) {
     return this.isSameSelection(this.hovered, selection)
   }
 
@@ -187,7 +213,7 @@ export class SceneManager {
     this.rootBox = this.registry.createBox(document.root) as RootBox
     this.edgeLayer = this.registry.createEdgeLayer(document.edges)
     this.viewport = document.viewport ?? { x: 0, y: 0, zoom: 1 }
-    this.selection = null
+    this.selection = createSelectionState()
     this.hovered = null
     this.emit({
       type: 'document-loaded',
@@ -206,8 +232,8 @@ export class SceneManager {
   }
 
   getSelectedNodeData() {
-    if (this.selection?.type !== 'node') return null
-    return this.getNodeData(this.selection.id)
+    if (this.selection.primary?.type !== 'node') return null
+    return this.getNodeData(this.selection.primary.id)
   }
 
   getNodeData(id: NodeId) {
@@ -230,8 +256,15 @@ export class SceneManager {
     for (const listener of this.listeners) listener(event)
   }
 
-  private isSameSelection(left: Selection, right: Selection) {
+  private isSameSelection(left: SelectableRef | null, right: SelectableRef | null) {
     if (!left || !right) return left === right
     return left.type === right.type && left.id === right.id
+  }
+}
+
+function createSelectionState(items: SelectableRef[] = [], primary: SelectableRef | null = items[0] ?? null): SelectionState {
+  return {
+    items: [...items],
+    primary,
   }
 }

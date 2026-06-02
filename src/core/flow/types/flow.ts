@@ -88,11 +88,15 @@ export interface FlowDocument {
   viewport?: ViewportData
 }
 
-export type Selection =
+export type SelectableRef =
   | { type: 'node'; id: NodeId }
   | { type: 'edge'; id: EdgeId }
   | { type: 'box'; id: BoxId }
-  | null
+
+export interface SelectionState {
+  items: SelectableRef[]
+  primary: SelectableRef | null
+}
 
 export interface SceneSummary {
   nodeCount: number
@@ -100,19 +104,19 @@ export interface SceneSummary {
 }
 
 export interface EditorUiState {
-  selection: Selection
-  hovered: Selection
+  selection: SelectionState
+  hovered: SelectableRef | null
   viewport: ViewportData
   selectedNode: FlowNode | null
   summary: SceneSummary
 }
 
 export type SceneEvent =
-  | { type: 'node-added'; node: FlowNode; selection: Selection }
+  | { type: 'node-added'; node: FlowNode; selection: SelectionState }
   | { type: 'node-moved'; nodeId: NodeId; position: Point }
-  | { type: 'node-removed'; nodeId: NodeId; removedEdgeCount: number }
-  | { type: 'selection-changed'; selection: Selection; selectedNode: FlowNode | null }
-  | { type: 'hover-changed'; hovered: Selection }
+  | { type: 'nodes-removed'; nodeIds: NodeId[]; removedEdgeCount: number }
+  | { type: 'selection-changed'; selection: SelectionState; selectedNode: FlowNode | null }
+  | { type: 'hover-changed'; hovered: SelectableRef | null }
   | { type: 'viewport-changed'; viewport: ViewportData }
   | { type: 'document-loaded'; uiState: EditorUiState }
 

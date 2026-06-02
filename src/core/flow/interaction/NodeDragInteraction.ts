@@ -1,4 +1,4 @@
-import type { HitTestResult, NodeId, Point, Selection } from '../types/flow'
+import type { HitTestResult, NodeId, Point, SelectableRef } from '../types/flow'
 import type { SceneManager } from '../scene/SceneManager'
 import type { InteractionMode } from './InteractionTypes'
 
@@ -31,7 +31,7 @@ export function getDraggedNodePosition(mode: Extract<InteractionMode, { type: 'd
   }
 }
 
-export function getHoveredSelection(hit: HitTestResult): Selection {
+export function getHoveredSelection(hit: HitTestResult): SelectableRef | null {
   if (hit?.type === 'node') {
     return { type: 'node', id: hit.id }
   }

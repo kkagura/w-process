@@ -1,6 +1,6 @@
 import { onBeforeUnmount, shallowRef } from 'vue'
 import { FlowEditorCore } from '../../../core/flow/FlowEditorCore'
-import type { EditorUiState, SceneEvent } from '../../../core/flow/types/flow'
+import type { EditorUiState, SceneEvent, SelectionState } from '../../../core/flow/types/flow'
 
 export interface FlowEditorCanvasElements {
   backgroundCanvas: HTMLCanvasElement
@@ -68,14 +68,14 @@ function applySceneEvent(current: EditorUiState | null, event: SceneEvent): Edit
     }
   }
 
-  if (event.type === 'node-removed') {
+  if (event.type === 'nodes-removed') {
     return {
       ...state,
-      selection: null,
+      selection: createEmptySelectionState(),
       hovered: null,
       selectedNode: null,
       summary: {
-        nodeCount: Math.max(0, state.summary.nodeCount - 1),
+        nodeCount: Math.max(0, state.summary.nodeCount - event.nodeIds.length),
         edgeCount: Math.max(0, state.summary.edgeCount - event.removedEdgeCount),
       },
     }
@@ -108,7 +108,7 @@ function applySceneEvent(current: EditorUiState | null, event: SceneEvent): Edit
 
 function createEmptyUiState(): EditorUiState {
   return {
-    selection: null,
+    selection: createEmptySelectionState(),
     hovered: null,
     viewport: { x: 0, y: 0, zoom: 1 },
     selectedNode: null,
@@ -116,5 +116,12 @@ function createEmptyUiState(): EditorUiState {
       nodeCount: 0,
       edgeCount: 0,
     },
+  }
+}
+
+function createEmptySelectionState(): SelectionState {
+  return {
+    items: [],
+    primary: null,
   }
 }

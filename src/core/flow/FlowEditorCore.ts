@@ -94,6 +94,7 @@ export class FlowEditorCore {
       scene: this.scene,
       interaction: {
         draggingNodeId: this.interaction.getDraggingNodeId(),
+        selectionRect: this.interaction.getSelectionRect(),
       },
     })
   }
@@ -104,6 +105,7 @@ export class FlowEditorCore {
       scene: this.scene,
       interaction: {
         draggingNodeId: this.interaction.getDraggingNodeId(),
+        selectionRect: this.interaction.getSelectionRect(),
       },
     })
   }

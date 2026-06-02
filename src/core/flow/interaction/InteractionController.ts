@@ -7,6 +7,11 @@ import {
   getNodeIdFromHit,
 } from './NodeDragInteraction'
 import {
+  getSelectionRect,
+  hasSelectionDragExceeded,
+  shouldStartSelection,
+} from './SelectionBoxInteraction'
+import {
   getPannedViewport,
   getZoomedViewport,
   shouldStartPanning,
@@ -31,6 +36,12 @@ export class InteractionController {
 
   getDraggingNodeId() {
     return this.mode.type === 'dragging-node' ? this.mode.nodeId : null
+  }
+
+  getSelectionRect() {
+    return this.mode.type === 'selecting'
+      ? getSelectionRect(this.mode.start, this.mode.current)
+      : null
   }
 
   dispose() {
@@ -80,8 +91,19 @@ export class InteractionController {
       return
     }
 
+    if (shouldStartSelection(event)) {
+      this.mode = {
+        type: 'pending-selection',
+        startCanvas: this.getCanvasPoint(event),
+        startWorld: point,
+      }
+      this.options.scene.setHovered(null)
+      this.options.canvas.setPointerCapture(event.pointerId)
+      event.preventDefault()
+      return
+    }
+
     this.mode = { type: 'idle' }
-    this.options.scene.clearSelection()
   }
 
   private handlePointerMove = (event: PointerEvent) => {
@@ -101,6 +123,30 @@ export class InteractionController {
       return
     }
 
+    if (this.mode.type === 'pending-selection') {
+      const currentCanvas = this.getCanvasPoint(event)
+      if (hasSelectionDragExceeded(this.mode.startCanvas, currentCanvas)) {
+        this.mode = {
+          type: 'selecting',
+          start: this.mode.startWorld,
+          current: point,
+        }
+        this.options.requestRender()
+        event.preventDefault()
+      }
+      return
+    }
+
+    if (this.mode.type === 'selecting') {
+      this.mode = {
+        ...this.mode,
+        current: point,
+      }
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
     const hit = this.options.scene.hitTest(point)
     this.options.scene.setHovered(getHoveredSelection(hit))
   }
@@ -117,6 +163,22 @@ export class InteractionController {
       this.mode = { type: 'idle' }
       this.setCursor('')
       this.options.requestRender({ background: true, main: true })
+    }
+
+    if (this.mode.type === 'pending-selection') {
+      this.options.canvas.releasePointerCapture(event.pointerId)
+      this.mode = { type: 'idle' }
+      this.options.scene.clearSelection()
+      this.options.requestRender()
+      return
+    }
+
+    if (this.mode.type === 'selecting') {
+      const rect = getSelectionRect(this.mode.start, this.mode.current)
+      this.options.canvas.releasePointerCapture(event.pointerId)
+      this.mode = { type: 'idle' }
+      this.options.scene.selectNodesInRect(rect)
+      this.options.requestRender()
     }
   }
 

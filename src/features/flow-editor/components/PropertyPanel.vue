@@ -7,13 +7,15 @@ const props = defineProps<{
 }>()
 
 const selectedNode = computed(() => props.uiState?.selectedNode ?? null)
+const selectedCount = computed(() => props.uiState?.selection.items.length ?? 0)
+const showSingleNode = computed(() => selectedCount.value <= 1 && selectedNode.value)
 </script>
 
 <template>
   <aside class="property-panel">
     <div class="panel-heading">属性</div>
 
-    <div v-if="selectedNode" class="property-section">
+    <div v-if="showSingleNode && selectedNode" class="property-section">
       <div class="property-title">{{ selectedNode.label }}</div>
       <dl class="property-list">
         <div>
@@ -37,6 +39,11 @@ const selectedNode = computed(() => props.uiState?.selectedNode ?? null)
           <dd>{{ selectedNode.ports.length }}</dd>
         </div>
       </dl>
+    </div>
+
+    <div v-else-if="selectedCount > 1" class="property-section">
+      <div class="property-title">已选择 {{ selectedCount }} 个元素</div>
+      <p class="property-hint">多选状态下暂不展示单个节点属性。</p>
     </div>
 
     <div v-else class="empty-state">
@@ -97,8 +104,14 @@ const selectedNode = computed(() => props.uiState?.selectedNode ?? null)
   overflow-wrap: anywhere;
 }
 
+.property-hint,
 .empty-state {
   color: var(--muted-text);
   font-size: 14px;
+}
+
+.property-hint {
+  line-height: 1.6;
+  margin: 0;
 }
 </style>
