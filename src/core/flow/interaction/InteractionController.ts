@@ -2,6 +2,10 @@ import type { NodeId, Point, ViewportData } from '../types/flow'
 import { CoordinateTransformer } from '../viewport/CoordinateTransformer'
 import type { SceneManager } from '../scene/SceneManager'
 
+const MIN_ZOOM = 0.25
+const MAX_ZOOM = 3
+const WHEEL_ZOOM_SENSITIVITY = 0.001
+
 type InteractionMode =
   | { type: 'idle' }
   | { type: 'dragging-node'; nodeId: NodeId; start: Point; origin: Point }
@@ -27,6 +31,7 @@ export class InteractionController {
     this.options.canvas.addEventListener('pointerleave', this.handlePointerLeave)
     this.options.canvas.addEventListener('keydown', this.handleKeyDown)
     this.options.canvas.addEventListener('contextmenu', this.handleContextMenu)
+    this.options.canvas.addEventListener('wheel', this.handleWheel, { passive: false })
   }
 
   getDraggingNodeId() {
@@ -42,6 +47,7 @@ export class InteractionController {
     this.options.canvas.removeEventListener('pointerleave', this.handlePointerLeave)
     this.options.canvas.removeEventListener('keydown', this.handleKeyDown)
     this.options.canvas.removeEventListener('contextmenu', this.handleContextMenu)
+    this.options.canvas.removeEventListener('wheel', this.handleWheel)
   }
 
   private handlePointerDown = (event: PointerEvent) => {
@@ -156,6 +162,29 @@ export class InteractionController {
     event.preventDefault()
   }
 
+  private handleWheel = (event: WheelEvent) => {
+    if (!event.ctrlKey || this.mode.type !== 'idle') return
+
+    event.preventDefault()
+    this.options.canvas.focus()
+
+    const canvasPoint = CoordinateTransformer.clientToCanvas(event, this.options.canvas)
+    const viewport = this.options.scene.getViewport()
+    const nextZoom = this.clampZoom(
+      viewport.zoom * Math.exp(-event.deltaY * WHEEL_ZOOM_SENSITIVITY),
+    )
+
+    if (nextZoom === viewport.zoom) return
+
+    const worldPoint = CoordinateTransformer.canvasToWorld(canvasPoint, viewport)
+    this.options.scene.setViewport({
+      x: canvasPoint.x - worldPoint.x * nextZoom,
+      y: canvasPoint.y - worldPoint.y * nextZoom,
+      zoom: nextZoom,
+    })
+    this.options.requestRender({ background: true, main: true })
+  }
+
   private shouldStartPanning(event: PointerEvent) {
     return event.button === 2
   }
@@ -170,6 +199,10 @@ export class InteractionController {
 
   private setCursor(cursor: string) {
     this.options.canvas.style.cursor = cursor
+  }
+
+  private clampZoom(zoom: number) {
+    return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom))
   }
 
   private getCanvasPoint(event: PointerEvent) {
