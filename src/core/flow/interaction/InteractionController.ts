@@ -102,7 +102,12 @@ export class InteractionController {
       })
       if (!mode) return
 
-      this.options.scene.select(selection)
+      if (this.options.scene.isSelected(selection)) {
+        this.options.scene.addSelection(selection)
+      }
+      else {
+        this.options.scene.select(selection)
+      }
       this.mode = mode
       this.options.canvas.setPointerCapture(event.pointerId)
       this.options.requestRender()
