@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, shallowRef, useTemplateRef } from 'vue'
+import type { HistoryState } from '../../../core/flow/commands/SceneCommand'
 import type { EditorUiState, ViewportData } from '../../../core/flow/types/flow'
+import CanvasToolbar from './CanvasToolbar.vue'
 import CanvasStatusBar from './CanvasStatusBar.vue'
 
 interface Props {
   uiState: EditorUiState | null
+  historyState: HistoryState
 }
 
 interface Emits {
@@ -12,6 +15,8 @@ interface Emits {
     backgroundCanvas: HTMLCanvasElement
     mainCanvas: HTMLCanvasElement
   }]
+  undo: []
+  redo: []
 }
 
 const props = defineProps<Props>()
@@ -26,6 +31,8 @@ const defaultViewport: ViewportData = { x: 0, y: 0, zoom: 1 }
 const viewport = computed(() => props.uiState?.viewport ?? defaultViewport)
 const nodeCount = computed(() => props.uiState?.summary.nodeCount ?? 0)
 const edgeCount = computed(() => props.uiState?.summary.edgeCount ?? 0)
+const canUndo = computed(() => props.historyState.canUndo)
+const canRedo = computed(() => props.historyState.canRedo)
 
 onMounted(() => {
   if (!backgroundCanvas.value || !mainCanvas.value) return
@@ -65,6 +72,12 @@ function updateCanvasSize() {
         ref="mainCanvas"
         class="canvas-layer canvas-main"
         tabindex="0"
+      />
+      <CanvasToolbar
+        :can-undo="canUndo"
+        :can-redo="canRedo"
+        @undo="emit('undo')"
+        @redo="emit('redo')"
       />
       <CanvasStatusBar
         :zoom="viewport.zoom"

@@ -4,7 +4,9 @@ import { EdgeLayer } from './EdgeLayer'
 import { RootBox } from './RootBox'
 import type {
   BoxId,
+  FlowEdge,
   FlowDocument,
+  FlowNode,
   FlowTheme,
   HitTestResult,
   NodeMove,
@@ -16,10 +18,23 @@ import type {
   SelectableRef,
   SelectionState,
   Rect,
+  SceneElementData,
   ViewportData,
 } from '../types/flow'
 import { defaultTheme } from '../types/flow'
 import { rectsIntersect } from '../utils/geometry'
+
+export interface RemovedSceneElementSnapshot {
+  data: SceneElementData
+  parentBoxId: BoxId
+  index: number
+}
+
+export interface RemovedSceneSnapshot {
+  elements: RemovedSceneElementSnapshot[]
+  edges: FlowEdge[]
+  selectionBefore: SelectionState
+}
 
 export class SceneManager {
   private rootBox = new RootBox()
@@ -50,6 +65,10 @@ export class SceneManager {
       node: node.serialize(),
       selection: this.selection,
     })
+  }
+
+  addNodeData(nodeData: FlowNode, parentBoxId?: BoxId) {
+    this.addNode(this.registry.createNode(nodeData), parentBoxId)
   }
 
   moveNode(id: NodeId, position: Point) {
@@ -94,19 +113,7 @@ export class SceneManager {
       .map(item => item.id)
 
     if (nodeIds.length > 0) {
-      let removedEdgeCount = 0
-      for (const nodeId of nodeIds) {
-        this.rootBox.remove(nodeId)
-        removedEdgeCount += this.edgeLayer.removeByNode(nodeId)
-      }
-
-      this.selection = createSelectionState()
-      this.hovered = null
-      this.emit({
-        type: 'nodes-removed',
-        nodeIds,
-        removedEdgeCount,
-      })
+      this.removeNodes(nodeIds)
       return
     }
 
@@ -116,6 +123,71 @@ export class SceneManager {
       type: 'selection-changed',
       selection: this.selection,
       selectedNode: null,
+    })
+  }
+
+  removeNodes(nodeIds: NodeId[]): RemovedSceneSnapshot {
+    const selectionBefore = cloneSelectionState(this.selection)
+    const removedElements: RemovedSceneElementSnapshot[] = []
+
+    for (const nodeId of nodeIds) {
+      const removed = this.rootBox.removeWithLocation(nodeId)
+      if (!removed) continue
+
+      removedElements.push({
+        data: removed.element.serialize() as SceneElementData,
+        parentBoxId: removed.parentBoxId,
+        index: removed.index,
+      })
+    }
+
+    const removedNodeIds = removedElements
+      .filter((item): item is RemovedSceneElementSnapshot & { data: FlowNode } => !('children' in item.data))
+      .map(item => item.data.id)
+    const removedEdges = this.edgeLayer.removeByNodes(removedNodeIds)
+
+    if (removedElements.length > 0) {
+      this.selection = createSelectionState()
+      this.hovered = null
+      this.emit({
+        type: 'nodes-removed',
+        nodeIds: removedNodeIds,
+        removedEdgeCount: removedEdges.length,
+      })
+    }
+
+    return {
+      elements: removedElements,
+      edges: removedEdges,
+      selectionBefore,
+    }
+  }
+
+  restoreRemovedSnapshot(snapshot: RemovedSceneSnapshot) {
+    const orderedElements = [...snapshot.elements].sort((left, right) => {
+      if (left.parentBoxId === right.parentBoxId) return left.index - right.index
+      return left.parentBoxId.localeCompare(right.parentBoxId)
+    })
+
+    for (const item of orderedElements) {
+      const parent = this.rootBox.findBox(item.parentBoxId)
+      if (!parent) continue
+
+      const element = 'children' in item.data
+        ? this.registry.createBox(item.data)
+        : this.registry.createNode(item.data)
+      parent.addAt(element, item.index)
+    }
+
+    for (const edge of snapshot.edges) {
+      this.edgeLayer.addData(edge)
+    }
+
+    this.selection = cloneSelectionState(snapshot.selectionBefore)
+    this.hovered = null
+    this.emit({
+      type: 'document-loaded',
+      uiState: this.getUiState(),
     })
   }
 
@@ -206,6 +278,10 @@ export class SceneManager {
     return this.selection.items
       .filter((item): item is Extract<SelectableRef, { type: 'node' }> => item.type === 'node')
       .map(item => item.id)
+  }
+
+  getSelection(): SelectionState {
+    return cloneSelectionState(this.selection)
   }
 
   getBoxes() {
@@ -327,6 +403,13 @@ function createSelectionState(items: SelectableRef[] = [], primary: SelectableRe
   return {
     items: uniqueItems,
     primary: normalizedPrimary,
+  }
+}
+
+function cloneSelectionState(selection: SelectionState): SelectionState {
+  return {
+    items: selection.items.map(item => ({ ...item } as SelectableRef)),
+    primary: selection.primary ? { ...selection.primary } : null,
   }
 }
 

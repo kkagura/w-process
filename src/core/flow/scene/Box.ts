@@ -4,6 +4,12 @@ import { getUnionBounds } from '../utils/geometry'
 
 export type SceneElement = BaseNode | Box
 
+export interface RemovedSceneElement {
+  element: SceneElement
+  parentBoxId: BoxId
+  index: number
+}
+
 export class Box {
   protected children: SceneElement[] = []
   protected data: BoxData
@@ -24,6 +30,11 @@ export class Box {
     this.children.push(child)
   }
 
+  addAt(child: SceneElement, index = this.children.length) {
+    const safeIndex = Math.max(0, Math.min(index, this.children.length))
+    this.children.splice(safeIndex, 0, child)
+  }
+
   remove(id: string): SceneElement | null {
     const index = this.children.findIndex(child => child.id === id)
     if (index >= 0) {
@@ -34,6 +45,27 @@ export class Box {
     for (const child of this.children) {
       if (child instanceof Box) {
         const removed = child.remove(id)
+        if (removed) return removed
+      }
+    }
+
+    return null
+  }
+
+  removeWithLocation(id: string): RemovedSceneElement | null {
+    const index = this.children.findIndex(child => child.id === id)
+    if (index >= 0) {
+      const [element] = this.children.splice(index, 1)
+      return {
+        element,
+        parentBoxId: this.id,
+        index,
+      }
+    }
+
+    for (const child of this.children) {
+      if (child instanceof Box) {
+        const removed = child.removeWithLocation(id)
         if (removed) return removed
       }
     }

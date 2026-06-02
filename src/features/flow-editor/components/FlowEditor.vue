@@ -4,13 +4,19 @@ import FlowCanvas from './FlowCanvas.vue'
 import PropertyPanel from './PropertyPanel.vue'
 import { useFlowEditorCore } from '../composables/useFlowEditorCore'
 
-const { uiState, mount } = useFlowEditorCore()
+const { uiState, historyState, mount, undo, redo } = useFlowEditorCore()
 </script>
 
 <template>
   <main class="flow-editor">
     <ElementPalette />
-    <FlowCanvas :ui-state="uiState" @canvas-ready="mount" />
+    <FlowCanvas
+      :ui-state="uiState"
+      :history-state="historyState"
+      @canvas-ready="mount"
+      @undo="undo"
+      @redo="redo"
+    />
     <PropertyPanel :ui-state="uiState" />
   </main>
 </template>

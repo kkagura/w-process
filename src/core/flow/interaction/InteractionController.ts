@@ -1,4 +1,6 @@
 import { CoordinateTransformer } from '../viewport/CoordinateTransformer'
+import { DeleteSelectionCommand } from '../commands/DeleteSelectionCommand'
+import { MoveNodesCommand } from '../commands/MoveNodesCommand'
 import type { InteractionControllerOptions, InteractionMode } from './InteractionTypes'
 import {
   createNodeDragMode,
@@ -176,6 +178,7 @@ export class InteractionController {
 
   private handlePointerUp = (event: PointerEvent) => {
     if (this.mode.type === 'dragging-node') {
+      this.recordNodeDragHistory(this.mode)
       this.options.canvas.releasePointerCapture(event.pointerId)
       this.mode = { type: 'idle' }
       this.options.requestRender()
@@ -220,8 +223,28 @@ export class InteractionController {
   }
 
   private handleKeyDown = (event: KeyboardEvent) => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+      if (event.shiftKey) {
+        this.options.history.redo()
+      }
+      else {
+        this.options.history.undo()
+      }
+      event.preventDefault()
+      return
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
+      this.options.history.redo()
+      event.preventDefault()
+      return
+    }
+
     if (event.key === 'Delete' || event.key === 'Backspace') {
-      this.options.scene.removeSelection()
+      const command = new DeleteSelectionCommand(this.options.scene.getSelection().items)
+      if (!command.isEmpty) {
+        this.options.history.execute(command)
+      }
       event.preventDefault()
     }
   }
@@ -270,5 +293,25 @@ export class InteractionController {
       this.options.canvas,
       this.options.scene.getViewport(),
     )
+  }
+
+  private recordNodeDragHistory(mode: Extract<InteractionMode, { type: 'dragging-node' }>) {
+    const before = mode.origins.map(item => ({
+      nodeId: item.nodeId,
+      position: item.origin,
+    }))
+    const after = mode.origins
+      .map((item) => {
+        const node = this.options.scene.getNode(item.nodeId)
+        if (!node) return null
+        return {
+          nodeId: item.nodeId,
+          position: node.getPosition(),
+        }
+      })
+      .filter((move): move is typeof before[number] => Boolean(move))
+
+    if (!MoveNodesCommand.hasChanges(before, after)) return
+    this.options.history.record(new MoveNodesCommand(before, after))
   }
 }

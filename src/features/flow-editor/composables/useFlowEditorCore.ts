@@ -1,5 +1,6 @@
 import { onBeforeUnmount, shallowRef } from 'vue'
 import { FlowEditorCore } from '../../../core/flow/FlowEditorCore'
+import type { HistoryState } from '../../../core/flow/commands/SceneCommand'
 import type { EditorUiState, SceneEvent, SelectionState } from '../../../core/flow/types/flow'
 
 export interface FlowEditorCanvasElements {
@@ -10,29 +11,48 @@ export interface FlowEditorCanvasElements {
 export function useFlowEditorCore() {
   const core = shallowRef<FlowEditorCore | null>(null)
   const uiState = shallowRef<EditorUiState | null>(null)
+  const historyState = shallowRef<HistoryState>(createEmptyHistoryState())
   let unsubscribe: (() => void) | null = null
+  let unsubscribeHistory: (() => void) | null = null
 
   function mount(elements: FlowEditorCanvasElements) {
     core.value?.dispose()
     unsubscribe?.()
+    unsubscribeHistory?.()
 
     const nextCore = new FlowEditorCore(elements)
     core.value = nextCore
     uiState.value = nextCore.scene.getUiState()
+    historyState.value = nextCore.getHistoryState()
     unsubscribe = nextCore.scene.subscribe((event) => {
       uiState.value = applySceneEvent(uiState.value, event)
     })
+    unsubscribeHistory = nextCore.subscribeHistory((state) => {
+      historyState.value = state
+    })
+  }
+
+  function undo() {
+    core.value?.undo()
+  }
+
+  function redo() {
+    core.value?.redo()
   }
 
   onBeforeUnmount(() => {
     unsubscribe?.()
+    unsubscribeHistory?.()
     core.value?.dispose()
   })
 
   return {
     core,
     uiState,
+    historyState,
     mount,
+    undo,
+    redo,
   }
 }
 
@@ -138,5 +158,12 @@ function createEmptySelectionState(): SelectionState {
   return {
     items: [],
     primary: null,
+  }
+}
+
+function createEmptyHistoryState(): HistoryState {
+  return {
+    canUndo: false,
+    canRedo: false,
   }
 }

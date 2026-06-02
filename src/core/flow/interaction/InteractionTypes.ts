@@ -1,5 +1,6 @@
 import type { NodeId, Point, ViewportData } from '../types/flow'
 import type { SceneManager } from '../scene/SceneManager'
+import type { HistoryManager } from '../commands/HistoryManager'
 
 export type InteractionMode =
   | { type: 'idle' }
@@ -11,5 +12,6 @@ export type InteractionMode =
 export interface InteractionControllerOptions {
   canvas: HTMLCanvasElement
   scene: SceneManager
+  history: HistoryManager
   requestRender: (options?: { background?: boolean; main?: boolean }) => void
 }

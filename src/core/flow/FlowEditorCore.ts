@@ -3,6 +3,9 @@ import { InteractionController } from './interaction/InteractionController'
 import { CanvasLayerManager } from './renderer/CanvasLayerManager'
 import { CanvasRenderer } from './renderer/CanvasRenderer'
 import { SceneManager } from './scene/SceneManager'
+import { CreateNodeCommand } from './commands/CreateNodeCommand'
+import { HistoryManager } from './commands/HistoryManager'
+import type { HistoryState } from './commands/SceneCommand'
 import type { ElementTemplate, FlowNode, Point } from './types/flow'
 import { findElementTemplate } from './constants/elementTemplates'
 import { createId } from './utils/ids'
@@ -16,6 +19,7 @@ export interface FlowEditorCoreOptions {
 export class FlowEditorCore {
   readonly registry = ElementRegistry.createDefault()
   readonly scene = new SceneManager(this.registry)
+  readonly history = new HistoryManager(this.scene)
 
   private layers: CanvasLayerManager
   private renderer: CanvasRenderer
@@ -31,6 +35,7 @@ export class FlowEditorCore {
     this.interaction = new InteractionController({
       canvas: options.mainCanvas,
       scene: this.scene,
+      history: this.history,
       requestRender: options => this.requestRender(options),
     })
 
@@ -76,6 +81,22 @@ export class FlowEditorCore {
   requestMainRender() {
     cancelAnimationFrame(this.mainFrame)
     this.mainFrame = requestAnimationFrame(() => this.renderMain())
+  }
+
+  undo() {
+    this.history.undo()
+  }
+
+  redo() {
+    this.history.redo()
+  }
+
+  getHistoryState(): HistoryState {
+    return this.history.getState()
+  }
+
+  subscribeHistory(listener: (state: HistoryState) => void) {
+    return this.history.subscribe(listener)
   }
 
   private requestRender(options: { background?: boolean; main?: boolean } = { main: true }) {
@@ -152,6 +173,6 @@ export class FlowEditorCore {
       props: { ...(template.defaultProps ?? {}) },
     }
 
-    this.scene.addNode(this.registry.createNode(nodeData))
+    this.history.execute(new CreateNodeCommand(nodeData))
   }
 }

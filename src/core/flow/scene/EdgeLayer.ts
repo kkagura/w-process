@@ -8,21 +8,31 @@ export class EdgeLayer {
     this.edges.set(edge.id, edge)
   }
 
+  addData(edge: FlowEdge) {
+    this.add(new BaseEdge(edge))
+  }
+
   remove(id: EdgeId) {
     this.edges.delete(id)
   }
 
   removeByNode(nodeId: NodeId) {
-    let removedCount = 0
+    return this.removeByNodes([nodeId]).length
+  }
+
+  removeByNodes(nodeIds: NodeId[]) {
+    const nodeIdSet = new Set(nodeIds)
+    const removedEdges: FlowEdge[] = []
 
     for (const edge of this.edges.values()) {
-      if (edge.hasEndpointNode(nodeId)) {
+      const shouldRemove = [...nodeIdSet].some(nodeId => edge.hasEndpointNode(nodeId))
+      if (shouldRemove) {
+        removedEdges.push(edge.serialize())
         this.edges.delete(edge.id)
-        removedCount += 1
       }
     }
 
-    return removedCount
+    return removedEdges
   }
 
   getEdges() {
