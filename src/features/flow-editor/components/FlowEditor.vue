@@ -10,7 +10,7 @@ const { snapshot, mount } = useFlowEditorCore()
 <template>
   <main class="flow-editor">
     <ElementPalette />
-    <FlowCanvas @canvas-ready="mount" />
+    <FlowCanvas :snapshot="snapshot" @canvas-ready="mount" />
     <PropertyPanel :snapshot="snapshot" />
   </main>
 </template>
