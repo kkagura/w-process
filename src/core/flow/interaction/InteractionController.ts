@@ -1,21 +1,16 @@
-import type { NodeId, Point, ViewportData } from '../types/flow'
 import { CoordinateTransformer } from '../viewport/CoordinateTransformer'
-import type { SceneManager } from '../scene/SceneManager'
-
-const MIN_ZOOM = 0.25
-const MAX_ZOOM = 3
-const WHEEL_ZOOM_SENSITIVITY = 0.001
-
-type InteractionMode =
-  | { type: 'idle' }
-  | { type: 'dragging-node'; nodeId: NodeId; start: Point; origin: Point }
-  | { type: 'panning'; start: Point; origin: ViewportData }
-
-export interface InteractionControllerOptions {
-  canvas: HTMLCanvasElement
-  scene: SceneManager
-  requestRender: (options?: { background?: boolean; main?: boolean }) => void
-}
+import type { InteractionControllerOptions, InteractionMode } from './InteractionTypes'
+import {
+  createNodeDragMode,
+  getDraggedNodePosition,
+  getHoveredSelection,
+  getNodeIdFromHit,
+} from './NodeDragInteraction'
+import {
+  getPannedViewport,
+  getZoomedViewport,
+  shouldStartPanning,
+} from './ViewportInteraction'
 
 export class InteractionController {
   private mode: InteractionMode = { type: 'idle' }
@@ -53,7 +48,7 @@ export class InteractionController {
   private handlePointerDown = (event: PointerEvent) => {
     this.options.canvas.focus()
 
-    if (this.shouldStartPanning(event)) {
+    if (shouldStartPanning(event)) {
       this.mode = {
         type: 'panning',
         start: this.getCanvasPoint(event),
@@ -68,19 +63,18 @@ export class InteractionController {
 
     const point = this.getWorldPoint(event)
     const hit = this.options.scene.hitTest(point)
+    const nodeId = getNodeIdFromHit(hit)
 
-    if (hit?.type === 'node' || hit?.type === 'port') {
-      const nodeId = hit.type === 'node' ? hit.id : hit.nodeId
-      const node = this.options.scene.getNode(nodeId)
-      if (!node) return
-
-      this.options.scene.select({ type: 'node', id: nodeId })
-      this.mode = {
-        type: 'dragging-node',
+    if (nodeId) {
+      const mode = createNodeDragMode({
+        scene: this.options.scene,
         nodeId,
         start: point,
-        origin: node.getPosition(),
-      }
+      })
+      if (!mode) return
+
+      this.options.scene.select({ type: 'node', id: nodeId })
+      this.mode = mode
       this.options.canvas.setPointerCapture(event.pointerId)
       this.options.requestRender()
       return
@@ -93,11 +87,7 @@ export class InteractionController {
   private handlePointerMove = (event: PointerEvent) => {
     if (this.mode.type === 'panning') {
       const current = this.getCanvasPoint(event)
-      this.options.scene.setViewport({
-        ...this.mode.origin,
-        x: this.mode.origin.x + current.x - this.mode.start.x,
-        y: this.mode.origin.y + current.y - this.mode.start.y,
-      })
+      this.options.scene.setViewport(getPannedViewport(this.mode, current))
       this.options.requestRender({ background: true, main: true })
       event.preventDefault()
       return
@@ -106,20 +96,13 @@ export class InteractionController {
     const point = this.getWorldPoint(event)
 
     if (this.mode.type === 'dragging-node') {
-      this.options.scene.moveNode(this.mode.nodeId, {
-        x: this.mode.origin.x + point.x - this.mode.start.x,
-        y: this.mode.origin.y + point.y - this.mode.start.y,
-      })
+      this.options.scene.moveNode(this.mode.nodeId, getDraggedNodePosition(this.mode, point))
       this.options.requestRender()
       return
     }
 
     const hit = this.options.scene.hitTest(point)
-    if (hit?.type === 'node') {
-      this.options.scene.setHovered({ type: 'node', id: hit.id })
-    } else {
-      this.options.scene.setHovered(null)
-    }
+    this.options.scene.setHovered(getHoveredSelection(hit))
   }
 
   private handlePointerUp = (event: PointerEvent) => {
@@ -168,25 +151,16 @@ export class InteractionController {
     event.preventDefault()
     this.options.canvas.focus()
 
-    const canvasPoint = CoordinateTransformer.clientToCanvas(event, this.options.canvas)
     const viewport = this.options.scene.getViewport()
-    const nextZoom = this.clampZoom(
-      viewport.zoom * Math.exp(-event.deltaY * WHEEL_ZOOM_SENSITIVITY),
-    )
-
-    if (nextZoom === viewport.zoom) return
-
-    const worldPoint = CoordinateTransformer.canvasToWorld(canvasPoint, viewport)
-    this.options.scene.setViewport({
-      x: canvasPoint.x - worldPoint.x * nextZoom,
-      y: canvasPoint.y - worldPoint.y * nextZoom,
-      zoom: nextZoom,
+    const nextViewport = getZoomedViewport({
+      canvas: this.options.canvas,
+      event,
+      viewport,
     })
-    this.options.requestRender({ background: true, main: true })
-  }
+    if (!nextViewport) return
 
-  private shouldStartPanning(event: PointerEvent) {
-    return event.button === 2
+    this.options.scene.setViewport(nextViewport)
+    this.options.requestRender({ background: true, main: true })
   }
 
   private resetPointerMode() {
@@ -199,10 +173,6 @@ export class InteractionController {
 
   private setCursor(cursor: string) {
     this.options.canvas.style.cursor = cursor
-  }
-
-  private clampZoom(zoom: number) {
-    return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom))
   }
 
   private getCanvasPoint(event: PointerEvent) {
