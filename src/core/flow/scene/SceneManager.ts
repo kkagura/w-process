@@ -101,12 +101,30 @@ export class SceneManager {
   }
 
   selectMany(items: SelectableRef[], primary = items[0] ?? null) {
-    this.selection = createSelectionState(items, primary)
-    this.emit({
-      type: 'selection-changed',
-      selection: this.selection,
-      selectedNode: this.getSelectedNodeData(),
-    })
+    this.updateSelection(createSelectionState(items, primary))
+  }
+
+  addSelection(item: SelectableRef) {
+    if (this.isSelected(item)) {
+      this.updateSelection(createSelectionState(this.selection.items, item))
+      return
+    }
+
+    this.updateSelection(createSelectionState([...this.selection.items, item], item))
+  }
+
+  toggleSelection(item: SelectableRef) {
+    if (!this.isSelected(item)) {
+      this.addSelection(item)
+      return
+    }
+
+    const nextItems = this.selection.items.filter(selectedItem => !this.isSameSelection(selectedItem, item))
+    const nextPrimary = this.isSameSelection(this.selection.primary, item)
+      ? nextItems[0] ?? null
+      : this.selection.primary
+
+    this.updateSelection(createSelectionState(nextItems, nextPrimary))
   }
 
   selectNodesInRect(rect: Rect) {
@@ -256,6 +274,15 @@ export class SceneManager {
     for (const listener of this.listeners) listener(event)
   }
 
+  private updateSelection(selection: SelectionState) {
+    this.selection = selection
+    this.emit({
+      type: 'selection-changed',
+      selection: this.selection,
+      selectedNode: this.getSelectedNodeData(),
+    })
+  }
+
   private isSameSelection(left: SelectableRef | null, right: SelectableRef | null) {
     if (!left || !right) return left === right
     return left.type === right.type && left.id === right.id
@@ -263,8 +290,27 @@ export class SceneManager {
 }
 
 function createSelectionState(items: SelectableRef[] = [], primary: SelectableRef | null = items[0] ?? null): SelectionState {
+  const uniqueItems = uniqueSelectableRefs(items)
+  const normalizedPrimary = primary && uniqueItems.some(item => isSameSelectableRef(item, primary))
+    ? primary
+    : uniqueItems[0] ?? null
+
   return {
-    items: [...items],
-    primary,
+    items: uniqueItems,
+    primary: normalizedPrimary,
   }
+}
+
+function uniqueSelectableRefs(items: SelectableRef[]) {
+  const uniqueItems: SelectableRef[] = []
+  for (const item of items) {
+    if (!uniqueItems.some(uniqueItem => isSameSelectableRef(uniqueItem, item))) {
+      uniqueItems.push(item)
+    }
+  }
+  return uniqueItems
+}
+
+function isSameSelectableRef(left: SelectableRef, right: SelectableRef) {
+  return left.type === right.type && left.id === right.id
 }

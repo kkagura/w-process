@@ -76,7 +76,25 @@ export class InteractionController {
     const hit = this.options.scene.hitTest(point)
     const nodeId = getNodeIdFromHit(hit)
 
-    if (nodeId) {
+    if (nodeId && event.button === 0) {
+      const selection = { type: 'node' as const, id: nodeId }
+
+      if (event.shiftKey) {
+        this.options.scene.addSelection(selection)
+        this.mode = { type: 'idle' }
+        this.options.requestRender()
+        event.preventDefault()
+        return
+      }
+
+      if (event.ctrlKey || event.metaKey) {
+        this.options.scene.toggleSelection(selection)
+        this.mode = { type: 'idle' }
+        this.options.requestRender()
+        event.preventDefault()
+        return
+      }
+
       const mode = createNodeDragMode({
         scene: this.options.scene,
         nodeId,
@@ -84,7 +102,7 @@ export class InteractionController {
       })
       if (!mode) return
 
-      this.options.scene.select({ type: 'node', id: nodeId })
+      this.options.scene.select(selection)
       this.mode = mode
       this.options.canvas.setPointerCapture(event.pointerId)
       this.options.requestRender()
