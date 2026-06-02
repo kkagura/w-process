@@ -12,8 +12,25 @@ export class EdgeLayer {
     this.add(new BaseEdge(edge))
   }
 
+  get(id: EdgeId) {
+    return this.edges.get(id) ?? null
+  }
+
   remove(id: EdgeId) {
+    const edge = this.edges.get(id)
+    if (!edge) return null
+
     this.edges.delete(id)
+    return edge.serialize()
+  }
+
+  hasConnection(edge: FlowEdge) {
+    return this.getEdges().some(existing => (
+      existing.source.nodeId === edge.source.nodeId
+      && existing.source.portId === edge.source.portId
+      && existing.target.nodeId === edge.target.nodeId
+      && existing.target.portId === edge.target.portId
+    ))
   }
 
   removeByNode(nodeId: NodeId) {

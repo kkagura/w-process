@@ -1,12 +1,16 @@
 import { BaseNode } from '../elements/BaseNode'
+import { BaseEdge } from '../elements/BaseEdge'
 import { ElementRegistry } from '../elements/ElementRegistry'
 import { EdgeLayer } from './EdgeLayer'
 import { RootBox } from './RootBox'
 import type {
   BoxId,
+  EdgeId,
+  Endpoint,
   FlowEdge,
   FlowDocument,
   FlowNode,
+  FlowPort,
   FlowTheme,
   HitTestResult,
   NodeMove,
@@ -71,6 +75,21 @@ export class SceneManager {
     this.addNode(this.registry.createNode(nodeData), parentBoxId)
   }
 
+  addEdgeData(edgeData: FlowEdge) {
+    if (!this.canConnect(edgeData.source, edgeData.target)) return false
+
+    const edge = this.registry.createEdge(edgeData)
+    this.edgeLayer.add(edge)
+    this.selection = createSelectionState([{ type: 'edge', id: edge.id }])
+    this.hovered = null
+    this.emit({
+      type: 'edge-added',
+      edge: edge.serialize(),
+      selection: this.selection,
+    })
+    return true
+  }
+
   moveNode(id: NodeId, position: Point) {
     const node = this.rootBox.find(id)
     if (node instanceof BaseNode) {
@@ -117,12 +136,55 @@ export class SceneManager {
       return
     }
 
+    const edgeIds = this.selection.items
+      .filter((item): item is Extract<SelectableRef, { type: 'edge' }> => item.type === 'edge')
+      .map(item => item.id)
+
+    if (edgeIds.length > 0) {
+      this.removeEdges(edgeIds)
+      return
+    }
+
     this.selection = createSelectionState()
     this.hovered = null
     this.emit({
       type: 'selection-changed',
       selection: this.selection,
       selectedNode: null,
+      selectedEdge: null,
+    })
+  }
+
+  removeEdges(edgeIds: EdgeId[]) {
+    const removedEdges: FlowEdge[] = []
+
+    for (const edgeId of edgeIds) {
+      const removed = this.edgeLayer.remove(edgeId)
+      if (removed) removedEdges.push(removed)
+    }
+
+    if (removedEdges.length > 0) {
+      this.selection = createSelectionState()
+      this.hovered = null
+      this.emit({
+        type: 'edges-removed',
+        edgeIds: removedEdges.map(edge => edge.id),
+      })
+    }
+
+    return removedEdges
+  }
+
+  restoreEdges(edges: FlowEdge[], selection = createSelectionState()) {
+    for (const edge of edges) {
+      this.edgeLayer.addData(edge)
+    }
+
+    this.selection = selection
+    this.hovered = null
+    this.emit({
+      type: 'document-loaded',
+      uiState: this.getUiState(),
     })
   }
 
@@ -262,6 +324,17 @@ export class SceneManager {
       }
     }
 
+    const edges = [...this.getEdges()].reverse()
+    for (const edge of edges) {
+      const edgeContext = this.createEdgeDrawContext(edge)
+      if (!edgeContext) continue
+
+      const view = this.registry.getEdgeView(edge.id)
+      if (view.hitTest(edge, point, edgeContext)) {
+        return { type: 'edge', id: edge.id }
+      }
+    }
+
     return null
   }
 
@@ -290,6 +363,58 @@ export class SceneManager {
 
   getEdges() {
     return this.edgeLayer.getEdges()
+  }
+
+  getEdgeData(id: EdgeId) {
+    return this.edgeLayer.get(id)?.serialize() ?? null
+  }
+
+  canConnect(source: Endpoint, target: Endpoint) {
+    if (source.nodeId === target.nodeId) return false
+
+    const sourcePort = this.getEndpointPort(source)
+    const targetPort = this.getEndpointPort(target)
+    if (!sourcePort || !targetPort) return false
+    if (sourcePort.direction !== 'output') return false
+    if (targetPort.direction !== 'input') return false
+
+    return !this.edgeLayer.hasConnection({
+      id: '__connection-check__',
+      source,
+      target,
+    })
+  }
+
+  getEndpointPort(endpoint: Endpoint): FlowPort | null {
+    const node = this.getNode(endpoint.nodeId)
+    if (!node) return null
+    return node.getPorts().find(port => port.id === endpoint.portId) ?? null
+  }
+
+  getEndpointPoint(endpoint: Endpoint): Point | null {
+    const node = this.getNode(endpoint.nodeId)
+    if (!node) return null
+
+    const port = node.getPorts().find(item => item.id === endpoint.portId)
+    if (!port) return null
+
+    const view = this.registry.getNodeView(node.type)
+    return view.getPortPosition(node, port)
+  }
+
+  createEdgeDrawContext(edge: BaseEdge) {
+    const sourcePoint = this.getEndpointPoint(edge.source)
+    const targetPoint = this.getEndpointPoint(edge.target)
+    if (!sourcePoint || !targetPoint) return null
+
+    return {
+      selected: this.isSelected({ type: 'edge', id: edge.id }),
+      hovered: this.isHovered({ type: 'edge', id: edge.id }),
+      sourcePoint,
+      targetPoint,
+      theme: this.getTheme(),
+      viewport: this.getViewport(),
+    }
   }
 
   getViewport() {
@@ -350,6 +475,7 @@ export class SceneManager {
       hovered: this.hovered,
       viewport: this.getViewport(),
       selectedNode: this.getSelectedNodeData(),
+      selectedEdge: this.getSelectedEdgeData(),
       summary: this.getCanvasSummary(),
     }
   }
@@ -357,6 +483,11 @@ export class SceneManager {
   getSelectedNodeData() {
     if (this.selection.primary?.type !== 'node') return null
     return this.getNodeData(this.selection.primary.id)
+  }
+
+  getSelectedEdgeData() {
+    if (this.selection.primary?.type !== 'edge') return null
+    return this.getEdgeData(this.selection.primary.id)
   }
 
   getNodeData(id: NodeId) {
@@ -385,6 +516,7 @@ export class SceneManager {
       type: 'selection-changed',
       selection: this.selection,
       selectedNode: this.getSelectedNodeData(),
+      selectedEdge: this.getSelectedEdgeData(),
     })
   }
 

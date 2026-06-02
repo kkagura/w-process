@@ -1,10 +1,11 @@
-import type { NodeId, Point, ViewportData } from '../types/flow'
+import type { Endpoint, NodeId, Point, ViewportData } from '../types/flow'
 import type { SceneManager } from '../scene/SceneManager'
 import type { HistoryManager } from '../commands/HistoryManager'
 
 export type InteractionMode =
   | { type: 'idle' }
   | { type: 'dragging-node'; nodeId: NodeId; start: Point; origins: Array<{ nodeId: NodeId; origin: Point }> }
+  | { type: 'connecting'; source: Endpoint; current: Point }
   | { type: 'panning'; start: Point; origin: ViewportData }
   | { type: 'pending-selection'; startCanvas: Point; startWorld: Point }
   | { type: 'selecting'; start: Point; current: Point }

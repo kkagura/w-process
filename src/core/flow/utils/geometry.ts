@@ -4,6 +4,23 @@ export function distance(a: Point, b: Point) {
   return Math.hypot(a.x - b.x, a.y - b.y)
 }
 
+export function distanceToSegment(point: Point, start: Point, end: Point) {
+  const dx = end.x - start.x
+  const dy = end.y - start.y
+  const lengthSquared = dx * dx + dy * dy
+
+  if (lengthSquared === 0) return distance(point, start)
+
+  const t = Math.max(0, Math.min(1, (
+    (point.x - start.x) * dx + (point.y - start.y) * dy
+  ) / lengthSquared))
+
+  return distance(point, {
+    x: start.x + t * dx,
+    y: start.y + t * dy,
+  })
+}
+
 export function containsPoint(rect: Rect, point: Point) {
   return point.x >= rect.x
     && point.x <= rect.x + rect.width

@@ -7,8 +7,10 @@ const props = defineProps<{
 }>()
 
 const selectedNode = computed(() => props.uiState?.selectedNode ?? null)
+const selectedEdge = computed(() => props.uiState?.selectedEdge ?? null)
 const selectedCount = computed(() => props.uiState?.selection.items.length ?? 0)
 const showSingleNode = computed(() => selectedCount.value <= 1 && selectedNode.value)
+const showSingleEdge = computed(() => selectedCount.value <= 1 && selectedEdge.value)
 </script>
 
 <template>
@@ -37,6 +39,24 @@ const showSingleNode = computed(() => selectedCount.value <= 1 && selectedNode.v
         <div>
           <dt>端口</dt>
           <dd>{{ selectedNode.ports.length }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div v-else-if="showSingleEdge && selectedEdge" class="property-section">
+      <div class="property-title">Edge</div>
+      <dl class="property-list">
+        <div>
+          <dt>ID</dt>
+          <dd>{{ selectedEdge.id }}</dd>
+        </div>
+        <div>
+          <dt>Source</dt>
+          <dd>{{ selectedEdge.source.nodeId }} / {{ selectedEdge.source.portId }}</dd>
+        </div>
+        <div>
+          <dt>Target</dt>
+          <dd>{{ selectedEdge.target.nodeId }} / {{ selectedEdge.target.portId }}</dd>
         </div>
       </dl>
     </div>

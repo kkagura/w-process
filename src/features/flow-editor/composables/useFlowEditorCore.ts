@@ -69,6 +69,7 @@ function applySceneEvent(current: EditorUiState | null, event: SceneEvent): Edit
       selection: event.selection,
       hovered: null,
       selectedNode: event.node,
+      selectedEdge: null,
       summary: {
         ...state.summary,
         nodeCount: state.summary.nodeCount + 1,
@@ -109,9 +110,38 @@ function applySceneEvent(current: EditorUiState | null, event: SceneEvent): Edit
       selection: createEmptySelectionState(),
       hovered: null,
       selectedNode: null,
+      selectedEdge: null,
       summary: {
         nodeCount: Math.max(0, state.summary.nodeCount - event.nodeIds.length),
         edgeCount: Math.max(0, state.summary.edgeCount - event.removedEdgeCount),
+      },
+    }
+  }
+
+  if (event.type === 'edge-added') {
+    return {
+      ...state,
+      selection: event.selection,
+      hovered: null,
+      selectedNode: null,
+      selectedEdge: event.edge,
+      summary: {
+        ...state.summary,
+        edgeCount: state.summary.edgeCount + 1,
+      },
+    }
+  }
+
+  if (event.type === 'edges-removed') {
+    return {
+      ...state,
+      selection: createEmptySelectionState(),
+      hovered: null,
+      selectedNode: null,
+      selectedEdge: null,
+      summary: {
+        ...state.summary,
+        edgeCount: Math.max(0, state.summary.edgeCount - event.edgeIds.length),
       },
     }
   }
@@ -121,6 +151,7 @@ function applySceneEvent(current: EditorUiState | null, event: SceneEvent): Edit
       ...state,
       selection: event.selection,
       selectedNode: event.selectedNode,
+      selectedEdge: event.selectedEdge,
     }
   }
 
@@ -147,6 +178,7 @@ function createEmptyUiState(): EditorUiState {
     hovered: null,
     viewport: { x: 0, y: 0, zoom: 1 },
     selectedNode: null,
+    selectedEdge: null,
     summary: {
       nodeCount: 0,
       edgeCount: 0,

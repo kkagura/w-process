@@ -1,6 +1,9 @@
 import { CoordinateTransformer } from '../viewport/CoordinateTransformer'
+import { CreateEdgeCommand } from '../commands/CreateEdgeCommand'
 import { DeleteSelectionCommand } from '../commands/DeleteSelectionCommand'
 import { MoveNodesCommand } from '../commands/MoveNodesCommand'
+import type { Endpoint } from '../types/flow'
+import { createId } from '../utils/ids'
 import type { InteractionControllerOptions, InteractionMode } from './InteractionTypes'
 import {
   createNodeDragMode,
@@ -46,6 +49,24 @@ export class InteractionController {
       : null
   }
 
+  getPendingEdge() {
+    if (this.mode.type !== 'connecting') return null
+
+    const sourcePoint = this.options.scene.getEndpointPoint(this.mode.source)
+    if (!sourcePoint) return null
+
+    const hit = this.options.scene.hitTest(this.mode.current)
+    const target = hit?.type === 'port'
+      ? { nodeId: hit.nodeId, portId: hit.portId }
+      : null
+
+    return {
+      sourcePoint,
+      currentPoint: this.mode.current,
+      valid: target ? this.options.scene.canConnect(this.mode.source, target) : false,
+    }
+  }
+
   dispose() {
     this.options.canvas.removeEventListener('pointerdown', this.handlePointerDown)
     this.options.canvas.removeEventListener('pointermove', this.handlePointerMove)
@@ -76,6 +97,24 @@ export class InteractionController {
 
     const point = this.getWorldPoint(event)
     const hit = this.options.scene.hitTest(point)
+
+    if (hit?.type === 'port' && event.button === 0) {
+      const source = { nodeId: hit.nodeId, portId: hit.portId }
+      const sourcePort = this.options.scene.getEndpointPort(source)
+      if (sourcePort?.direction === 'output') {
+        this.mode = {
+          type: 'connecting',
+          source,
+          current: point,
+        }
+        this.options.scene.setHovered(null)
+        this.options.canvas.setPointerCapture(event.pointerId)
+        this.options.requestRender()
+        event.preventDefault()
+        return
+      }
+    }
+
     const nodeId = getNodeIdFromHit(hit)
 
     if (nodeId && event.button === 0) {
@@ -142,6 +181,16 @@ export class InteractionController {
 
     const point = this.getWorldPoint(event)
 
+    if (this.mode.type === 'connecting') {
+      this.mode = {
+        ...this.mode,
+        current: point,
+      }
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
     if (this.mode.type === 'dragging-node') {
       this.options.scene.moveNodes(getDraggedNodeMoves(this.mode, point))
       this.options.requestRender()
@@ -177,6 +226,15 @@ export class InteractionController {
   }
 
   private handlePointerUp = (event: PointerEvent) => {
+    if (this.mode.type === 'connecting') {
+      this.createEdgeFromConnection(this.mode)
+      this.options.canvas.releasePointerCapture(event.pointerId)
+      this.mode = { type: 'idle' }
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
     if (this.mode.type === 'dragging-node') {
       this.recordNodeDragHistory(this.mode)
       this.options.canvas.releasePointerCapture(event.pointerId)
@@ -293,6 +351,24 @@ export class InteractionController {
       this.options.canvas,
       this.options.scene.getViewport(),
     )
+  }
+
+  private createEdgeFromConnection(mode: Extract<InteractionMode, { type: 'connecting' }>) {
+    const hit = this.options.scene.hitTest(mode.current)
+    if (hit?.type !== 'port') return
+
+    const target: Endpoint = {
+      nodeId: hit.nodeId,
+      portId: hit.portId,
+    }
+    if (!this.options.scene.canConnect(mode.source, target)) return
+
+    this.options.history.execute(new CreateEdgeCommand({
+      id: createId('edge'),
+      source: mode.source,
+      target,
+      props: {},
+    }))
   }
 
   private recordNodeDragHistory(mode: Extract<InteractionMode, { type: 'dragging-node' }>) {

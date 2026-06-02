@@ -11,6 +11,14 @@ export class BaseEdge {
     return this.data.id
   }
 
+  get source() {
+    return this.data.source
+  }
+
+  get target() {
+    return this.data.target
+  }
+
   hasEndpointNode(nodeId: NodeId) {
     return this.data.source.nodeId === nodeId || this.data.target.nodeId === nodeId
   }

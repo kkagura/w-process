@@ -3,10 +3,16 @@ import type { BaseNode } from '../elements/BaseNode'
 import type { SceneManager } from '../scene/SceneManager'
 import type { FlowTheme, NodeDrawContext, Rect, ViewportData } from '../types/flow'
 import type { CanvasLayerManager } from './CanvasLayerManager'
+import { getBezierControls } from '../views/BaseEdgeView'
 
 export interface CanvasInteractionState {
   draggingNodeId: string | null
   selectionRect: Rect | null
+  pendingEdge: {
+    sourcePoint: { x: number; y: number }
+    currentPoint: { x: number; y: number }
+    valid: boolean
+  } | null
 }
 
 export interface RenderContext {
@@ -45,10 +51,48 @@ export class CanvasRenderer {
     ctx.translate(viewport.x, viewport.y)
     ctx.scale(viewport.zoom, viewport.zoom)
 
+    this.drawEdges(ctx, context)
+    this.drawPendingEdge(ctx, context)
     this.drawBoxes(ctx, context)
     this.drawNodes(ctx, context)
     this.drawSelectionRect(ctx, context)
 
+    ctx.restore()
+  }
+
+  private drawEdges(ctx: CanvasRenderingContext2D, context: RenderContext) {
+    for (const edge of context.scene.getEdges()) {
+      const edgeContext = context.scene.createEdgeDrawContext(edge)
+      if (!edgeContext) continue
+
+      const edgeView = this.registry.getEdgeView(edge.id)
+      edgeView.draw(ctx, edge, edgeContext)
+    }
+  }
+
+  private drawPendingEdge(ctx: CanvasRenderingContext2D, context: RenderContext) {
+    const pendingEdge = context.interaction.pendingEdge
+    if (!pendingEdge) return
+
+    const viewport = context.scene.getViewport()
+    const theme = context.scene.getTheme()
+    const [controlA, controlB] = getBezierControls(pendingEdge.sourcePoint, pendingEdge.currentPoint)
+
+    ctx.save()
+    ctx.beginPath()
+    ctx.moveTo(pendingEdge.sourcePoint.x, pendingEdge.sourcePoint.y)
+    ctx.bezierCurveTo(
+      controlA.x,
+      controlA.y,
+      controlB.x,
+      controlB.y,
+      pendingEdge.currentPoint.x,
+      pendingEdge.currentPoint.y,
+    )
+    ctx.strokeStyle = pendingEdge.valid ? theme.colors.selected : '#ef4444'
+    ctx.lineWidth = 1.8 / viewport.zoom
+    ctx.setLineDash([6 / viewport.zoom, 5 / viewport.zoom])
+    ctx.stroke()
     ctx.restore()
   }
 

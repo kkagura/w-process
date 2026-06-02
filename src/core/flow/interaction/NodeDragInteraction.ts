@@ -58,5 +58,9 @@ export function getHoveredSelection(hit: HitTestResult): SelectableRef | null {
     return { type: 'node', id: hit.id }
   }
 
+  if (hit?.type === 'edge') {
+    return { type: 'edge', id: hit.id }
+  }
+
   return null
 }

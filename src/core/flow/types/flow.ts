@@ -113,6 +113,7 @@ export interface EditorUiState {
   hovered: SelectableRef | null
   viewport: ViewportData
   selectedNode: FlowNode | null
+  selectedEdge: FlowEdge | null
   summary: SceneSummary
 }
 
@@ -121,7 +122,9 @@ export type SceneEvent =
   | { type: 'node-moved'; nodeId: NodeId; position: Point }
   | { type: 'nodes-moved'; moves: NodeMove[] }
   | { type: 'nodes-removed'; nodeIds: NodeId[]; removedEdgeCount: number }
-  | { type: 'selection-changed'; selection: SelectionState; selectedNode: FlowNode | null }
+  | { type: 'edge-added'; edge: FlowEdge; selection: SelectionState }
+  | { type: 'edges-removed'; edgeIds: EdgeId[] }
+  | { type: 'selection-changed'; selection: SelectionState; selectedNode: FlowNode | null; selectedEdge: FlowEdge | null }
   | { type: 'hover-changed'; hovered: SelectableRef | null }
   | { type: 'viewport-changed'; viewport: ViewportData }
   | { type: 'document-loaded'; uiState: EditorUiState }
@@ -166,6 +169,8 @@ export interface BoxDrawContext {
 export interface EdgeDrawContext {
   selected: boolean
   hovered: boolean
+  sourcePoint: Point
+  targetPoint: Point
   theme: FlowTheme
   viewport: ViewportData
 }
