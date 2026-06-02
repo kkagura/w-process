@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
+import FlowEditor from './features/flow-editor/components/FlowEditor.vue'
 </script>
 
 <template>
-  <HelloWorld />
+  <FlowEditor />
 </template>

@@ -1,0 +1,158 @@
+export type NodeId = string
+export type PortId = string
+export type EdgeId = string
+export type BoxId = string
+
+export type PortDirection = 'input' | 'output'
+
+export interface Point {
+  x: number
+  y: number
+}
+
+export interface Size {
+  width: number
+  height: number
+}
+
+export interface Rect extends Point, Size {}
+
+export interface ViewportData {
+  x: number
+  y: number
+  zoom: number
+}
+
+export interface PortTemplate {
+  id: string
+  label: string
+  direction: PortDirection
+  offset: Point
+}
+
+export interface ElementTemplate {
+  type: string
+  label: string
+  defaultSize: Size
+  ports: PortTemplate[]
+  defaultProps?: Record<string, unknown>
+}
+
+export interface FlowPort {
+  id: PortId
+  nodeId: NodeId
+  templateId: string
+  label: string
+  direction: PortDirection
+  offset: Point
+}
+
+export interface FlowNode {
+  id: NodeId
+  type: string
+  label: string
+  position: Point
+  size: Size
+  ports: FlowPort[]
+  props: Record<string, unknown>
+}
+
+export interface Endpoint {
+  nodeId: NodeId
+  portId: PortId
+}
+
+export interface FlowEdge {
+  id: EdgeId
+  source: Endpoint
+  target: Endpoint
+  label?: string
+  props?: Record<string, unknown>
+}
+
+export type SceneElementData = FlowNode | BoxData
+
+export interface BoxData {
+  id: BoxId
+  type: 'root' | 'group' | 'swimlane' | 'subflow'
+  label?: string
+  position: Point
+  size: Size
+  children: SceneElementData[]
+  props?: Record<string, unknown>
+}
+
+export interface FlowDocument {
+  root: BoxData
+  edges: FlowEdge[]
+  viewport?: ViewportData
+}
+
+export type Selection =
+  | { type: 'node'; id: NodeId }
+  | { type: 'edge'; id: EdgeId }
+  | { type: 'box'; id: BoxId }
+  | null
+
+export interface SceneSnapshot {
+  document: FlowDocument
+  selection: Selection
+  hovered: Selection
+}
+
+export type HitTestResult =
+  | { type: 'port'; nodeId: NodeId; portId: PortId }
+  | { type: 'node'; id: NodeId }
+  | { type: 'box'; id: BoxId }
+  | { type: 'edge'; id: EdgeId }
+  | null
+
+export interface FlowTheme {
+  colors: {
+    canvas: string
+    grid: string
+    nodeFill: string
+    nodeBorder: string
+    nodeText: string
+    portFill: string
+    selected: string
+    hovered: string
+  }
+}
+
+export interface NodeDrawContext {
+  selected: boolean
+  hovered: boolean
+  dragging: boolean
+  connecting: boolean
+  disabled: boolean
+  theme: FlowTheme
+  viewport: ViewportData
+}
+
+export interface BoxDrawContext {
+  selected: boolean
+  hovered: boolean
+  theme: FlowTheme
+  viewport: ViewportData
+}
+
+export interface EdgeDrawContext {
+  selected: boolean
+  hovered: boolean
+  theme: FlowTheme
+  viewport: ViewportData
+}
+
+export const defaultTheme: FlowTheme = {
+  colors: {
+    canvas: '#f8fafc',
+    grid: '#e2e8f0',
+    nodeFill: '#ffffff',
+    nodeBorder: '#94a3b8',
+    nodeText: '#111827',
+    portFill: '#2563eb',
+    selected: '#2563eb',
+    hovered: '#0ea5e9',
+  },
+}
