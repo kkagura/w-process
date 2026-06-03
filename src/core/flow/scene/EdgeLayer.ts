@@ -1,5 +1,5 @@
 import { BaseEdge } from '../elements/BaseEdge'
-import type { EdgeId, FlowEdge, NodeId } from '../types/flow'
+import type { EdgeId, Endpoint, FlowEdge, NodeId } from '../types/flow'
 
 export class EdgeLayer {
   private edges = new Map<EdgeId, BaseEdge>()
@@ -26,10 +26,11 @@ export class EdgeLayer {
 
   hasConnection(edge: FlowEdge) {
     return this.getEdges().some(existing => (
-      existing.source.nodeId === edge.source.nodeId
-      && existing.source.portId === edge.source.portId
-      && existing.target.nodeId === edge.target.nodeId
-      && existing.target.portId === edge.target.portId
+      isSameEndpoint(existing.source, edge.source)
+      && isSameEndpoint(existing.target, edge.target)
+    ) || (
+      isSameEndpoint(existing.source, edge.target)
+      && isSameEndpoint(existing.target, edge.source)
     ))
   }
 
@@ -59,4 +60,8 @@ export class EdgeLayer {
   serialize(): FlowEdge[] {
     return this.getEdges().map(edge => edge.serialize())
   }
+}
+
+function isSameEndpoint(left: Endpoint, right: Endpoint) {
+  return left.nodeId === right.nodeId && left.portId === right.portId
 }

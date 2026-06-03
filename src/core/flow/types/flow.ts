@@ -3,8 +3,6 @@ export type PortId = string
 export type EdgeId = string
 export type BoxId = string
 
-export type PortDirection = 'input' | 'output'
-
 export interface Point {
   x: number
   y: number
@@ -26,7 +24,6 @@ export interface ViewportData {
 export interface PortTemplate {
   id: string
   label: string
-  direction: PortDirection
   offset: Point
 }
 
@@ -43,7 +40,6 @@ export interface FlowPort {
   nodeId: NodeId
   templateId: string
   label: string
-  direction: PortDirection
   offset: Point
 }
 

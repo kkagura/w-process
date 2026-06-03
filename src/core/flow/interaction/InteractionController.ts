@@ -98,10 +98,28 @@ export class InteractionController {
     const point = this.getWorldPoint(event)
     const hit = this.options.scene.hitTest(point)
 
+    if (hit?.type === 'edge' && event.button === 0) {
+      const selection = { type: 'edge' as const, id: hit.id }
+
+      if (event.ctrlKey || event.metaKey) {
+        this.options.scene.toggleSelection(selection)
+      }
+      else if (event.shiftKey) {
+        this.options.scene.addSelection(selection)
+      }
+      else {
+        this.options.scene.select(selection)
+      }
+
+      this.mode = { type: 'idle' }
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
     if (hit?.type === 'port' && event.button === 0) {
       const source = { nodeId: hit.nodeId, portId: hit.portId }
-      const sourcePort = this.options.scene.getEndpointPort(source)
-      if (sourcePort?.direction === 'output') {
+      if (this.options.scene.getEndpointPort(source)) {
         this.mode = {
           type: 'connecting',
           source,

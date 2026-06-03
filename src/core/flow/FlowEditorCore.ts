@@ -169,7 +169,6 @@ export class FlowEditorCore {
         nodeId,
         templateId: port.id,
         label: port.label,
-        direction: port.direction,
         offset: port.offset,
       })),
       props: { ...(template.defaultProps ?? {}) },

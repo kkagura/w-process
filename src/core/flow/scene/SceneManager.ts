@@ -370,13 +370,11 @@ export class SceneManager {
   }
 
   canConnect(source: Endpoint, target: Endpoint) {
-    if (source.nodeId === target.nodeId) return false
+    if (source.nodeId === target.nodeId && source.portId === target.portId) return false
 
     const sourcePort = this.getEndpointPort(source)
     const targetPort = this.getEndpointPort(target)
     if (!sourcePort || !targetPort) return false
-    if (sourcePort.direction !== 'output') return false
-    if (targetPort.direction !== 'input') return false
 
     return !this.edgeLayer.hasConnection({
       id: '__connection-check__',
