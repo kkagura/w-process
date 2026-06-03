@@ -17,6 +17,7 @@ interface Emits {
   }]
   undo: []
   redo: []
+  save: []
 }
 
 const props = defineProps<Props>()
@@ -33,6 +34,7 @@ const nodeCount = computed(() => props.uiState?.summary.nodeCount ?? 0)
 const edgeCount = computed(() => props.uiState?.summary.edgeCount ?? 0)
 const canUndo = computed(() => props.historyState.canUndo)
 const canRedo = computed(() => props.historyState.canRedo)
+const dirty = computed(() => props.historyState.dirty)
 
 onMounted(() => {
   if (!backgroundCanvas.value || !mainCanvas.value) return
@@ -76,8 +78,10 @@ function updateCanvasSize() {
       <CanvasToolbar
         :can-undo="canUndo"
         :can-redo="canRedo"
+        :dirty="dirty"
         @undo="emit('undo')"
         @redo="emit('redo')"
+        @save="emit('save')"
       />
       <CanvasStatusBar
         :zoom="viewport.zoom"

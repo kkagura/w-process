@@ -2,11 +2,13 @@
 interface Props {
   canUndo: boolean
   canRedo: boolean
+  dirty: boolean
 }
 
 interface Emits {
   undo: []
   redo: []
+  save: []
 }
 
 defineProps<Props>()
@@ -32,6 +34,15 @@ const emit = defineEmits<Emits>()
       @click="emit('redo')"
     >
       Redo
+    </button>
+    <button
+      class="toolbar-button"
+      :class="{ 'toolbar-button-dirty': dirty }"
+      type="button"
+      title="Save"
+      @click="emit('save')"
+    >
+      Save
     </button>
   </div>
 </template>
@@ -62,6 +73,11 @@ const emit = defineEmits<Emits>()
 
 .toolbar-button:hover:not(:disabled) {
   border-color: #0f766e;
+}
+
+.toolbar-button-dirty {
+  border-color: #2563eb;
+  color: #1d4ed8;
 }
 
 .toolbar-button:disabled {

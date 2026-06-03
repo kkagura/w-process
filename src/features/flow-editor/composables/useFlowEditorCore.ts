@@ -1,7 +1,7 @@
 import { onBeforeUnmount, shallowRef } from 'vue'
 import { FlowEditorCore } from '../../../core/flow/FlowEditorCore'
 import type { HistoryState } from '../../../core/flow/commands/SceneCommand'
-import type { EditorUiState, SceneEvent, SelectionState } from '../../../core/flow/types/flow'
+import type { EditorUiState, FlowDocument, SceneEvent, SelectionState } from '../../../core/flow/types/flow'
 
 export interface FlowEditorCanvasElements {
   backgroundCanvas: HTMLCanvasElement
@@ -40,6 +40,27 @@ export function useFlowEditorCore() {
     core.value?.redo()
   }
 
+  function exportDocument() {
+    return core.value?.exportDocument() ?? null
+  }
+
+  function importDocument(document: FlowDocument) {
+    const currentCore = core.value
+    if (!currentCore) return
+
+    currentCore.importDocument(document)
+    uiState.value = currentCore.scene.getUiState()
+    historyState.value = currentCore.getHistoryState()
+  }
+
+  function markSaved() {
+    const currentCore = core.value
+    if (!currentCore) return
+
+    currentCore.markSaved()
+    historyState.value = currentCore.getHistoryState()
+  }
+
   onBeforeUnmount(() => {
     unsubscribe?.()
     unsubscribeHistory?.()
@@ -53,6 +74,9 @@ export function useFlowEditorCore() {
     mount,
     undo,
     redo,
+    exportDocument,
+    importDocument,
+    markSaved,
   }
 }
 
@@ -197,5 +221,6 @@ function createEmptyHistoryState(): HistoryState {
   return {
     canUndo: false,
     canRedo: false,
+    dirty: false,
   }
 }

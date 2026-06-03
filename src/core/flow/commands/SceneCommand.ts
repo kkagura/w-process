@@ -9,4 +9,5 @@ export interface SceneCommand {
 export interface HistoryState {
   canUndo: boolean
   canRedo: boolean
+  dirty: boolean
 }

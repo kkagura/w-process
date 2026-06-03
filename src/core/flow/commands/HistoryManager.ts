@@ -6,6 +6,8 @@ type HistoryListener = (state: HistoryState) => void
 export class HistoryManager {
   private undoStack: SceneCommand[] = []
   private redoStack: SceneCommand[] = []
+  private revision = 0
+  private savedRevision = 0
   private listeners = new Set<HistoryListener>()
   private scene: SceneManager
 
@@ -21,6 +23,7 @@ export class HistoryManager {
   record(command: SceneCommand) {
     this.undoStack.push(command)
     this.redoStack = []
+    this.revision += 1
     this.emit()
   }
 
@@ -30,6 +33,7 @@ export class HistoryManager {
 
     command.undo(this.scene)
     this.redoStack.push(command)
+    this.revision -= 1
     this.emit()
   }
 
@@ -39,12 +43,20 @@ export class HistoryManager {
 
     command.execute(this.scene)
     this.undoStack.push(command)
+    this.revision += 1
     this.emit()
   }
 
   clear() {
     this.undoStack = []
     this.redoStack = []
+    this.revision = 0
+    this.savedRevision = 0
+    this.emit()
+  }
+
+  markSaved() {
+    this.savedRevision = this.revision
     this.emit()
   }
 
@@ -52,6 +64,7 @@ export class HistoryManager {
     return {
       canUndo: this.undoStack.length > 0,
       canRedo: this.redoStack.length > 0,
+      dirty: this.revision !== this.savedRevision,
     }
   }
 

@@ -3,8 +3,34 @@ import ElementPalette from './ElementPalette.vue'
 import FlowCanvas from './FlowCanvas.vue'
 import PropertyPanel from './PropertyPanel.vue'
 import { useFlowEditorCore } from '../composables/useFlowEditorCore'
+import type { FlowEditorApi } from '../types'
+import type { FlowEditorCanvasElements } from '../composables/useFlowEditorCore'
 
-const { uiState, historyState, mount, undo, redo } = useFlowEditorCore()
+interface Emits {
+  editorReady: [api: FlowEditorApi]
+  saveRequested: []
+}
+
+const emit = defineEmits<Emits>()
+const {
+  uiState,
+  historyState,
+  mount,
+  undo,
+  redo,
+  exportDocument,
+  importDocument,
+  markSaved,
+} = useFlowEditorCore()
+
+function handleCanvasReady(elements: FlowEditorCanvasElements) {
+  mount(elements)
+  emit('editorReady', {
+    exportDocument,
+    importDocument,
+    markSaved,
+  })
+}
 </script>
 
 <template>
@@ -13,9 +39,10 @@ const { uiState, historyState, mount, undo, redo } = useFlowEditorCore()
     <FlowCanvas
       :ui-state="uiState"
       :history-state="historyState"
-      @canvas-ready="mount"
+      @canvas-ready="handleCanvasReady"
       @undo="undo"
       @redo="redo"
+      @save="emit('saveRequested')"
     />
     <PropertyPanel :ui-state="uiState" />
   </main>

@@ -6,7 +6,7 @@ import { SceneManager } from './scene/SceneManager'
 import { CreateNodeCommand } from './commands/CreateNodeCommand'
 import { HistoryManager } from './commands/HistoryManager'
 import type { HistoryState } from './commands/SceneCommand'
-import type { ElementTemplate, FlowNode, Point } from './types/flow'
+import type { ElementTemplate, FlowDocument, FlowNode, Point } from './types/flow'
 import { findElementTemplate } from './constants/elementTemplates'
 import { createId } from './utils/ids'
 import { CoordinateTransformer } from './viewport/CoordinateTransformer'
@@ -89,6 +89,20 @@ export class FlowEditorCore {
 
   redo() {
     this.history.redo()
+  }
+
+  exportDocument(): FlowDocument {
+    return this.scene.toDocument()
+  }
+
+  importDocument(document: FlowDocument) {
+    this.scene.load(document)
+    this.history.clear()
+    this.requestRender({ background: true, main: true })
+  }
+
+  markSaved() {
+    this.history.markSaved()
   }
 
   getHistoryState(): HistoryState {
