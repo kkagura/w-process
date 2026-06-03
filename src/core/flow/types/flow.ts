@@ -106,6 +106,16 @@ export interface NodeMove {
   position: Point
 }
 
+export type SelectionArrangeAction =
+  | 'align-left'
+  | 'align-vertical-center'
+  | 'align-right'
+  | 'distribute-vertical'
+  | 'align-top'
+  | 'align-horizontal-center'
+  | 'align-bottom'
+  | 'distribute-horizontal'
+
 export interface SceneSummary {
   nodeCount: number
   edgeCount: number

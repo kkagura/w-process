@@ -3,10 +3,12 @@ import { InteractionController } from './interaction/InteractionController'
 import { CanvasLayerManager } from './renderer/CanvasLayerManager'
 import { CanvasRenderer } from './renderer/CanvasRenderer'
 import { SceneManager } from './scene/SceneManager'
+import { getArrangedNodeMoves } from './alignment/arrangeSelection'
 import { CreateNodeCommand } from './commands/CreateNodeCommand'
 import { HistoryManager } from './commands/HistoryManager'
+import { MoveNodesCommand } from './commands/MoveNodesCommand'
 import type { HistoryState } from './commands/SceneCommand'
-import type { ElementTemplate, FlowDocument, FlowNode, Point } from './types/flow'
+import type { ElementTemplate, FlowDocument, FlowNode, Point, SelectionArrangeAction } from './types/flow'
 import { findElementTemplate } from './constants/elementTemplates'
 import { createId } from './utils/ids'
 import { CoordinateTransformer } from './viewport/CoordinateTransformer'
@@ -89,6 +91,24 @@ export class FlowEditorCore {
 
   redo() {
     this.history.redo()
+  }
+
+  arrangeSelection(action: SelectionArrangeAction) {
+    const nodes = this.scene.getSelectedNodeRects()
+    const after = getArrangedNodeMoves(action, nodes)
+    if (after.length === 0) return
+
+    const before = nodes.map(node => ({
+      nodeId: node.nodeId,
+      position: {
+        x: node.rect.x,
+        y: node.rect.y,
+      },
+    }))
+
+    if (!MoveNodesCommand.hasChanges(before, after)) return
+
+    this.history.execute(new MoveNodesCommand(before, after))
   }
 
   exportDocument(): FlowDocument {

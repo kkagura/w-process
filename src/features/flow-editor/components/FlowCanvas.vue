@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, shallowRef, useTemplateRef } from 'vue'
 import type { HistoryState } from '../../../core/flow/commands/SceneCommand'
-import type { EditorUiState, ViewportData } from '../../../core/flow/types/flow'
+import type { EditorUiState, SelectionArrangeAction, ViewportData } from '../../../core/flow/types/flow'
 import CanvasToolbar from './CanvasToolbar.vue'
 import CanvasStatusBar from './CanvasStatusBar.vue'
 
@@ -17,6 +17,7 @@ interface Emits {
   }]
   undo: []
   redo: []
+  arrangeSelection: [action: SelectionArrangeAction]
   save: []
 }
 
@@ -35,6 +36,10 @@ const edgeCount = computed(() => props.uiState?.summary.edgeCount ?? 0)
 const canUndo = computed(() => props.historyState.canUndo)
 const canRedo = computed(() => props.historyState.canRedo)
 const dirty = computed(() => props.historyState.dirty)
+const selectedNodeCount = computed(() =>
+  props.uiState?.selection.items.filter(item => item.type === 'node').length ?? 0,
+)
+const canArrangeSelection = computed(() => selectedNodeCount.value > 1)
 
 onMounted(() => {
   if (!backgroundCanvas.value || !mainCanvas.value) return
@@ -78,9 +83,12 @@ function updateCanvasSize() {
       <CanvasToolbar
         :can-undo="canUndo"
         :can-redo="canRedo"
+        :can-arrange-selection="canArrangeSelection"
+        :selected-node-count="selectedNodeCount"
         :dirty="dirty"
         @undo="emit('undo')"
         @redo="emit('redo')"
+        @arrange-selection="emit('arrangeSelection', $event)"
         @save="emit('save')"
       />
       <CanvasStatusBar

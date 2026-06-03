@@ -1,7 +1,13 @@
 import { onBeforeUnmount, shallowRef } from 'vue'
 import { FlowEditorCore } from '../../../core/flow/FlowEditorCore'
 import type { HistoryState } from '../../../core/flow/commands/SceneCommand'
-import type { EditorUiState, FlowDocument, SceneEvent, SelectionState } from '../../../core/flow/types/flow'
+import type {
+  EditorUiState,
+  FlowDocument,
+  SceneEvent,
+  SelectionArrangeAction,
+  SelectionState,
+} from '../../../core/flow/types/flow'
 
 export interface FlowEditorCanvasElements {
   backgroundCanvas: HTMLCanvasElement
@@ -40,6 +46,10 @@ export function useFlowEditorCore() {
     core.value?.redo()
   }
 
+  function arrangeSelection(action: SelectionArrangeAction) {
+    core.value?.arrangeSelection(action)
+  }
+
   function exportDocument() {
     return core.value?.exportDocument() ?? null
   }
@@ -74,6 +84,7 @@ export function useFlowEditorCore() {
     mount,
     undo,
     redo,
+    arrangeSelection,
     exportDocument,
     importDocument,
     markSaved,

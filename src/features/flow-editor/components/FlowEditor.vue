@@ -18,6 +18,7 @@ const {
   mount,
   undo,
   redo,
+  arrangeSelection,
   exportDocument,
   importDocument,
   markSaved,
@@ -42,6 +43,7 @@ function handleCanvasReady(elements: FlowEditorCanvasElements) {
       @canvas-ready="handleCanvasReady"
       @undo="undo"
       @redo="redo"
+      @arrange-selection="arrangeSelection"
       @save="emit('saveRequested')"
     />
     <PropertyPanel :ui-state="uiState" />

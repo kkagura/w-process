@@ -374,10 +374,22 @@ export class SceneManager {
       .map(item => item.id)
   }
 
+  getSelectedNodeRects() {
+    return this.getSelectedNodeIds()
+      .map((nodeId) => {
+        const rect = this.getNodeRect(nodeId)
+        if (!rect) return null
+
+        return {
+          nodeId,
+          rect,
+        }
+      })
+      .filter((item): item is { nodeId: NodeId; rect: Rect } => Boolean(item))
+  }
+
   getSelectedNodeBounds(): Rect | null {
-    const rects = this.getSelectedNodeIds()
-      .map(nodeId => this.getNodeRect(nodeId))
-      .filter((rect): rect is Rect => Boolean(rect))
+    const rects = this.getSelectedNodeRects().map(item => item.rect)
 
     if (rects.length < 2) return null
 
