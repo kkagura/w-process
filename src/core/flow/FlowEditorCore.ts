@@ -116,6 +116,7 @@ export class FlowEditorCore {
       interaction: {
         draggingNodeId: this.interaction.getDraggingNodeId(),
         selectionRect: this.interaction.getSelectionRect(),
+        snapGuides: this.interaction.getSnapGuides(),
         pendingEdge: this.interaction.getPendingEdge(),
       },
     })
@@ -128,6 +129,7 @@ export class FlowEditorCore {
       interaction: {
         draggingNodeId: this.interaction.getDraggingNodeId(),
         selectionRect: this.interaction.getSelectionRect(),
+        snapGuides: this.interaction.getSnapGuides(),
         pendingEdge: this.interaction.getPendingEdge(),
       },
     })

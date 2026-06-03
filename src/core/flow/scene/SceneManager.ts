@@ -357,11 +357,15 @@ export class SceneManager {
     }
   }
 
-  getNodeRects(): Rect[] {
-    return this.getNodes().map(node => ({
-      ...node.getPosition(),
-      ...node.getSize(),
-    }))
+  getNodeRects(excludedNodeIds: NodeId[] = []): Rect[] {
+    const excluded = new Set(excludedNodeIds)
+
+    return this.getNodes()
+      .filter(node => !excluded.has(node.id))
+      .map(node => ({
+        ...node.getPosition(),
+        ...node.getSize(),
+      }))
   }
 
   getSelectedNodeIds(): NodeId[] {

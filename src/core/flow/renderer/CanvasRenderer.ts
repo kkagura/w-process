@@ -1,13 +1,14 @@
 import type { ElementRegistry } from '../elements/ElementRegistry'
 import type { BaseNode } from '../elements/BaseNode'
 import type { SceneManager } from '../scene/SceneManager'
-import type { FlowTheme, NodeDrawContext, Point, Rect, ViewportData } from '../types/flow'
+import type { FlowTheme, NodeDrawContext, Point, Rect, SnapGuide, ViewportData } from '../types/flow'
 import type { CanvasLayerManager } from './CanvasLayerManager'
 import { routeOrthogonalEdge } from '../routing/orthogonal'
 
 export interface CanvasInteractionState {
   draggingNodeId: string | null
   selectionRect: Rect | null
+  snapGuides: SnapGuide[]
   pendingEdge: {
     sourcePoint: { x: number; y: number }
     currentPoint: { x: number; y: number }
@@ -56,6 +57,7 @@ export class CanvasRenderer {
     this.drawPendingEdge(ctx, context)
     this.drawBoxes(ctx, context)
     this.drawNodes(ctx, context)
+    this.drawSnapGuides(ctx, context)
     this.drawSelectionRect(ctx, context)
 
     ctx.restore()
@@ -169,6 +171,33 @@ export class CanvasRenderer {
     ctx.setLineDash([6 / viewport.zoom, 4 / viewport.zoom])
     ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
     ctx.strokeRect(rect.x, rect.y, rect.width, rect.height)
+    ctx.restore()
+  }
+
+  private drawSnapGuides(ctx: CanvasRenderingContext2D, context: RenderContext) {
+    const guides = context.interaction.snapGuides
+    if (guides.length === 0) return
+
+    const viewport = context.scene.getViewport()
+
+    ctx.save()
+    ctx.strokeStyle = 'rgba(14, 165, 233, 0.78)'
+    ctx.lineWidth = 1 / viewport.zoom
+    ctx.setLineDash([5 / viewport.zoom, 4 / viewport.zoom])
+    ctx.beginPath()
+
+    for (const guide of guides) {
+      if (guide.type === 'vertical') {
+        ctx.moveTo(guide.position, guide.from)
+        ctx.lineTo(guide.position, guide.to)
+      }
+      else {
+        ctx.moveTo(guide.from, guide.position)
+        ctx.lineTo(guide.to, guide.position)
+      }
+    }
+
+    ctx.stroke()
     ctx.restore()
   }
 }

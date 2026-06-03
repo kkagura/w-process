@@ -15,6 +15,13 @@ export interface Size {
 
 export interface Rect extends Point, Size {}
 
+export interface SnapGuide {
+  type: 'vertical' | 'horizontal'
+  position: number
+  from: number
+  to: number
+}
+
 export interface ViewportData {
   x: number
   y: number

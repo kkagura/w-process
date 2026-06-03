@@ -2,15 +2,17 @@ import { CoordinateTransformer } from '../viewport/CoordinateTransformer'
 import { CreateEdgeCommand } from '../commands/CreateEdgeCommand'
 import { DeleteSelectionCommand } from '../commands/DeleteSelectionCommand'
 import { MoveNodesCommand } from '../commands/MoveNodesCommand'
-import type { Endpoint } from '../types/flow'
+import type { Endpoint, SnapGuide } from '../types/flow'
 import { createId } from '../utils/ids'
 import type { InteractionControllerOptions, InteractionMode } from './InteractionTypes'
 import {
   createNodeDragMode,
+  getDraggedNodeBounds,
   getDraggedNodeMoves,
   getHoveredSelection,
   getNodeIdFromHit,
 } from './NodeDragInteraction'
+import { snapRectToNodes } from './SnapEngine'
 import {
   getSelectionRect,
   hasSelectionDragExceeded,
@@ -24,6 +26,7 @@ import {
 
 export class InteractionController {
   private mode: InteractionMode = { type: 'idle' }
+  private snapGuides: SnapGuide[] = []
   private options: InteractionControllerOptions
 
   constructor(options: InteractionControllerOptions) {
@@ -47,6 +50,10 @@ export class InteractionController {
     return this.mode.type === 'selecting'
       ? getSelectionRect(this.mode.start, this.mode.current)
       : null
+  }
+
+  getSnapGuides() {
+    return this.snapGuides
   }
 
   getPendingEdge() {
@@ -90,6 +97,7 @@ export class InteractionController {
         origin: this.options.scene.getViewport(),
       }
       this.options.scene.setHovered(null)
+      this.snapGuides = []
       this.options.canvas.setPointerCapture(event.pointerId)
       this.setCursor('grabbing')
       event.preventDefault()
@@ -113,6 +121,7 @@ export class InteractionController {
       }
 
       this.mode = { type: 'idle' }
+      this.snapGuides = []
       this.options.requestRender()
       event.preventDefault()
       return
@@ -127,6 +136,7 @@ export class InteractionController {
           current: point,
         }
         this.options.scene.setHovered(null)
+        this.snapGuides = []
         this.options.canvas.setPointerCapture(event.pointerId)
         this.options.requestRender()
         event.preventDefault()
@@ -142,6 +152,7 @@ export class InteractionController {
       if (event.shiftKey) {
         this.options.scene.addSelection(selection)
         this.mode = { type: 'idle' }
+        this.snapGuides = []
         this.options.requestRender()
         event.preventDefault()
         return
@@ -150,6 +161,7 @@ export class InteractionController {
       if (event.ctrlKey || event.metaKey) {
         this.options.scene.toggleSelection(selection)
         this.mode = { type: 'idle' }
+        this.snapGuides = []
         this.options.requestRender()
         event.preventDefault()
         return
@@ -169,6 +181,7 @@ export class InteractionController {
         this.options.scene.select(selection)
       }
       this.mode = mode
+      this.snapGuides = []
       this.options.canvas.setPointerCapture(event.pointerId)
       this.options.requestRender()
       return
@@ -181,6 +194,7 @@ export class InteractionController {
         startWorld: point,
       }
       this.options.scene.setHovered(null)
+      this.snapGuides = []
       this.options.canvas.setPointerCapture(event.pointerId)
       event.preventDefault()
       return
@@ -211,7 +225,14 @@ export class InteractionController {
     }
 
     if (this.mode.type === 'dragging-node') {
-      this.options.scene.moveNodes(getDraggedNodeMoves(this.mode, point))
+      const snapResult = snapRectToNodes({
+        movingBounds: getDraggedNodeBounds(this.mode, point),
+        targetRects: this.options.scene.getNodeRects(this.mode.origins.map(item => item.nodeId)),
+        threshold: 8 / this.options.scene.getViewport().zoom,
+      })
+
+      this.snapGuides = snapResult.guides
+      this.options.scene.moveNodes(getDraggedNodeMoves(this.mode, point, snapResult.delta))
       this.options.requestRender()
       return
     }
@@ -235,6 +256,7 @@ export class InteractionController {
         ...this.mode,
         current: point,
       }
+      this.snapGuides = []
       this.options.requestRender()
       event.preventDefault()
       return
@@ -249,6 +271,7 @@ export class InteractionController {
       this.createEdgeFromConnection(this.mode)
       this.options.canvas.releasePointerCapture(event.pointerId)
       this.mode = { type: 'idle' }
+      this.snapGuides = []
       this.options.requestRender()
       event.preventDefault()
       return
@@ -258,12 +281,14 @@ export class InteractionController {
       this.recordNodeDragHistory(this.mode)
       this.options.canvas.releasePointerCapture(event.pointerId)
       this.mode = { type: 'idle' }
+      this.snapGuides = []
       this.options.requestRender()
     }
 
     if (this.mode.type === 'panning') {
       this.options.canvas.releasePointerCapture(event.pointerId)
       this.mode = { type: 'idle' }
+      this.snapGuides = []
       this.setCursor('')
       this.options.requestRender({ background: true, main: true })
     }
@@ -271,6 +296,7 @@ export class InteractionController {
     if (this.mode.type === 'pending-selection') {
       this.options.canvas.releasePointerCapture(event.pointerId)
       this.mode = { type: 'idle' }
+      this.snapGuides = []
       this.options.scene.clearSelection()
       this.options.requestRender()
       return
@@ -280,6 +306,7 @@ export class InteractionController {
       const rect = getSelectionRect(this.mode.start, this.mode.current)
       this.options.canvas.releasePointerCapture(event.pointerId)
       this.mode = { type: 'idle' }
+      this.snapGuides = []
       this.options.scene.selectNodesInRect(rect)
       this.options.requestRender()
     }
@@ -352,6 +379,7 @@ export class InteractionController {
     if (this.mode.type === 'idle') return
 
     this.mode = { type: 'idle' }
+    this.snapGuides = []
     this.setCursor('')
     this.options.requestRender({ background: true, main: true })
   }
