@@ -347,6 +347,23 @@ export class SceneManager {
     return this.rootBox.getNodesDeep()
   }
 
+  getNodeRect(id: NodeId): Rect | null {
+    const node = this.getNode(id)
+    if (!node) return null
+
+    return {
+      ...node.getPosition(),
+      ...node.getSize(),
+    }
+  }
+
+  getNodeRects(): Rect[] {
+    return this.getNodes().map(node => ({
+      ...node.getPosition(),
+      ...node.getSize(),
+    }))
+  }
+
   getSelectedNodeIds(): NodeId[] {
     return this.selection.items
       .filter((item): item is Extract<SelectableRef, { type: 'node' }> => item.type === 'node')
@@ -410,6 +427,9 @@ export class SceneManager {
       hovered: this.isHovered({ type: 'edge', id: edge.id }),
       sourcePoint,
       targetPoint,
+      sourceRect: this.getNodeRect(edge.source.nodeId),
+      targetRect: this.getNodeRect(edge.target.nodeId),
+      obstacles: this.getNodeRects(),
       theme: this.getTheme(),
       viewport: this.getViewport(),
     }

@@ -167,6 +167,9 @@ export interface EdgeDrawContext {
   hovered: boolean
   sourcePoint: Point
   targetPoint: Point
+  sourceRect: Rect | null
+  targetRect: Rect | null
+  obstacles: Rect[]
   theme: FlowTheme
   viewport: ViewportData
 }

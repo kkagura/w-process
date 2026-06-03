@@ -1,9 +1,9 @@
 import type { ElementRegistry } from '../elements/ElementRegistry'
 import type { BaseNode } from '../elements/BaseNode'
 import type { SceneManager } from '../scene/SceneManager'
-import type { FlowTheme, NodeDrawContext, Rect, ViewportData } from '../types/flow'
+import type { FlowTheme, NodeDrawContext, Point, Rect, ViewportData } from '../types/flow'
 import type { CanvasLayerManager } from './CanvasLayerManager'
-import { getBezierControls } from '../views/BaseEdgeView'
+import { routeOrthogonalEdge } from '../routing/orthogonal'
 
 export interface CanvasInteractionState {
   draggingNodeId: string | null
@@ -11,6 +11,7 @@ export interface CanvasInteractionState {
   pendingEdge: {
     sourcePoint: { x: number; y: number }
     currentPoint: { x: number; y: number }
+    sourceRect: Rect | null
     valid: boolean
   } | null
 }
@@ -76,19 +77,16 @@ export class CanvasRenderer {
 
     const viewport = context.scene.getViewport()
     const theme = context.scene.getTheme()
-    const [controlA, controlB] = getBezierControls(pendingEdge.sourcePoint, pendingEdge.currentPoint)
+    const path = routeOrthogonalEdge({
+      source: pendingEdge.sourcePoint,
+      target: pendingEdge.currentPoint,
+      sourceRect: pendingEdge.sourceRect,
+      obstacles: context.scene.getNodeRects(),
+    })
 
     ctx.save()
     ctx.beginPath()
-    ctx.moveTo(pendingEdge.sourcePoint.x, pendingEdge.sourcePoint.y)
-    ctx.bezierCurveTo(
-      controlA.x,
-      controlA.y,
-      controlB.x,
-      controlB.y,
-      pendingEdge.currentPoint.x,
-      pendingEdge.currentPoint.y,
-    )
+    drawPolyline(ctx, path)
     ctx.strokeStyle = pendingEdge.valid ? theme.colors.selected : '#ef4444'
     ctx.lineWidth = 1.8 / viewport.zoom
     ctx.setLineDash([6 / viewport.zoom, 5 / viewport.zoom])
@@ -172,5 +170,14 @@ export class CanvasRenderer {
     ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
     ctx.strokeRect(rect.x, rect.y, rect.width, rect.height)
     ctx.restore()
+  }
+}
+
+function drawPolyline(ctx: CanvasRenderingContext2D, path: Point[]) {
+  if (path.length === 0) return
+
+  ctx.moveTo(path[0].x, path[0].y)
+  for (let index = 1; index < path.length; index += 1) {
+    ctx.lineTo(path[index].x, path[index].y)
   }
 }

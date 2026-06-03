@@ -63,6 +63,7 @@ export class InteractionController {
     return {
       sourcePoint,
       currentPoint: this.mode.current,
+      sourceRect: this.options.scene.getNodeRect(this.mode.source.nodeId),
       valid: target ? this.options.scene.canConnect(this.mode.source, target) : false,
     }
   }
