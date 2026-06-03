@@ -1,5 +1,7 @@
 import type { TaskNode } from '../elements/TaskNode'
 import type { NodeDrawContext } from '../types/flow'
+import type { TextHorizontalAlign, TextOverflow, TextStyle, TextVerticalAlign } from '../renderer/TextRenderer'
+import { drawTextBlock } from '../renderer/TextRenderer'
 import { BaseNodeView } from './BaseNodeView'
 
 export class TaskNodeView extends BaseNodeView<TaskNode> {
@@ -23,10 +25,17 @@ export class TaskNodeView extends BaseNodeView<TaskNode> {
     ctx.fill()
     ctx.stroke()
 
-    ctx.fillStyle = context.theme.colors.nodeText
-    ctx.font = '600 14px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(node.label, position.x + 16, position.y + size.height / 2)
+    drawTextBlock(ctx, {
+      text: node.label,
+      rect: {
+        ...position,
+        ...size,
+      },
+      style: {
+        color: context.theme.colors.nodeText,
+        ...getNodeTextStyle(node.getProps()),
+      },
+    })
 
     for (const port of node.getPorts()) {
       const portPosition = this.getPortPosition(node, port)
@@ -41,6 +50,43 @@ export class TaskNodeView extends BaseNodeView<TaskNode> {
 
     ctx.restore()
   }
+}
+
+function getNodeTextStyle(props: Record<string, unknown>): Partial<TextStyle> {
+  const value = props.textStyle
+  if (!isRecord(value)) return {}
+
+  const style: Partial<TextStyle> = {}
+
+  if (typeof value.fontSize === 'number') style.fontSize = value.fontSize
+  if (typeof value.fontFamily === 'string') style.fontFamily = value.fontFamily
+  if (typeof value.fontWeight === 'string') style.fontWeight = value.fontWeight
+  if (typeof value.fontStyle === 'string') style.fontStyle = value.fontStyle
+  if (typeof value.color === 'string') style.color = value.color
+  if (isTextHorizontalAlign(value.align)) style.align = value.align
+  if (isTextVerticalAlign(value.verticalAlign)) style.verticalAlign = value.verticalAlign
+  if (typeof value.lineHeight === 'number') style.lineHeight = value.lineHeight
+  if (typeof value.padding === 'number') style.padding = value.padding
+  if (typeof value.maxLines === 'number') style.maxLines = value.maxLines
+  if (isTextOverflow(value.overflow)) style.overflow = value.overflow
+
+  return style
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function isTextHorizontalAlign(value: unknown): value is TextHorizontalAlign {
+  return value === 'left' || value === 'center' || value === 'right'
+}
+
+function isTextVerticalAlign(value: unknown): value is TextVerticalAlign {
+  return value === 'top' || value === 'middle' || value === 'bottom'
+}
+
+function isTextOverflow(value: unknown): value is TextOverflow {
+  return value === 'clip' || value === 'ellipsis'
 }
 
 function roundedRect(

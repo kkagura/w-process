@@ -11,6 +11,17 @@ export const elementTemplates: ElementTemplate[] = [
     ],
     defaultProps: {
       description: '',
+      textStyle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#111827',
+        align: 'center',
+        verticalAlign: 'middle',
+        lineHeight: 18,
+        padding: 14,
+        maxLines: 2,
+        overflow: 'ellipsis',
+      },
     },
   },
 ]
