@@ -57,6 +57,7 @@ export class CanvasRenderer {
     this.drawPendingEdge(ctx, context)
     this.drawBoxes(ctx, context)
     this.drawNodes(ctx, context)
+    this.drawSelectedNodeBounds(ctx, context)
     this.drawSnapGuides(ctx, context)
     this.drawSelectionRect(ctx, context)
 
@@ -171,6 +172,27 @@ export class CanvasRenderer {
     ctx.setLineDash([6 / viewport.zoom, 4 / viewport.zoom])
     ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
     ctx.strokeRect(rect.x, rect.y, rect.width, rect.height)
+    ctx.restore()
+  }
+
+  private drawSelectedNodeBounds(ctx: CanvasRenderingContext2D, context: RenderContext) {
+    const rect = context.scene.getSelectedNodeBounds()
+    if (!rect) return
+
+    const viewport = context.scene.getViewport()
+    const theme = context.scene.getTheme()
+    const padding = 4 / viewport.zoom
+
+    ctx.save()
+    ctx.strokeStyle = theme.colors.selected
+    ctx.lineWidth = 1 / viewport.zoom
+    ctx.setLineDash([6 / viewport.zoom, 4 / viewport.zoom])
+    ctx.strokeRect(
+      rect.x - padding,
+      rect.y - padding,
+      rect.width + padding * 2,
+      rect.height + padding * 2,
+    )
     ctx.restore()
   }
 

@@ -26,7 +26,7 @@ import type {
   ViewportData,
 } from '../types/flow'
 import { defaultTheme } from '../types/flow'
-import { rectsIntersect } from '../utils/geometry'
+import { getUnionBounds, rectsIntersect } from '../utils/geometry'
 
 export interface RemovedSceneElementSnapshot {
   data: SceneElementData
@@ -372,6 +372,16 @@ export class SceneManager {
     return this.selection.items
       .filter((item): item is Extract<SelectableRef, { type: 'node' }> => item.type === 'node')
       .map(item => item.id)
+  }
+
+  getSelectedNodeBounds(): Rect | null {
+    const rects = this.getSelectedNodeIds()
+      .map(nodeId => this.getNodeRect(nodeId))
+      .filter((rect): rect is Rect => Boolean(rect))
+
+    if (rects.length < 2) return null
+
+    return getUnionBounds(rects)
   }
 
   getSelection(): SelectionState {
