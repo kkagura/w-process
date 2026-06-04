@@ -2,6 +2,9 @@ import { onBeforeUnmount, shallowRef } from 'vue'
 import { FlowEditorCore } from '../../../core/flow/FlowEditorCore'
 import type { HistoryState } from '../../../core/flow/commands/SceneCommand'
 import type {
+  EdgeId,
+  EdgeLineStyleData,
+  EdgeRouteData,
   EditorUiState,
   FlowDocument,
   NodeBorderStyleData,
@@ -75,6 +78,18 @@ export function useFlowEditorCore() {
     core.value?.updateNodeBorderStyle(nodeId, borderStyle)
   }
 
+  function updateEdgeLabel(edgeId: EdgeId, label: string) {
+    core.value?.updateEdgeLabel(edgeId, label)
+  }
+
+  function updateEdgeLineStyle(edgeId: EdgeId, lineStyle: Partial<EdgeLineStyleData>) {
+    core.value?.updateEdgeLineStyle(edgeId, lineStyle)
+  }
+
+  function updateEdgeRoute(edgeId: EdgeId, route: EdgeRouteData) {
+    core.value?.updateEdgeRoute(edgeId, route)
+  }
+
   function exportDocument() {
     return core.value?.exportDocument() ?? null
   }
@@ -115,6 +130,9 @@ export function useFlowEditorCore() {
     updateNodeSize,
     updateNodeTextStyle,
     updateNodeBorderStyle,
+    updateEdgeLabel,
+    updateEdgeLineStyle,
+    updateEdgeRoute,
     exportDocument,
     importDocument,
     markSaved,
@@ -203,6 +221,15 @@ function applySceneEvent(current: EditorUiState | null, event: SceneEvent): Edit
         ...state.summary,
         edgeCount: state.summary.edgeCount + 1,
       },
+    }
+  }
+
+  if (event.type === 'edge-updated') {
+    if (state.selectedEdge?.id !== event.edge.id) return state
+
+    return {
+      ...state,
+      selectedEdge: event.edge,
     }
   }
 

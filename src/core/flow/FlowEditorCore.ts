@@ -7,12 +7,17 @@ import { getArrangedNodeMoves } from './alignment/arrangeSelection'
 import { CreateNodeCommand } from './commands/CreateNodeCommand'
 import { HistoryManager } from './commands/HistoryManager'
 import { MoveNodesCommand } from './commands/MoveNodesCommand'
+import { UpdateEdgeDataCommand } from './commands/UpdateEdgeDataCommand'
 import { UpdateNodeDataCommand } from './commands/UpdateNodeDataCommand'
 import { UpdateNodeLabelCommand } from './commands/UpdateNodeLabelCommand'
 import type { HistoryState } from './commands/SceneCommand'
 import type {
+  EdgeId,
+  EdgeLineStyleData,
+  EdgeRouteData,
   ElementTemplate,
   FlowDocument,
+  FlowEdge,
   FlowNode,
   NodeBorderStyleData,
   NodeId,
@@ -157,6 +162,25 @@ export class FlowEditorCore {
     this.updateNodeProps(nodeId, 'borderStyle', borderStyle)
   }
 
+  updateEdgeLabel(edgeId: EdgeId, label: string) {
+    const edge = this.scene.getEdgeData(edgeId)
+    const nextLabel = label.trim()
+    if (!edge || (edge.label ?? '') === nextLabel) return
+
+    this.history.execute(new UpdateEdgeDataCommand(edge, {
+      ...edge,
+      label: nextLabel || undefined,
+    }))
+  }
+
+  updateEdgeLineStyle(edgeId: EdgeId, lineStyle: Partial<EdgeLineStyleData>) {
+    this.updateEdgeProps(edgeId, 'lineStyle', lineStyle)
+  }
+
+  updateEdgeRoute(edgeId: EdgeId, route: EdgeRouteData) {
+    this.updateEdgeProps(edgeId, 'route', { ...route })
+  }
+
   exportDocument(): FlowDocument {
     return this.scene.toDocument()
   }
@@ -278,6 +302,28 @@ export class FlowEditorCore {
       },
     }
     this.history.execute(new UpdateNodeDataCommand(node, nextNode))
+  }
+
+  private updateEdgeProps(edgeId: EdgeId, propKey: string, propValue: Record<string, unknown>) {
+    const edge = this.scene.getEdgeData(edgeId)
+    if (!edge) return
+
+    const currentProps = edge.props ?? {}
+    const currentValue = isRecord(currentProps[propKey]) ? currentProps[propKey] : {}
+    const nextValue = {
+      ...currentValue,
+      ...propValue,
+    }
+    if (recordsEqual(currentValue, nextValue)) return
+
+    const nextEdge: FlowEdge = {
+      ...edge,
+      props: {
+        ...currentProps,
+        [propKey]: nextValue,
+      },
+    }
+    this.history.execute(new UpdateEdgeDataCommand(edge, nextEdge))
   }
 }
 

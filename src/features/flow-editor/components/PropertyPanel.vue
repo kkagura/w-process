@@ -6,6 +6,11 @@ import PropertyNumberField from './property-panel/PropertyNumberField.vue'
 import PropertySelectField from './property-panel/PropertySelectField.vue'
 import PropertyTextField from './property-panel/PropertyTextField.vue'
 import type {
+  EdgeId,
+  EdgeLineDash,
+  EdgeLineStyleData,
+  EdgeRouteData,
+  EdgeRouteType,
   EditorUiState,
   NodeBorderDash,
   NodeBorderStyleData,
@@ -28,9 +33,14 @@ const emit = defineEmits<{
   updateNodeSize: [nodeId: NodeId, size: Size]
   updateNodeTextStyle: [nodeId: NodeId, textStyle: Partial<NodeTextStyleData>]
   updateNodeBorderStyle: [nodeId: NodeId, borderStyle: Partial<NodeBorderStyleData>]
+  updateEdgeLabel: [edgeId: EdgeId, label: string]
+  updateEdgeLineStyle: [edgeId: EdgeId, lineStyle: Partial<EdgeLineStyleData>]
+  updateEdgeRoute: [edgeId: EdgeId, route: EdgeRouteData]
 }>()
 
 const labelDraft = shallowRef('')
+const edgeLabelDraft = shallowRef('')
+const edgeRouteTypeDraft = shallowRef<EdgeRouteType>('orthogonal')
 const geometryDraft = reactive({
   x: 0,
   y: 0,
@@ -42,9 +52,13 @@ const collapsedGroups = reactive({
   geometry: false,
   text: false,
   border: false,
+  edgeBase: false,
+  edgeRoute: false,
+  edgeLine: false,
 })
 const textStyleDraft = reactive<NodeTextStyleData>(createDefaultTextStyle())
 const borderStyleDraft = reactive<NodeBorderStyleData>(createDefaultBorderStyle())
+const edgeLineStyleDraft = reactive<EdgeLineStyleData>(createDefaultEdgeLineStyle())
 const fontWeightOptions = [
   { label: '常规', value: '400' },
   { label: '半粗', value: '600' },
@@ -63,6 +77,14 @@ const verticalAlignOptions: Array<{ label: string; value: NodeTextVerticalAlign 
 const borderDashOptions: Array<{ label: string; value: NodeBorderDash }> = [
   { label: '实线', value: 'solid' },
   { label: '虚线', value: 'dashed' },
+]
+const edgeLineDashOptions: Array<{ label: string; value: EdgeLineDash }> = [
+  { label: '实线', value: 'solid' },
+  { label: '虚线', value: 'dashed' },
+]
+const edgeRouteTypeOptions: Array<{ label: string; value: EdgeRouteType }> = [
+  { label: '正交线', value: 'orthogonal' },
+  { label: '贝塞尔曲线', value: 'bezier' },
 ]
 
 const selectedNode = computed(() => props.uiState?.selectedNode ?? null)
@@ -83,6 +105,18 @@ watch(
     geometryDraft.height = node.size.height
     Object.assign(textStyleDraft, getTextStyleData(node.props))
     Object.assign(borderStyleDraft, getBorderStyleData(node.props))
+  },
+  { immediate: true },
+)
+
+watch(
+  selectedEdge,
+  (edge) => {
+    edgeLabelDraft.value = edge?.label ?? ''
+    if (!edge) return
+
+    edgeRouteTypeDraft.value = getEdgeRouteData(edge.props ?? {}).type
+    Object.assign(edgeLineStyleDraft, getEdgeLineStyleData(edge.props ?? {}))
   },
   { immediate: true },
 )
@@ -149,6 +183,33 @@ function commitBorderStyle() {
   emit('updateNodeBorderStyle', node.id, borderStyle)
 }
 
+function commitEdgeLabel() {
+  const edge = selectedEdge.value
+  if (!edge) return
+
+  const nextLabel = edgeLabelDraft.value.trim()
+  if (nextLabel === (edge.label ?? '')) return
+  emit('updateEdgeLabel', edge.id, nextLabel)
+}
+
+function commitEdgeLineStyle() {
+  const edge = selectedEdge.value
+  if (!edge) return
+
+  const lineStyle = normalizeEdgeLineStyle(edgeLineStyleDraft)
+  Object.assign(edgeLineStyleDraft, lineStyle)
+  emit('updateEdgeLineStyle', edge.id, lineStyle)
+}
+
+function commitEdgeRoute() {
+  const edge = selectedEdge.value
+  if (!edge) return
+
+  const route = normalizeEdgeRoute({ type: edgeRouteTypeDraft.value })
+  edgeRouteTypeDraft.value = route.type
+  emit('updateEdgeRoute', edge.id, route)
+}
+
 function toggleGroup(group: keyof typeof collapsedGroups) {
   collapsedGroups[group] = !collapsedGroups[group]
 }
@@ -170,6 +231,28 @@ function getBorderStyleData(props: Record<string, unknown>) {
   if (!isRecord(value)) return fallback
 
   return normalizeBorderStyle({
+    ...fallback,
+    ...value,
+  })
+}
+
+function getEdgeLineStyleData(props: Record<string, unknown>) {
+  const value = props.lineStyle
+  const fallback = createDefaultEdgeLineStyle()
+  if (!isRecord(value)) return fallback
+
+  return normalizeEdgeLineStyle({
+    ...fallback,
+    ...value,
+  })
+}
+
+function getEdgeRouteData(props: Record<string, unknown>) {
+  const value = props.route
+  const fallback = createDefaultEdgeRoute()
+  if (!isRecord(value)) return fallback
+
+  return normalizeEdgeRoute({
     ...fallback,
     ...value,
   })
@@ -197,6 +280,21 @@ function createDefaultBorderStyle(): NodeBorderStyleData {
   }
 }
 
+function createDefaultEdgeLineStyle(): EdgeLineStyleData {
+  return {
+    color: '#64748b',
+    width: 1.6,
+    dash: 'solid',
+    arrowSize: 8,
+  }
+}
+
+function createDefaultEdgeRoute(): EdgeRouteData {
+  return {
+    type: 'orthogonal',
+  }
+}
+
 function normalizeTextStyle(value: NodeTextStyleData): NodeTextStyleData {
   return {
     fontSize: Math.max(8, getFiniteNumber(value.fontSize, 14)),
@@ -218,6 +316,21 @@ function normalizeBorderStyle(value: NodeBorderStyleData): NodeBorderStyleData {
     color: typeof value.color === 'string' && value.color ? value.color : '#94a3b8',
     width: Math.max(1, getFiniteNumber(value.width, 1.5)),
     dash: isBorderDash(value.dash) ? value.dash : 'solid',
+  }
+}
+
+function normalizeEdgeLineStyle(value: EdgeLineStyleData): EdgeLineStyleData {
+  return {
+    color: typeof value.color === 'string' && value.color ? value.color : '#64748b',
+    width: Math.max(1, getFiniteNumber(value.width, 1.6)),
+    dash: isEdgeLineDash(value.dash) ? value.dash : 'solid',
+    arrowSize: Math.max(4, getFiniteNumber(value.arrowSize, 8)),
+  }
+}
+
+function normalizeEdgeRoute(value: EdgeRouteData): EdgeRouteData {
+  return {
+    type: isEdgeRouteType(value.type) ? value.type : 'orthogonal',
   }
 }
 
@@ -244,6 +357,14 @@ function isTextOverflow(value: unknown): value is NodeTextOverflow {
 
 function isBorderDash(value: unknown): value is NodeBorderDash {
   return value === 'solid' || value === 'dashed'
+}
+
+function isEdgeLineDash(value: unknown): value is EdgeLineDash {
+  return value === 'solid' || value === 'dashed'
+}
+
+function isEdgeRouteType(value: unknown): value is EdgeRouteType {
+  return value === 'orthogonal' || value === 'bezier'
 }
 </script>
 
@@ -350,21 +471,77 @@ function isBorderDash(value: unknown): value is NodeBorderDash {
     </div>
 
     <div v-else-if="showSingleEdge && selectedEdge" class="property-section">
-      <div class="property-title">Edge</div>
-      <dl class="property-list">
-        <div>
-          <dt>ID</dt>
-          <dd>{{ selectedEdge.id }}</dd>
+      <div class="property-title">{{ selectedEdge.label || '连线' }}</div>
+
+      <PropertyGroup
+        title="基础信息"
+        :collapsed="collapsedGroups.edgeBase"
+        @toggle="toggleGroup('edgeBase')"
+      >
+        <dl class="property-list">
+          <div>
+            <dt>ID</dt>
+            <dd>{{ selectedEdge.id }}</dd>
+          </div>
+          <div>
+            <dt>起点</dt>
+            <dd>{{ selectedEdge.source.nodeId }} / {{ selectedEdge.source.portId }}</dd>
+          </div>
+          <div>
+            <dt>终点</dt>
+            <dd>{{ selectedEdge.target.nodeId }} / {{ selectedEdge.target.portId }}</dd>
+          </div>
+        </dl>
+        <PropertyTextField
+          v-model="edgeLabelDraft"
+          label="标签"
+          @commit="commitEdgeLabel"
+        />
+      </PropertyGroup>
+
+      <PropertyGroup
+        title="路径"
+        :collapsed="collapsedGroups.edgeRoute"
+        @toggle="toggleGroup('edgeRoute')"
+      >
+        <PropertySelectField
+          v-model="edgeRouteTypeDraft"
+          label="类型"
+          :options="edgeRouteTypeOptions"
+          @commit="commitEdgeRoute"
+        />
+      </PropertyGroup>
+
+      <PropertyGroup
+        title="线条样式"
+        :collapsed="collapsedGroups.edgeLine"
+        @toggle="toggleGroup('edgeLine')"
+      >
+        <div class="field-row">
+          <PropertyColorField v-model="edgeLineStyleDraft.color" label="颜色" @commit="commitEdgeLineStyle" />
+          <PropertyNumberField
+            v-model="edgeLineStyleDraft.width"
+            label="线宽"
+            :min="1"
+            :step="0.5"
+            @commit="commitEdgeLineStyle"
+          />
         </div>
-        <div>
-          <dt>Source</dt>
-          <dd>{{ selectedEdge.source.nodeId }} / {{ selectedEdge.source.portId }}</dd>
+        <div class="field-row">
+          <PropertySelectField
+            v-model="edgeLineStyleDraft.dash"
+            label="线型"
+            :options="edgeLineDashOptions"
+            @commit="commitEdgeLineStyle"
+          />
+          <PropertyNumberField
+            v-model="edgeLineStyleDraft.arrowSize"
+            label="箭头"
+            :min="4"
+            @commit="commitEdgeLineStyle"
+          />
         </div>
-        <div>
-          <dt>Target</dt>
-          <dd>{{ selectedEdge.target.nodeId }} / {{ selectedEdge.target.portId }}</dd>
-        </div>
-      </dl>
+      </PropertyGroup>
     </div>
 
     <div v-else-if="selectedCount > 1" class="property-section">

@@ -98,6 +98,21 @@ export interface FlowEdge {
   props?: Record<string, unknown>
 }
 
+export type EdgeLineDash = 'solid' | 'dashed'
+
+export interface EdgeLineStyleData {
+  color: string
+  width: number
+  dash: EdgeLineDash
+  arrowSize: number
+}
+
+export type EdgeRouteType = 'orthogonal' | 'bezier'
+
+export interface EdgeRouteData {
+  type: EdgeRouteType
+}
+
 export type SceneElementData = FlowNode | BoxData
 
 export interface BoxData {
@@ -162,6 +177,7 @@ export type SceneEvent =
   | { type: 'nodes-moved'; moves: NodeMove[] }
   | { type: 'nodes-removed'; nodeIds: NodeId[]; removedEdgeCount: number }
   | { type: 'edge-added'; edge: FlowEdge; selection: SelectionState }
+  | { type: 'edge-updated'; edge: FlowEdge }
   | { type: 'edges-removed'; edgeIds: EdgeId[] }
   | { type: 'selection-changed'; selection: SelectionState; selectedNode: FlowNode | null; selectedEdge: FlowEdge | null }
   | { type: 'hover-changed'; hovered: SelectableRef | null }

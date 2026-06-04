@@ -24,6 +24,9 @@ const {
   updateNodeSize,
   updateNodeTextStyle,
   updateNodeBorderStyle,
+  updateEdgeLabel,
+  updateEdgeLineStyle,
+  updateEdgeRoute,
   exportDocument,
   importDocument,
   markSaved,
@@ -58,6 +61,9 @@ function handleCanvasReady(elements: FlowEditorCanvasElements) {
       @update-node-size="updateNodeSize"
       @update-node-text-style="updateNodeTextStyle"
       @update-node-border-style="updateNodeBorderStyle"
+      @update-edge-label="updateEdgeLabel"
+      @update-edge-line-style="updateEdgeLineStyle"
+      @update-edge-route="updateEdgeRoute"
     />
   </main>
 </template>

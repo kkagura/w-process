@@ -23,6 +23,11 @@ export class BaseEdge {
     return this.data.source.nodeId === nodeId || this.data.target.nodeId === nodeId
   }
 
+  updateData(data: FlowEdge) {
+    if (data.id !== this.id) return
+    this.data = structuredClone(data)
+  }
+
   serialize(): FlowEdge {
     return structuredClone(this.data)
   }

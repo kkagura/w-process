@@ -438,6 +438,19 @@ export class SceneManager {
     return this.edgeLayer.get(id)?.serialize() ?? null
   }
 
+  updateEdgeData(edgeData: FlowEdge) {
+    const edge = this.edgeLayer.get(edgeData.id)
+    if (!edge) return null
+
+    edge.updateData(edgeData)
+    const data = edge.serialize()
+    this.emit({
+      type: 'edge-updated',
+      edge: data,
+    })
+    return data
+  }
+
   canConnect(source: Endpoint, target: Endpoint) {
     if (source.nodeId === target.nodeId && source.portId === target.portId) return false
 
