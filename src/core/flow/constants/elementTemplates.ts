@@ -55,6 +55,148 @@ export const elementTemplates: ElementTemplate[] = [
       },
     },
   },
+  {
+    type: 'decision',
+    label: '判断节点',
+    defaultSize: { width: 144, height: 96 },
+    ports: [
+      { id: 'top', label: '上方端口', offset: { x: 72, y: 0 } },
+      { id: 'right', label: '是 / 右侧端口', offset: { x: 144, y: 48 } },
+      { id: 'bottom', label: '下方端口', offset: { x: 72, y: 96 } },
+      { id: 'left', label: '否 / 左侧端口', offset: { x: 0, y: 48 } },
+    ],
+    defaultProps: {
+      textStyle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#92400e',
+        align: 'center',
+        verticalAlign: 'middle',
+        lineHeight: 18,
+        padding: 8,
+        maxLines: 2,
+        overflow: 'ellipsis',
+      },
+      borderStyle: {
+        color: '#f59e0b',
+        width: 1.5,
+        dash: 'solid',
+      },
+    },
+  },
+  {
+    type: 'data',
+    label: '数据节点',
+    defaultSize: { width: 160, height: 72 },
+    ports: [
+      { id: 'top', label: '上方端口', offset: { x: 80, y: 0 } },
+      { id: 'right', label: '右侧端口', offset: { x: 160, y: 36 } },
+      { id: 'bottom', label: '下方端口', offset: { x: 80, y: 72 } },
+      { id: 'left', label: '左侧端口', offset: { x: 0, y: 36 } },
+    ],
+    defaultProps: {
+      textStyle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#155e75',
+        align: 'center',
+        verticalAlign: 'middle',
+        lineHeight: 18,
+        padding: 12,
+        maxLines: 2,
+        overflow: 'ellipsis',
+      },
+      borderStyle: {
+        color: '#0891b2',
+        width: 1.5,
+        dash: 'solid',
+      },
+    },
+  },
+  {
+    type: 'document',
+    label: '文档节点',
+    defaultSize: { width: 160, height: 82 },
+    ports: [
+      { id: 'top', label: '上方端口', offset: { x: 80, y: 0 } },
+      { id: 'right', label: '右侧端口', offset: { x: 160, y: 41 } },
+      { id: 'bottom', label: '下方端口', offset: { x: 80, y: 82 } },
+      { id: 'left', label: '左侧端口', offset: { x: 0, y: 41 } },
+    ],
+    defaultProps: {
+      textStyle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#5b21b6',
+        align: 'center',
+        verticalAlign: 'middle',
+        lineHeight: 18,
+        padding: 14,
+        maxLines: 2,
+        overflow: 'ellipsis',
+      },
+      borderStyle: {
+        color: '#7c3aed',
+        width: 1.5,
+        dash: 'solid',
+      },
+    },
+  },
+  {
+    type: 'subflow',
+    label: '子流程节点',
+    defaultSize: { width: 180, height: 76 },
+    ports: [
+      { id: 'top', label: '上方端口', offset: { x: 90, y: 0 } },
+      { id: 'right', label: '右侧端口', offset: { x: 180, y: 38 } },
+      { id: 'bottom', label: '下方端口', offset: { x: 90, y: 76 } },
+      { id: 'left', label: '左侧端口', offset: { x: 0, y: 38 } },
+    ],
+    defaultProps: {
+      textStyle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#334155',
+        align: 'center',
+        verticalAlign: 'middle',
+        lineHeight: 18,
+        padding: 14,
+        maxLines: 2,
+        overflow: 'ellipsis',
+      },
+      borderStyle: {
+        color: '#475569',
+        width: 1.5,
+        dash: 'solid',
+      },
+    },
+  },
+  {
+    type: 'end',
+    label: '结束节点',
+    defaultSize: { width: 120, height: 48 },
+    ports: [
+      { id: 'left', label: '左侧端口', offset: { x: 0, y: 24 } },
+    ],
+    defaultProps: {
+      textStyle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#991b1b',
+        align: 'center',
+        verticalAlign: 'middle',
+        lineHeight: 18,
+        padding: 12,
+        maxLines: 1,
+        overflow: 'ellipsis',
+      },
+      borderStyle: {
+        color: '#dc2626',
+        width: 1.5,
+        dash: 'solid',
+      },
+    },
+  },
 ]
 
 export function findElementTemplate(type: string) {
