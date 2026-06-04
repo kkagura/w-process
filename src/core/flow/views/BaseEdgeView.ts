@@ -8,15 +8,11 @@ export class BaseEdgeView<TEdge extends BaseEdge = BaseEdge> {
     const lineStyle = getEdgeLineStyle(edge)
     const route = getEdgeRoute(edge)
     const path = getEdgePath(route.type, context)
+    const visiblePath = trimPathEnd(path, getEndpointTrimOffset(lineStyle))
 
     ctx.save()
     ctx.beginPath()
-    if (route.type === 'bezier') {
-      drawBezierEdge(ctx, context)
-    }
-    else {
-      drawPolyline(ctx, path)
-    }
+    drawPolyline(ctx, visiblePath)
     ctx.strokeStyle = context.selected
       ? context.theme.colors.selected
       : context.hovered
@@ -28,8 +24,8 @@ export class BaseEdgeView<TEdge extends BaseEdge = BaseEdge> {
     }
     ctx.stroke()
 
-    this.drawArrow(ctx, path, context, lineStyle)
-    this.drawLabel(ctx, edge, path, context)
+    this.drawArrow(ctx, visiblePath, context, lineStyle)
+    this.drawLabel(ctx, edge, visiblePath, context)
     ctx.restore()
   }
 
@@ -139,6 +135,42 @@ function getPathMidpoint(path: Point[]) {
 
 function getDistance(left: Point, right: Point) {
   return Math.hypot(right.x - left.x, right.y - left.y)
+}
+
+function trimPathEnd(path: Point[], offset: number) {
+  if (path.length < 2 || offset <= 0) return path.map(point => ({ ...point }))
+
+  const trimmed = path.map(point => ({ ...point }))
+  let remainingOffset = offset
+
+  while (trimmed.length >= 2) {
+    const target = trimmed[trimmed.length - 1]
+    const previous = trimmed[trimmed.length - 2]
+    const segmentLength = getDistance(previous, target)
+
+    if (segmentLength === 0) {
+      trimmed.pop()
+      continue
+    }
+
+    if (segmentLength > remainingOffset) {
+      const ratio = (segmentLength - remainingOffset) / segmentLength
+      trimmed[trimmed.length - 1] = {
+        x: previous.x + (target.x - previous.x) * ratio,
+        y: previous.y + (target.y - previous.y) * ratio,
+      }
+      return trimmed
+    }
+
+    remainingOffset -= segmentLength
+    trimmed.pop()
+  }
+
+  return trimmed
+}
+
+function getEndpointTrimOffset(lineStyle: EdgeLineStyleData) {
+  return Math.max(7, lineStyle.arrowSize * 0.7 + lineStyle.width * 0.5)
 }
 
 function getEdgePath(routeType: EdgeRouteType, context: EdgeDrawContext) {
@@ -252,7 +284,7 @@ export function getBezierControls(source: Point, target: Point): [Point, Point] 
   ]
 }
 
-export function sampleBezier(source: Point, target: Point, steps = 24) {
+export function sampleBezier(source: Point, target: Point, steps = 32) {
   const [controlA, controlB] = getBezierControls(source, target)
   const samples: Point[] = []
 
