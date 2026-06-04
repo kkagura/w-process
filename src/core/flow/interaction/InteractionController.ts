@@ -2,7 +2,8 @@ import { CoordinateTransformer } from '../viewport/CoordinateTransformer'
 import { CreateEdgeCommand } from '../commands/CreateEdgeCommand'
 import { DeleteSelectionCommand } from '../commands/DeleteSelectionCommand'
 import { MoveNodesCommand } from '../commands/MoveNodesCommand'
-import type { Endpoint, SnapGuide } from '../types/flow'
+import { UpdateNodeDataCommand } from '../commands/UpdateNodeDataCommand'
+import type { Endpoint, Point, SnapGuide } from '../types/flow'
 import { createId } from '../utils/ids'
 import type { InteractionControllerOptions, InteractionMode } from './InteractionTypes'
 import {
@@ -18,6 +19,12 @@ import {
   hasSelectionDragExceeded,
   shouldStartSelection,
 } from './SelectionBoxInteraction'
+import {
+  getRawResizedRect,
+  getResizedNodeData,
+  hasNodeResizeChanges,
+  hitTestResizeHandle,
+} from './NodeResizeInteraction'
 import {
   getPannedViewport,
   getZoomedViewport,
@@ -105,6 +112,28 @@ export class InteractionController {
     }
 
     const point = this.getWorldPoint(event)
+    const resizeHit = this.getSelectedResizeHandle(point)
+    if (resizeHit && event.button === 0) {
+      this.mode = {
+        type: 'resizing-node',
+        nodeId: resizeHit.node.id,
+        handle: resizeHit.handle.handle,
+        start: point,
+        before: resizeHit.node,
+        startRect: {
+          ...resizeHit.node.position,
+          ...resizeHit.node.size,
+        },
+      }
+      this.options.scene.setHovered({ type: 'node', id: resizeHit.node.id })
+      this.snapGuides = []
+      this.options.canvas.setPointerCapture(event.pointerId)
+      this.setCursor(resizeHit.handle.cursor)
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
     const hit = this.options.scene.hitTest(point)
 
     if (hit?.type === 'edge' && event.button === 0) {
@@ -224,6 +253,25 @@ export class InteractionController {
       return
     }
 
+    if (this.mode.type === 'resizing-node') {
+      const snap = event.shiftKey
+        ? null
+        : this.getResizeSnap(this.mode, point)
+      if (event.shiftKey) {
+        this.snapGuides = []
+      }
+      const nextNode = getResizedNodeData({
+        mode: this.mode,
+        current: point,
+        keepAspectRatio: event.shiftKey,
+        snap: snap ?? undefined,
+      })
+      this.options.scene.updateNodeData(nextNode)
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
     if (this.mode.type === 'dragging-node') {
       const snapResult = snapRectToNodes({
         movingBounds: getDraggedNodeBounds(this.mode, point),
@@ -262,6 +310,14 @@ export class InteractionController {
       return
     }
 
+    const resizeHit = this.getSelectedResizeHandle(point)
+    if (resizeHit) {
+      this.setCursor(resizeHit.handle.cursor)
+      this.options.scene.setHovered({ type: 'node', id: resizeHit.node.id })
+      return
+    }
+    this.setCursor('')
+
     const hit = this.options.scene.hitTest(point)
     this.options.scene.setHovered(getHoveredSelection(hit))
   }
@@ -272,6 +328,17 @@ export class InteractionController {
       this.options.canvas.releasePointerCapture(event.pointerId)
       this.mode = { type: 'idle' }
       this.snapGuides = []
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
+    if (this.mode.type === 'resizing-node') {
+      this.recordNodeResizeHistory(this.mode)
+      this.options.canvas.releasePointerCapture(event.pointerId)
+      this.mode = { type: 'idle' }
+      this.snapGuides = []
+      this.setCursor('')
       this.options.requestRender()
       event.preventDefault()
       return
@@ -378,6 +445,10 @@ export class InteractionController {
   private resetPointerMode() {
     if (this.mode.type === 'idle') return
 
+    if (this.mode.type === 'resizing-node') {
+      this.options.scene.updateNodeData(this.mode.before)
+    }
+
     this.mode = { type: 'idle' }
     this.snapGuides = []
     this.setCursor('')
@@ -436,5 +507,52 @@ export class InteractionController {
 
     if (!MoveNodesCommand.hasChanges(before, after)) return
     this.options.history.record(new MoveNodesCommand(before, after))
+  }
+
+  private recordNodeResizeHistory(mode: Extract<InteractionMode, { type: 'resizing-node' }>) {
+    const after = this.options.scene.getNodeData(mode.nodeId)
+    if (!after || !hasNodeResizeChanges(mode.before, after)) return
+
+    this.options.history.record(new UpdateNodeDataCommand(mode.before, after))
+  }
+
+  private getResizeSnap(mode: Extract<InteractionMode, { type: 'resizing-node' }>, point: Point) {
+    const rawRect = getRawResizedRect({
+      mode,
+      current: point,
+      keepAspectRatio: false,
+    })
+    const snapResult = snapRectToNodes({
+      movingBounds: rawRect,
+      targetRects: this.options.scene.getNodeRects([mode.nodeId]),
+      threshold: 8 / this.options.scene.getViewport().zoom,
+    })
+    const affectsX = mode.handle.includes('e') || mode.handle.includes('w')
+    const affectsY = mode.handle.includes('n') || mode.handle.includes('s')
+    this.snapGuides = snapResult.guides.filter(guide => (
+      (affectsX && guide.type === 'vertical')
+      || (affectsY && guide.type === 'horizontal')
+    ))
+
+    return {
+      delta: {
+        x: affectsX ? snapResult.delta.x : 0,
+        y: affectsY ? snapResult.delta.y : 0,
+      },
+      xKind: affectsX ? snapResult.snappedXKind : undefined,
+      yKind: affectsY ? snapResult.snappedYKind : undefined,
+    }
+  }
+
+  private getSelectedResizeHandle(point: Point) {
+    const selection = this.options.scene.getSelection()
+    if (selection.items.length !== 1 || selection.primary?.type !== 'node') return null
+
+    const node = this.options.scene.getNodeData(selection.primary.id)
+    const rect = this.options.scene.getNodeRect(selection.primary.id)
+    if (!node || !rect) return null
+
+    const handle = hitTestResizeHandle(point, rect, this.options.scene.getViewport())
+    return handle ? { node, handle } : null
   }
 }

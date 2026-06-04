@@ -5,6 +5,8 @@ export interface SnapResult {
   guides: SnapGuide[]
   snappedX: boolean
   snappedY: boolean
+  snappedXKind?: SnapAnchorKind
+  snappedYKind?: SnapAnchorKind
 }
 
 export interface SnapOptions {
@@ -14,7 +16,7 @@ export interface SnapOptions {
 }
 
 type SnapAxis = 'x' | 'y'
-type SnapAnchorKind = 'start' | 'center' | 'end'
+export type SnapAnchorKind = 'start' | 'center' | 'end'
 
 interface SnapCandidate {
   axis: SnapAxis
@@ -50,6 +52,8 @@ export function snapRectToNodes(options: SnapOptions): SnapResult {
     ].filter((guide): guide is SnapGuide => Boolean(guide)),
     snappedX: Boolean(xCandidate),
     snappedY: Boolean(yCandidate),
+    snappedXKind: xCandidate?.kind,
+    snappedYKind: yCandidate?.kind,
   }
 }
 

@@ -1,10 +1,12 @@
-import type { Endpoint, NodeId, Point, Size, ViewportData } from '../types/flow'
+import type { Endpoint, FlowNode, NodeId, Point, Rect, Size, ViewportData } from '../types/flow'
 import type { SceneManager } from '../scene/SceneManager'
 import type { HistoryManager } from '../commands/HistoryManager'
+import type { ResizeHandle } from './NodeResizeInteraction'
 
 export type InteractionMode =
   | { type: 'idle' }
   | { type: 'dragging-node'; nodeId: NodeId; start: Point; origins: Array<{ nodeId: NodeId; origin: Point; size: Size }> }
+  | { type: 'resizing-node'; nodeId: NodeId; handle: ResizeHandle; start: Point; before: FlowNode; startRect: Rect }
   | { type: 'connecting'; source: Endpoint; current: Point }
   | { type: 'panning'; start: Point; origin: ViewportData }
   | { type: 'pending-selection'; startCanvas: Point; startWorld: Point }

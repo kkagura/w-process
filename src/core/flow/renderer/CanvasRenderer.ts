@@ -4,6 +4,7 @@ import type { SceneManager } from '../scene/SceneManager'
 import type { FlowTheme, NodeDrawContext, Point, Rect, SnapGuide, ViewportData } from '../types/flow'
 import type { CanvasLayerManager } from './CanvasLayerManager'
 import { routeOrthogonalEdge } from '../routing/orthogonal'
+import { getResizeHandles } from '../interaction/NodeResizeInteraction'
 
 export interface CanvasInteractionState {
   draggingNodeId: string | null
@@ -58,6 +59,7 @@ export class CanvasRenderer {
     this.drawBoxes(ctx, context)
     this.drawNodes(ctx, context)
     this.drawSelectedNodeBounds(ctx, context)
+    this.drawResizeHandles(ctx, context)
     this.drawSnapGuides(ctx, context)
     this.drawSelectionRect(ctx, context)
 
@@ -193,6 +195,32 @@ export class CanvasRenderer {
       rect.width + padding * 2,
       rect.height + padding * 2,
     )
+    ctx.restore()
+  }
+
+  private drawResizeHandles(ctx: CanvasRenderingContext2D, context: RenderContext) {
+    const selection = context.scene.getSelection()
+    if (selection.items.length !== 1 || selection.primary?.type !== 'node') return
+
+    const rect = context.scene.getNodeRect(selection.primary.id)
+    if (!rect) return
+
+    const viewport = context.scene.getViewport()
+    const theme = context.scene.getTheme()
+    const handles = getResizeHandles(rect, viewport)
+
+    ctx.save()
+    ctx.fillStyle = '#ffffff'
+    ctx.strokeStyle = theme.colors.selected
+    ctx.lineWidth = 1.2 / viewport.zoom
+
+    for (const handle of handles) {
+      ctx.beginPath()
+      ctx.rect(handle.rect.x, handle.rect.y, handle.rect.width, handle.rect.height)
+      ctx.fill()
+      ctx.stroke()
+    }
+
     ctx.restore()
   }
 
