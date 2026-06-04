@@ -73,7 +73,7 @@ function handleCanvasReady(elements: FlowEditorCanvasElements) {
 <style scoped>
 .flow-editor {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr) 260px;
+  grid-template-columns: 184px minmax(0, 1fr) 260px;
   height: 100svh;
   overflow: hidden;
 }
