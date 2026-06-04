@@ -1,16 +1,43 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { EditorUiState } from '../../../core/flow/types/flow'
+import { computed, shallowRef, watch } from 'vue'
+import type { EditorUiState, NodeId } from '../../../core/flow/types/flow'
 
 const props = defineProps<{
   uiState: EditorUiState | null
 }>()
 
+const emit = defineEmits<{
+  updateNodeLabel: [nodeId: NodeId, label: string]
+}>()
+
+const labelDraft = shallowRef('')
 const selectedNode = computed(() => props.uiState?.selectedNode ?? null)
 const selectedEdge = computed(() => props.uiState?.selectedEdge ?? null)
 const selectedCount = computed(() => props.uiState?.selection.items.length ?? 0)
-const showSingleNode = computed(() => selectedCount.value <= 1 && selectedNode.value)
-const showSingleEdge = computed(() => selectedCount.value <= 1 && selectedEdge.value)
+const showSingleNode = computed(() => selectedCount.value <= 1 && Boolean(selectedNode.value))
+const showSingleEdge = computed(() => selectedCount.value <= 1 && Boolean(selectedEdge.value))
+
+watch(
+  selectedNode,
+  (node) => {
+    labelDraft.value = node?.label ?? ''
+  },
+  { immediate: true },
+)
+
+function commitLabel() {
+  const node = selectedNode.value
+  if (!node) return
+
+  const nextLabel = labelDraft.value.trim()
+  if (!nextLabel) {
+    labelDraft.value = node.label
+    return
+  }
+
+  if (nextLabel === node.label) return
+  emit('updateNodeLabel', node.id, nextLabel)
+}
 </script>
 
 <template>
@@ -19,6 +46,19 @@ const showSingleEdge = computed(() => selectedCount.value <= 1 && selectedEdge.v
 
     <div v-if="showSingleNode && selectedNode" class="property-section">
       <div class="property-title">{{ selectedNode.label }}</div>
+      <form class="property-form" @submit.prevent="commitLabel">
+        <label class="field">
+          <span class="field-label">名称</span>
+          <input
+            v-model="labelDraft"
+            class="field-input"
+            type="text"
+            autocomplete="off"
+            @blur="commitLabel"
+            @keydown.enter.prevent="commitLabel"
+          >
+        </label>
+      </form>
       <dl class="property-list">
         <div>
           <dt>ID</dt>
@@ -99,6 +139,39 @@ const showSingleEdge = computed(() => selectedCount.value <= 1 && selectedEdge.v
   font-size: 15px;
   font-weight: 700;
   margin-bottom: 12px;
+}
+
+.property-form {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field-label {
+  color: var(--muted-text);
+  font-size: 12px;
+}
+
+.field-input {
+  background: #fff;
+  border: 1px solid var(--app-border);
+  border-radius: 6px;
+  color: var(--strong-text);
+  font: inherit;
+  font-size: 13px;
+  height: 34px;
+  min-width: 0;
+  padding: 0 10px;
+}
+
+.field-input:focus {
+  border-color: #2563eb;
+  outline: 2px solid rgba(37, 99, 235, 0.16);
 }
 
 .property-list {

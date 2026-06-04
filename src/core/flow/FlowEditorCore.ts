@@ -7,8 +7,9 @@ import { getArrangedNodeMoves } from './alignment/arrangeSelection'
 import { CreateNodeCommand } from './commands/CreateNodeCommand'
 import { HistoryManager } from './commands/HistoryManager'
 import { MoveNodesCommand } from './commands/MoveNodesCommand'
+import { UpdateNodeLabelCommand } from './commands/UpdateNodeLabelCommand'
 import type { HistoryState } from './commands/SceneCommand'
-import type { ElementTemplate, FlowDocument, FlowNode, Point, SelectionArrangeAction } from './types/flow'
+import type { ElementTemplate, FlowDocument, FlowNode, NodeId, Point, SelectionArrangeAction } from './types/flow'
 import { findElementTemplate } from './constants/elementTemplates'
 import { createId } from './utils/ids'
 import { CoordinateTransformer } from './viewport/CoordinateTransformer'
@@ -109,6 +110,13 @@ export class FlowEditorCore {
     if (!MoveNodesCommand.hasChanges(before, after)) return
 
     this.history.execute(new MoveNodesCommand(before, after))
+  }
+
+  updateNodeLabel(nodeId: NodeId, label: string) {
+    const node = this.scene.getNodeData(nodeId)
+    if (!node || node.label === label) return
+
+    this.history.execute(new UpdateNodeLabelCommand(nodeId, node.label, label))
   }
 
   exportDocument(): FlowDocument {

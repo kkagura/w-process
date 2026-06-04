@@ -2,6 +2,15 @@ import type { ElementTemplate } from '../types/flow'
 
 export const elementTemplates: ElementTemplate[] = [
   {
+    type: 'start',
+    label: '开始节点',
+    defaultSize: { width: 120, height: 48 },
+    ports: [
+      { id: 'right', label: '右侧端口', offset: { x: 120, y: 24 } },
+    ],
+    defaultProps: {},
+  },
+  {
     type: 'task',
     label: '任务节点',
     defaultSize: { width: 160, height: 72 },

@@ -1,5 +1,6 @@
 import { BaseEdge } from './BaseEdge'
 import { BaseNode } from './BaseNode'
+import { StartNode } from './StartNode'
 import { TaskNode } from './TaskNode'
 import { Box } from '../scene/Box'
 import { EdgeLayer } from '../scene/EdgeLayer'
@@ -8,6 +9,7 @@ import type { BoxData, FlowEdge, FlowNode } from '../types/flow'
 import { BaseBoxView } from '../views/BaseBoxView'
 import { BaseEdgeView } from '../views/BaseEdgeView'
 import { BaseNodeView } from '../views/BaseNodeView'
+import { StartNodeView } from '../views/StartNodeView'
 import { TaskNodeView } from '../views/TaskNodeView'
 
 type NodeConstructor = new (data: FlowNode) => BaseNode
@@ -24,6 +26,10 @@ export class ElementRegistry {
 
   static createDefault() {
     const registry = new ElementRegistry()
+    registry.registerNode('start', {
+      node: StartNode,
+      view: StartNodeView,
+    })
     registry.registerNode('task', {
       node: TaskNode,
       view: TaskNodeView,

@@ -7,6 +7,7 @@ import type {
   SceneEvent,
   SelectionArrangeAction,
   SelectionState,
+  NodeId,
 } from '../../../core/flow/types/flow'
 
 export interface FlowEditorCanvasElements {
@@ -50,6 +51,10 @@ export function useFlowEditorCore() {
     core.value?.arrangeSelection(action)
   }
 
+  function updateNodeLabel(nodeId: NodeId, label: string) {
+    core.value?.updateNodeLabel(nodeId, label)
+  }
+
   function exportDocument() {
     return core.value?.exportDocument() ?? null
   }
@@ -85,6 +90,7 @@ export function useFlowEditorCore() {
     undo,
     redo,
     arrangeSelection,
+    updateNodeLabel,
     exportDocument,
     importDocument,
     markSaved,
@@ -109,6 +115,15 @@ function applySceneEvent(current: EditorUiState | null, event: SceneEvent): Edit
         ...state.summary,
         nodeCount: state.summary.nodeCount + 1,
       },
+    }
+  }
+
+  if (event.type === 'node-updated') {
+    if (state.selectedNode?.id !== event.node.id) return state
+
+    return {
+      ...state,
+      selectedNode: event.node,
     }
   }
 

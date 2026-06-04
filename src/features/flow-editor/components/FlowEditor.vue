@@ -19,6 +19,7 @@ const {
   undo,
   redo,
   arrangeSelection,
+  updateNodeLabel,
   exportDocument,
   importDocument,
   markSaved,
@@ -46,7 +47,10 @@ function handleCanvasReady(elements: FlowEditorCanvasElements) {
       @arrange-selection="arrangeSelection"
       @save="emit('saveRequested')"
     />
-    <PropertyPanel :ui-state="uiState" />
+    <PropertyPanel
+      :ui-state="uiState"
+      @update-node-label="updateNodeLabel"
+    />
   </main>
 </template>
 

@@ -102,6 +102,19 @@ export class SceneManager {
     }
   }
 
+  updateNodeLabel(id: NodeId, label: string) {
+    const node = this.rootBox.find(id)
+    if (!(node instanceof BaseNode)) return null
+
+    node.updateLabel(label)
+    const data = node.serialize()
+    this.emit({
+      type: 'node-updated',
+      node: data,
+    })
+    return data
+  }
+
   moveNodes(moves: NodeMove[]) {
     const appliedMoves: NodeMove[] = []
 

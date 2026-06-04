@@ -35,6 +35,10 @@ export abstract class BaseNode {
     return this.data.props
   }
 
+  updateLabel(label: string) {
+    this.data.label = label
+  }
+
   moveTo(position: Point) {
     this.data.position = { ...position }
   }
