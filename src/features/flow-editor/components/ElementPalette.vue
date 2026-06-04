@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { elementTemplates } from '../../../core/flow/constants/elementTemplates'
+import { basicShapeTemplates, flowNodeTemplates } from '../../../core/flow/constants/elementTemplates'
 
 const paletteGroups = [
   {
+    title: '基础图形',
+    templates: basicShapeTemplates,
+  },
+  {
     title: '流程节点',
-    templates: elementTemplates,
+    templates: flowNodeTemplates,
   },
 ]
 
@@ -61,6 +65,10 @@ function handleDragStart(event: DragEvent, type: string) {
 .element-group {
   display: grid;
   gap: 8px;
+}
+
+.element-group + .element-group {
+  margin-top: 14px;
 }
 
 .element-group-title {
@@ -182,6 +190,42 @@ function handleDragStart(event: DragEvent, type: string) {
 
 .element-icon--subflow::after {
   right: 6px;
+}
+
+.element-icon--shape-circle {
+  background: #dbeafe;
+  border-color: #2563eb;
+  border-radius: 999px;
+  height: 24px;
+  width: 24px;
+}
+
+.element-icon--shape-rectangle {
+  background: #f8fafc;
+  border-color: #475569;
+  border-radius: 3px;
+  height: 22px;
+  width: 30px;
+}
+
+.element-icon--shape-triangle {
+  background: transparent;
+  border: 0;
+  border-bottom: 24px solid #fed7aa;
+  border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  height: 0;
+  width: 0;
+}
+
+.element-icon--shape-triangle::after {
+  border-bottom: 20px solid #fff7ed;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  content: '';
+  left: -12px;
+  position: absolute;
+  top: 3px;
 }
 
 .element-label {

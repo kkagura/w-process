@@ -1,12 +1,15 @@
 import { BaseEdge } from './BaseEdge'
 import { BaseNode } from './BaseNode'
+import { CircleNode } from './CircleNode'
 import { DataNode } from './DataNode'
 import { DecisionNode } from './DecisionNode'
 import { DocumentNode } from './DocumentNode'
 import { EndNode } from './EndNode'
+import { RectangleNode } from './RectangleNode'
 import { StartNode } from './StartNode'
 import { SubflowNode } from './SubflowNode'
 import { TaskNode } from './TaskNode'
+import { TriangleNode } from './TriangleNode'
 import { Box } from '../scene/Box'
 import { EdgeLayer } from '../scene/EdgeLayer'
 import { RootBox } from '../scene/RootBox'
@@ -14,13 +17,16 @@ import type { BoxData, FlowEdge, FlowNode } from '../types/flow'
 import { BaseBoxView } from '../views/BaseBoxView'
 import { BaseEdgeView } from '../views/BaseEdgeView'
 import { BaseNodeView } from '../views/BaseNodeView'
+import { CircleNodeView } from '../views/CircleNodeView'
 import { DataNodeView } from '../views/DataNodeView'
 import { DecisionNodeView } from '../views/DecisionNodeView'
 import { DocumentNodeView } from '../views/DocumentNodeView'
 import { EndNodeView } from '../views/EndNodeView'
+import { RectangleNodeView } from '../views/RectangleNodeView'
 import { StartNodeView } from '../views/StartNodeView'
 import { SubflowNodeView } from '../views/SubflowNodeView'
 import { TaskNodeView } from '../views/TaskNodeView'
+import { TriangleNodeView } from '../views/TriangleNodeView'
 
 type NodeConstructor = new (data: FlowNode) => BaseNode
 type NodeViewConstructor = new () => BaseNodeView
@@ -63,6 +69,18 @@ export class ElementRegistry {
     registry.registerNode('end', {
       node: EndNode,
       view: EndNodeView,
+    })
+    registry.registerNode('shape-circle', {
+      node: CircleNode,
+      view: CircleNodeView,
+    })
+    registry.registerNode('shape-rectangle', {
+      node: RectangleNode,
+      view: RectangleNodeView,
+    })
+    registry.registerNode('shape-triangle', {
+      node: TriangleNode,
+      view: TriangleNodeView,
     })
     return registry
   }

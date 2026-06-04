@@ -1,6 +1,6 @@
 import type { ElementTemplate } from '../types/flow'
 
-export const elementTemplates: ElementTemplate[] = [
+export const flowNodeTemplates: ElementTemplate[] = [
   {
     type: 'start',
     label: '开始节点',
@@ -225,6 +225,113 @@ export const elementTemplates: ElementTemplate[] = [
       },
     },
   },
+]
+
+export const basicShapeTemplates: ElementTemplate[] = [
+  {
+    type: 'shape-circle',
+    label: '圆形',
+    defaultSize: { width: 96, height: 96 },
+    ports: [
+      { id: 'top', label: '上方端口', offset: { x: 48, y: 0 } },
+      { id: 'right', label: '右侧端口', offset: { x: 96, y: 48 } },
+      { id: 'bottom', label: '下方端口', offset: { x: 48, y: 96 } },
+      { id: 'left', label: '左侧端口', offset: { x: 0, y: 48 } },
+    ],
+    defaultProps: {
+      textStyle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#1e3a8a',
+        align: 'center',
+        verticalAlign: 'middle',
+        lineHeight: 18,
+        padding: 8,
+        maxLines: 2,
+        overflow: 'ellipsis',
+      },
+      fillStyle: {
+        color: '#eff6ff',
+        opacity: 1,
+      },
+      borderStyle: {
+        color: '#2563eb',
+        width: 1.5,
+        dash: 'solid',
+      },
+    },
+  },
+  {
+    type: 'shape-rectangle',
+    label: '矩形',
+    defaultSize: { width: 140, height: 80 },
+    ports: [
+      { id: 'top', label: '上方端口', offset: { x: 70, y: 0 } },
+      { id: 'right', label: '右侧端口', offset: { x: 140, y: 40 } },
+      { id: 'bottom', label: '下方端口', offset: { x: 70, y: 80 } },
+      { id: 'left', label: '左侧端口', offset: { x: 0, y: 40 } },
+    ],
+    defaultProps: {
+      textStyle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#334155',
+        align: 'center',
+        verticalAlign: 'middle',
+        lineHeight: 18,
+        padding: 12,
+        maxLines: 2,
+        overflow: 'ellipsis',
+      },
+      fillStyle: {
+        color: '#f8fafc',
+        opacity: 1,
+      },
+      borderStyle: {
+        color: '#475569',
+        width: 1.5,
+        dash: 'solid',
+      },
+    },
+  },
+  {
+    type: 'shape-triangle',
+    label: '三角形',
+    defaultSize: { width: 120, height: 100 },
+    ports: [
+      { id: 'top', label: '上方端口', offset: { x: 60, y: 0 } },
+      { id: 'right', label: '右侧端口', offset: { x: 90, y: 50 } },
+      { id: 'bottom', label: '下方端口', offset: { x: 60, y: 100 } },
+      { id: 'left', label: '左侧端口', offset: { x: 30, y: 50 } },
+    ],
+    defaultProps: {
+      textStyle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#9a3412',
+        align: 'center',
+        verticalAlign: 'middle',
+        lineHeight: 18,
+        padding: 6,
+        maxLines: 2,
+        overflow: 'ellipsis',
+      },
+      fillStyle: {
+        color: '#fff7ed',
+        opacity: 1,
+      },
+      borderStyle: {
+        color: '#ea580c',
+        width: 1.5,
+        dash: 'solid',
+      },
+    },
+  },
+]
+
+export const elementTemplates: ElementTemplate[] = [
+  ...flowNodeTemplates,
+  ...basicShapeTemplates,
 ]
 
 export function findElementTemplate(type: string) {
