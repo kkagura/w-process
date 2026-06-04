@@ -8,7 +8,24 @@ export const elementTemplates: ElementTemplate[] = [
     ports: [
       { id: 'right', label: '右侧端口', offset: { x: 120, y: 24 } },
     ],
-    defaultProps: {},
+    defaultProps: {
+      textStyle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#166534',
+        align: 'center',
+        verticalAlign: 'middle',
+        lineHeight: 18,
+        padding: 12,
+        maxLines: 1,
+        overflow: 'ellipsis',
+      },
+      borderStyle: {
+        color: '#16a34a',
+        width: 1.5,
+        dash: 'solid',
+      },
+    },
   },
   {
     type: 'task',
@@ -30,6 +47,11 @@ export const elementTemplates: ElementTemplate[] = [
         padding: 14,
         maxLines: 2,
         overflow: 'ellipsis',
+      },
+      borderStyle: {
+        color: '#94a3b8',
+        width: 1.5,
+        dash: 'solid',
       },
     },
   },

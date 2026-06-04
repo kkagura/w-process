@@ -20,6 +20,10 @@ const {
   redo,
   arrangeSelection,
   updateNodeLabel,
+  updateNodePosition,
+  updateNodeSize,
+  updateNodeTextStyle,
+  updateNodeBorderStyle,
   exportDocument,
   importDocument,
   markSaved,
@@ -50,6 +54,10 @@ function handleCanvasReady(elements: FlowEditorCanvasElements) {
     <PropertyPanel
       :ui-state="uiState"
       @update-node-label="updateNodeLabel"
+      @update-node-position="updateNodePosition"
+      @update-node-size="updateNodeSize"
+      @update-node-text-style="updateNodeTextStyle"
+      @update-node-border-style="updateNodeBorderStyle"
     />
   </main>
 </template>

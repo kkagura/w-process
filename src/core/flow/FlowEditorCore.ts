@@ -7,9 +7,20 @@ import { getArrangedNodeMoves } from './alignment/arrangeSelection'
 import { CreateNodeCommand } from './commands/CreateNodeCommand'
 import { HistoryManager } from './commands/HistoryManager'
 import { MoveNodesCommand } from './commands/MoveNodesCommand'
+import { UpdateNodeDataCommand } from './commands/UpdateNodeDataCommand'
 import { UpdateNodeLabelCommand } from './commands/UpdateNodeLabelCommand'
 import type { HistoryState } from './commands/SceneCommand'
-import type { ElementTemplate, FlowDocument, FlowNode, NodeId, Point, SelectionArrangeAction } from './types/flow'
+import type {
+  ElementTemplate,
+  FlowDocument,
+  FlowNode,
+  NodeBorderStyleData,
+  NodeId,
+  NodeTextStyleData,
+  Point,
+  SelectionArrangeAction,
+  Size,
+} from './types/flow'
 import { findElementTemplate } from './constants/elementTemplates'
 import { createId } from './utils/ids'
 import { CoordinateTransformer } from './viewport/CoordinateTransformer'
@@ -119,6 +130,33 @@ export class FlowEditorCore {
     this.history.execute(new UpdateNodeLabelCommand(nodeId, node.label, label))
   }
 
+  updateNodePosition(nodeId: NodeId, position: Point) {
+    const node = this.scene.getNodeData(nodeId)
+    if (!node || pointsEqual(node.position, position)) return
+
+    const nextNode: FlowNode = {
+      ...node,
+      position: { ...position },
+    }
+    this.history.execute(new UpdateNodeDataCommand(node, nextNode))
+  }
+
+  updateNodeSize(nodeId: NodeId, size: Size) {
+    const node = this.scene.getNodeData(nodeId)
+    if (!node || sizesEqual(node.size, size)) return
+
+    const nextNode = resizeNodeData(node, size)
+    this.history.execute(new UpdateNodeDataCommand(node, nextNode))
+  }
+
+  updateNodeTextStyle(nodeId: NodeId, textStyle: Partial<NodeTextStyleData>) {
+    this.updateNodeProps(nodeId, 'textStyle', textStyle)
+  }
+
+  updateNodeBorderStyle(nodeId: NodeId, borderStyle: Partial<NodeBorderStyleData>) {
+    this.updateNodeProps(nodeId, 'borderStyle', borderStyle)
+  }
+
   exportDocument(): FlowDocument {
     return this.scene.toDocument()
   }
@@ -220,4 +258,62 @@ export class FlowEditorCore {
 
     this.history.execute(new CreateNodeCommand(nodeData))
   }
+
+  private updateNodeProps(nodeId: NodeId, propKey: string, propValue: Record<string, unknown>) {
+    const node = this.scene.getNodeData(nodeId)
+    if (!node) return
+
+    const currentValue = isRecord(node.props[propKey]) ? node.props[propKey] : {}
+    const nextValue = {
+      ...currentValue,
+      ...propValue,
+    }
+    if (recordsEqual(currentValue, nextValue)) return
+
+    const nextNode: FlowNode = {
+      ...node,
+      props: {
+        ...node.props,
+        [propKey]: nextValue,
+      },
+    }
+    this.history.execute(new UpdateNodeDataCommand(node, nextNode))
+  }
+}
+
+function resizeNodeData(node: FlowNode, size: Size): FlowNode {
+  const scaleX = node.size.width === 0 ? 1 : size.width / node.size.width
+  const scaleY = node.size.height === 0 ? 1 : size.height / node.size.height
+
+  return {
+    ...node,
+    size: { ...size },
+    ports: node.ports.map(port => ({
+      ...port,
+      offset: {
+        x: port.offset.x * scaleX,
+        y: port.offset.y * scaleY,
+      },
+    })),
+  }
+}
+
+function pointsEqual(left: Point, right: Point) {
+  return left.x === right.x && left.y === right.y
+}
+
+function sizesEqual(left: Size, right: Size) {
+  return left.width === right.width && left.height === right.height
+}
+
+function recordsEqual(left: Record<string, unknown>, right: Record<string, unknown>) {
+  const leftKeys = Object.keys(left)
+  const rightKeys = Object.keys(right)
+  if (leftKeys.length !== rightKeys.length) return false
+
+  return leftKeys.every(key => left[key] === right[key])
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
 }

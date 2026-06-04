@@ -1,25 +1,31 @@
 import type { TaskNode } from '../elements/TaskNode'
 import type { NodeDrawContext } from '../types/flow'
-import type { TextHorizontalAlign, TextOverflow, TextStyle, TextVerticalAlign } from '../renderer/TextRenderer'
 import { drawTextBlock } from '../renderer/TextRenderer'
 import { BaseNodeView } from './BaseNodeView'
+import { getNodeBorderStyle, getNodeTextStyle } from './nodeStyle'
 
 export class TaskNodeView extends BaseNodeView<TaskNode> {
   draw(ctx: CanvasRenderingContext2D, node: TaskNode, context: NodeDrawContext) {
     const position = node.getPosition()
     const size = node.getSize()
     const radius = 8
+    const borderStyle = getNodeBorderStyle(node.getProps(), {
+      color: context.theme.colors.nodeBorder,
+      width: 1.5,
+      dash: 'solid',
+    })
     const borderColor = context.selected
       ? context.theme.colors.selected
       : context.hovered
         ? context.theme.colors.hovered
-        : context.theme.colors.nodeBorder
+        : borderStyle.color
 
     ctx.save()
     ctx.globalAlpha = context.dragging ? 0.82 : 1
     ctx.fillStyle = context.theme.colors.nodeFill
     ctx.strokeStyle = borderColor
-    ctx.lineWidth = context.selected ? 2 : 1.5
+    ctx.lineWidth = context.selected ? Math.max(borderStyle.width, 2) : borderStyle.width
+    if (borderStyle.dash === 'dashed') ctx.setLineDash([8, 5])
 
     roundedRect(ctx, position.x, position.y, size.width, size.height, radius)
     ctx.fill()
@@ -50,43 +56,6 @@ export class TaskNodeView extends BaseNodeView<TaskNode> {
 
     ctx.restore()
   }
-}
-
-function getNodeTextStyle(props: Record<string, unknown>): Partial<TextStyle> {
-  const value = props.textStyle
-  if (!isRecord(value)) return {}
-
-  const style: Partial<TextStyle> = {}
-
-  if (typeof value.fontSize === 'number') style.fontSize = value.fontSize
-  if (typeof value.fontFamily === 'string') style.fontFamily = value.fontFamily
-  if (typeof value.fontWeight === 'string') style.fontWeight = value.fontWeight
-  if (typeof value.fontStyle === 'string') style.fontStyle = value.fontStyle
-  if (typeof value.color === 'string') style.color = value.color
-  if (isTextHorizontalAlign(value.align)) style.align = value.align
-  if (isTextVerticalAlign(value.verticalAlign)) style.verticalAlign = value.verticalAlign
-  if (typeof value.lineHeight === 'number') style.lineHeight = value.lineHeight
-  if (typeof value.padding === 'number') style.padding = value.padding
-  if (typeof value.maxLines === 'number') style.maxLines = value.maxLines
-  if (isTextOverflow(value.overflow)) style.overflow = value.overflow
-
-  return style
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-}
-
-function isTextHorizontalAlign(value: unknown): value is TextHorizontalAlign {
-  return value === 'left' || value === 'center' || value === 'right'
-}
-
-function isTextVerticalAlign(value: unknown): value is TextVerticalAlign {
-  return value === 'top' || value === 'middle' || value === 'bottom'
-}
-
-function isTextOverflow(value: unknown): value is TextOverflow {
-  return value === 'clip' || value === 'ellipsis'
 }
 
 function roundedRect(

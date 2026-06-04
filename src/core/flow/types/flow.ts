@@ -60,6 +60,31 @@ export interface FlowNode {
   props: Record<string, unknown>
 }
 
+export type NodeTextHorizontalAlign = 'left' | 'center' | 'right'
+export type NodeTextVerticalAlign = 'top' | 'middle' | 'bottom'
+export type NodeTextOverflow = 'clip' | 'ellipsis'
+export type NodeBorderDash = 'solid' | 'dashed'
+
+export interface NodeTextStyleData {
+  fontSize: number
+  fontFamily?: string
+  fontWeight: string
+  fontStyle?: string
+  color: string
+  align: NodeTextHorizontalAlign
+  verticalAlign: NodeTextVerticalAlign
+  lineHeight: number
+  padding: number
+  maxLines: number
+  overflow: NodeTextOverflow
+}
+
+export interface NodeBorderStyleData {
+  color: string
+  width: number
+  dash: NodeBorderDash
+}
+
 export interface Endpoint {
   nodeId: NodeId
   portId: PortId

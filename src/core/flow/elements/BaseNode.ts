@@ -39,6 +39,10 @@ export abstract class BaseNode {
     this.data.label = label
   }
 
+  updateData(data: FlowNode) {
+    this.data = structuredClone(data)
+  }
+
   moveTo(position: Point) {
     this.data.position = { ...position }
   }

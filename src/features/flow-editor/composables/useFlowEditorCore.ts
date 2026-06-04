@@ -4,10 +4,14 @@ import type { HistoryState } from '../../../core/flow/commands/SceneCommand'
 import type {
   EditorUiState,
   FlowDocument,
+  NodeBorderStyleData,
   SceneEvent,
   SelectionArrangeAction,
   SelectionState,
   NodeId,
+  NodeTextStyleData,
+  Point,
+  Size,
 } from '../../../core/flow/types/flow'
 
 export interface FlowEditorCanvasElements {
@@ -55,6 +59,22 @@ export function useFlowEditorCore() {
     core.value?.updateNodeLabel(nodeId, label)
   }
 
+  function updateNodePosition(nodeId: NodeId, position: Point) {
+    core.value?.updateNodePosition(nodeId, position)
+  }
+
+  function updateNodeSize(nodeId: NodeId, size: Size) {
+    core.value?.updateNodeSize(nodeId, size)
+  }
+
+  function updateNodeTextStyle(nodeId: NodeId, textStyle: Partial<NodeTextStyleData>) {
+    core.value?.updateNodeTextStyle(nodeId, textStyle)
+  }
+
+  function updateNodeBorderStyle(nodeId: NodeId, borderStyle: Partial<NodeBorderStyleData>) {
+    core.value?.updateNodeBorderStyle(nodeId, borderStyle)
+  }
+
   function exportDocument() {
     return core.value?.exportDocument() ?? null
   }
@@ -91,6 +111,10 @@ export function useFlowEditorCore() {
     redo,
     arrangeSelection,
     updateNodeLabel,
+    updateNodePosition,
+    updateNodeSize,
+    updateNodeTextStyle,
+    updateNodeBorderStyle,
     exportDocument,
     importDocument,
     markSaved,
