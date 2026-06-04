@@ -20,6 +20,10 @@ export const elementTemplates: ElementTemplate[] = [
         maxLines: 1,
         overflow: 'ellipsis',
       },
+      fillStyle: {
+        color: '#f0fdf4',
+        opacity: 1,
+      },
       borderStyle: {
         color: '#16a34a',
         width: 1.5,
@@ -47,6 +51,10 @@ export const elementTemplates: ElementTemplate[] = [
         padding: 14,
         maxLines: 2,
         overflow: 'ellipsis',
+      },
+      fillStyle: {
+        color: '#ffffff',
+        opacity: 1,
       },
       borderStyle: {
         color: '#94a3b8',
@@ -77,6 +85,10 @@ export const elementTemplates: ElementTemplate[] = [
         maxLines: 2,
         overflow: 'ellipsis',
       },
+      fillStyle: {
+        color: '#fffbeb',
+        opacity: 1,
+      },
       borderStyle: {
         color: '#f59e0b',
         width: 1.5,
@@ -105,6 +117,10 @@ export const elementTemplates: ElementTemplate[] = [
         padding: 12,
         maxLines: 2,
         overflow: 'ellipsis',
+      },
+      fillStyle: {
+        color: '#ecfeff',
+        opacity: 1,
       },
       borderStyle: {
         color: '#0891b2',
@@ -135,6 +151,10 @@ export const elementTemplates: ElementTemplate[] = [
         maxLines: 2,
         overflow: 'ellipsis',
       },
+      fillStyle: {
+        color: '#f5f3ff',
+        opacity: 1,
+      },
       borderStyle: {
         color: '#7c3aed',
         width: 1.5,
@@ -164,6 +184,10 @@ export const elementTemplates: ElementTemplate[] = [
         maxLines: 2,
         overflow: 'ellipsis',
       },
+      fillStyle: {
+        color: '#f8fafc',
+        opacity: 1,
+      },
       borderStyle: {
         color: '#475569',
         width: 1.5,
@@ -189,6 +213,10 @@ export const elementTemplates: ElementTemplate[] = [
         padding: 12,
         maxLines: 1,
         overflow: 'ellipsis',
+      },
+      fillStyle: {
+        color: '#fef2f2',
+        opacity: 1,
       },
       borderStyle: {
         color: '#dc2626',

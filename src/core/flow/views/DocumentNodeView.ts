@@ -2,7 +2,7 @@ import type { DocumentNode } from '../elements/DocumentNode'
 import type { NodeDrawContext } from '../types/flow'
 import { drawTextBlock } from '../renderer/TextRenderer'
 import { BaseNodeView } from './BaseNodeView'
-import { getNodeBorderStyle, getNodeTextStyle } from './nodeStyle'
+import { getNodeBorderStyle, getNodeFillStyle, getNodeTextStyle } from './nodeStyle'
 
 export class DocumentNodeView extends BaseNodeView<DocumentNode> {
   draw(ctx: CanvasRenderingContext2D, node: DocumentNode, context: NodeDrawContext) {
@@ -14,6 +14,10 @@ export class DocumentNodeView extends BaseNodeView<DocumentNode> {
       width: 1.5,
       dash: 'solid',
     })
+    const fillStyle = getNodeFillStyle(node.getProps(), {
+      color: '#f5f3ff',
+      opacity: 1,
+    })
     const borderColor = context.selected
       ? context.theme.colors.selected
       : context.hovered
@@ -22,7 +26,7 @@ export class DocumentNodeView extends BaseNodeView<DocumentNode> {
 
     ctx.save()
     ctx.globalAlpha = context.dragging ? 0.82 : 1
-    ctx.fillStyle = '#f5f3ff'
+    ctx.fillStyle = fillStyle.color
     ctx.strokeStyle = borderColor
     ctx.lineWidth = context.selected ? Math.max(borderStyle.width, 2) : borderStyle.width
     if (borderStyle.dash === 'dashed') ctx.setLineDash([8, 5])

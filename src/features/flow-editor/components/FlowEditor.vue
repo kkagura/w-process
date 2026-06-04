@@ -24,6 +24,7 @@ const {
   updateNodeSize,
   updateNodeTextStyle,
   updateNodeBorderStyle,
+  updateNodeFillStyle,
   updateEdgeLabel,
   updateEdgeLineStyle,
   updateEdgeRoute,
@@ -61,6 +62,7 @@ function handleCanvasReady(elements: FlowEditorCanvasElements) {
       @update-node-size="updateNodeSize"
       @update-node-text-style="updateNodeTextStyle"
       @update-node-border-style="updateNodeBorderStyle"
+      @update-node-fill-style="updateNodeFillStyle"
       @update-edge-label="updateEdgeLabel"
       @update-edge-line-style="updateEdgeLineStyle"
       @update-edge-route="updateEdgeRoute"

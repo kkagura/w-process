@@ -2,7 +2,7 @@ import type { DecisionNode } from '../elements/DecisionNode'
 import type { NodeDrawContext, Point } from '../types/flow'
 import { drawTextBlock } from '../renderer/TextRenderer'
 import { BaseNodeView } from './BaseNodeView'
-import { getNodeBorderStyle, getNodeTextStyle } from './nodeStyle'
+import { getNodeBorderStyle, getNodeFillStyle, getNodeTextStyle } from './nodeStyle'
 
 export class DecisionNodeView extends BaseNodeView<DecisionNode> {
   draw(ctx: CanvasRenderingContext2D, node: DecisionNode, context: NodeDrawContext) {
@@ -12,6 +12,10 @@ export class DecisionNodeView extends BaseNodeView<DecisionNode> {
       width: 1.5,
       dash: 'solid',
     })
+    const fillStyle = getNodeFillStyle(node.getProps(), {
+      color: '#fffbeb',
+      opacity: 1,
+    })
     const borderColor = context.selected
       ? context.theme.colors.selected
       : context.hovered
@@ -20,7 +24,7 @@ export class DecisionNodeView extends BaseNodeView<DecisionNode> {
 
     ctx.save()
     ctx.globalAlpha = context.dragging ? 0.82 : 1
-    ctx.fillStyle = '#fffbeb'
+    ctx.fillStyle = fillStyle.color
     ctx.strokeStyle = borderColor
     ctx.lineWidth = context.selected ? Math.max(borderStyle.width, 2) : borderStyle.width
     if (borderStyle.dash === 'dashed') ctx.setLineDash([8, 5])

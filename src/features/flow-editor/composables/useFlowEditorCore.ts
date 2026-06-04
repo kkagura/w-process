@@ -8,6 +8,7 @@ import type {
   EditorUiState,
   FlowDocument,
   NodeBorderStyleData,
+  NodeFillStyleData,
   SceneEvent,
   SelectionArrangeAction,
   SelectionState,
@@ -78,6 +79,10 @@ export function useFlowEditorCore() {
     core.value?.updateNodeBorderStyle(nodeId, borderStyle)
   }
 
+  function updateNodeFillStyle(nodeId: NodeId, fillStyle: Partial<NodeFillStyleData>) {
+    core.value?.updateNodeFillStyle(nodeId, fillStyle)
+  }
+
   function updateEdgeLabel(edgeId: EdgeId, label: string) {
     core.value?.updateEdgeLabel(edgeId, label)
   }
@@ -130,6 +135,7 @@ export function useFlowEditorCore() {
     updateNodeSize,
     updateNodeTextStyle,
     updateNodeBorderStyle,
+    updateNodeFillStyle,
     updateEdgeLabel,
     updateEdgeLineStyle,
     updateEdgeRoute,

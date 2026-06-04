@@ -20,6 +20,7 @@ import type {
   FlowEdge,
   FlowNode,
   NodeBorderStyleData,
+  NodeFillStyleData,
   NodeId,
   NodeTextStyleData,
   Point,
@@ -160,6 +161,10 @@ export class FlowEditorCore {
 
   updateNodeBorderStyle(nodeId: NodeId, borderStyle: Partial<NodeBorderStyleData>) {
     this.updateNodeProps(nodeId, 'borderStyle', borderStyle)
+  }
+
+  updateNodeFillStyle(nodeId: NodeId, fillStyle: Partial<NodeFillStyleData>) {
+    this.updateNodeProps(nodeId, 'fillStyle', fillStyle)
   }
 
   updateEdgeLabel(edgeId: EdgeId, label: string) {

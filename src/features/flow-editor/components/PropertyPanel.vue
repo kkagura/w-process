@@ -14,6 +14,7 @@ import type {
   EditorUiState,
   NodeBorderDash,
   NodeBorderStyleData,
+  NodeFillStyleData,
   NodeId,
   NodeTextHorizontalAlign,
   NodeTextOverflow,
@@ -33,6 +34,7 @@ const emit = defineEmits<{
   updateNodeSize: [nodeId: NodeId, size: Size]
   updateNodeTextStyle: [nodeId: NodeId, textStyle: Partial<NodeTextStyleData>]
   updateNodeBorderStyle: [nodeId: NodeId, borderStyle: Partial<NodeBorderStyleData>]
+  updateNodeFillStyle: [nodeId: NodeId, fillStyle: Partial<NodeFillStyleData>]
   updateEdgeLabel: [edgeId: EdgeId, label: string]
   updateEdgeLineStyle: [edgeId: EdgeId, lineStyle: Partial<EdgeLineStyleData>]
   updateEdgeRoute: [edgeId: EdgeId, route: EdgeRouteData]
@@ -51,12 +53,14 @@ const collapsedGroups = reactive({
   base: false,
   geometry: false,
   text: false,
+  fill: false,
   border: false,
   edgeBase: false,
   edgeRoute: false,
   edgeLine: false,
 })
 const textStyleDraft = reactive<NodeTextStyleData>(createDefaultTextStyle())
+const fillStyleDraft = reactive<NodeFillStyleData>(createDefaultFillStyle())
 const borderStyleDraft = reactive<NodeBorderStyleData>(createDefaultBorderStyle())
 const edgeLineStyleDraft = reactive<EdgeLineStyleData>(createDefaultEdgeLineStyle())
 const fontWeightOptions = [
@@ -92,6 +96,12 @@ const selectedEdge = computed(() => props.uiState?.selectedEdge ?? null)
 const selectedCount = computed(() => props.uiState?.selection.items.length ?? 0)
 const showSingleNode = computed(() => selectedCount.value <= 1 && Boolean(selectedNode.value))
 const showSingleEdge = computed(() => selectedCount.value <= 1 && Boolean(selectedEdge.value))
+const fillOpacityPercent = computed({
+  get: () => Math.round(fillStyleDraft.opacity * 100),
+  set: (value: number) => {
+    fillStyleDraft.opacity = clamp(getFiniteNumber(value, 100), 0, 100) / 100
+  },
+})
 
 watch(
   selectedNode,
@@ -104,6 +114,7 @@ watch(
     geometryDraft.width = node.size.width
     geometryDraft.height = node.size.height
     Object.assign(textStyleDraft, getTextStyleData(node.props))
+    Object.assign(fillStyleDraft, getFillStyleData(node.props))
     Object.assign(borderStyleDraft, getBorderStyleData(node.props))
   },
   { immediate: true },
@@ -183,6 +194,15 @@ function commitBorderStyle() {
   emit('updateNodeBorderStyle', node.id, borderStyle)
 }
 
+function commitFillStyle() {
+  const node = selectedNode.value
+  if (!node) return
+
+  const fillStyle = normalizeFillStyle(fillStyleDraft)
+  Object.assign(fillStyleDraft, fillStyle)
+  emit('updateNodeFillStyle', node.id, fillStyle)
+}
+
 function commitEdgeLabel() {
   const edge = selectedEdge.value
   if (!edge) return
@@ -236,6 +256,17 @@ function getBorderStyleData(props: Record<string, unknown>) {
   })
 }
 
+function getFillStyleData(props: Record<string, unknown>) {
+  const value = props.fillStyle
+  const fallback = createDefaultFillStyle()
+  if (!isRecord(value)) return fallback
+
+  return normalizeFillStyle({
+    ...fallback,
+    ...value,
+  })
+}
+
 function getEdgeLineStyleData(props: Record<string, unknown>) {
   const value = props.lineStyle
   const fallback = createDefaultEdgeLineStyle()
@@ -280,6 +311,13 @@ function createDefaultBorderStyle(): NodeBorderStyleData {
   }
 }
 
+function createDefaultFillStyle(): NodeFillStyleData {
+  return {
+    color: '#ffffff',
+    opacity: 1,
+  }
+}
+
 function createDefaultEdgeLineStyle(): EdgeLineStyleData {
   return {
     color: '#64748b',
@@ -319,6 +357,13 @@ function normalizeBorderStyle(value: NodeBorderStyleData): NodeBorderStyleData {
   }
 }
 
+function normalizeFillStyle(value: NodeFillStyleData): NodeFillStyleData {
+  return {
+    color: typeof value.color === 'string' && value.color ? value.color : '#ffffff',
+    opacity: clamp(getFiniteNumber(value.opacity, 1), 0, 1),
+  }
+}
+
 function normalizeEdgeLineStyle(value: EdgeLineStyleData): EdgeLineStyleData {
   return {
     color: typeof value.color === 'string' && value.color ? value.color : '#64748b',
@@ -337,6 +382,10 @@ function normalizeEdgeRoute(value: EdgeRouteData): EdgeRouteData {
 function getFiniteNumber(value: unknown, fallback: number) {
   const numberValue = typeof value === 'number' ? value : Number(value)
   return Number.isFinite(numberValue) ? numberValue : fallback
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value))
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -443,6 +492,24 @@ function isEdgeRouteType(value: unknown): value is EdgeRouteType {
         <div class="field-row">
           <PropertyNumberField v-model="textStyleDraft.padding" label="内边距" :min="0" @commit="commitTextStyle" />
           <PropertyNumberField v-model="textStyleDraft.maxLines" label="最大行" :min="1" @commit="commitTextStyle" />
+        </div>
+      </PropertyGroup>
+
+      <PropertyGroup
+        title="填充样式"
+        :collapsed="collapsedGroups.fill"
+        @toggle="toggleGroup('fill')"
+      >
+        <div class="field-row">
+          <PropertyColorField v-model="fillStyleDraft.color" label="填充色" @commit="commitFillStyle" />
+          <PropertyNumberField
+            v-model="fillOpacityPercent"
+            label="透明度"
+            :min="0"
+            :max="100"
+            :step="1"
+            @commit="commitFillStyle"
+          />
         </div>
       </PropertyGroup>
 

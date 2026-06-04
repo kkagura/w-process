@@ -85,6 +85,11 @@ export interface NodeBorderStyleData {
   dash: NodeBorderDash
 }
 
+export interface NodeFillStyleData {
+  color: string
+  opacity: number
+}
+
 export interface Endpoint {
   nodeId: NodeId
   portId: PortId

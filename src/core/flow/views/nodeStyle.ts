@@ -1,6 +1,7 @@
 import type {
   NodeBorderDash,
   NodeBorderStyleData,
+  NodeFillStyleData,
   NodeTextHorizontalAlign,
   NodeTextOverflow,
   NodeTextVerticalAlign,
@@ -11,6 +12,11 @@ export interface ResolvedNodeBorderStyle {
   color: string
   width: number
   dash: NodeBorderDash
+}
+
+export interface ResolvedNodeFillStyle {
+  color: string
+  opacity: number
 }
 
 export function getNodeTextStyle(
@@ -51,6 +57,50 @@ export function getNodeBorderStyle(
       : fallback.width,
     dash: isBorderDash(value.dash) ? value.dash : fallback.dash,
   }
+}
+
+export function getNodeFillStyle(
+  props: Record<string, unknown>,
+  fallback: NodeFillStyleData,
+): ResolvedNodeFillStyle {
+  const value = props.fillStyle
+  if (!isRecord(value)) {
+    return {
+      color: toCanvasFillColor(fallback.color, fallback.opacity),
+      opacity: fallback.opacity,
+    }
+  }
+
+  const color = typeof value.color === 'string' && value.color ? value.color : fallback.color
+  const opacity = normalizeOpacity(value.opacity, fallback.opacity)
+
+  return {
+    color: toCanvasFillColor(color, opacity),
+    opacity,
+  }
+}
+
+function normalizeOpacity(value: unknown, fallback: number) {
+  const opacity = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(opacity)) return fallback
+  return Math.min(1, Math.max(0, opacity))
+}
+
+function toCanvasFillColor(color: string, opacity: number) {
+  const normalizedOpacity = normalizeOpacity(opacity, 1)
+  if (normalizedOpacity >= 1) return color
+
+  const hex = color.trim()
+  if (/^#[\da-f]{3}$/i.test(hex)) {
+    const [, r, g, b] = hex
+    return `rgba(${parseInt(r + r, 16)}, ${parseInt(g + g, 16)}, ${parseInt(b + b, 16)}, ${normalizedOpacity})`
+  }
+
+  if (/^#[\da-f]{6}$/i.test(hex)) {
+    return `rgba(${parseInt(hex.slice(1, 3), 16)}, ${parseInt(hex.slice(3, 5), 16)}, ${parseInt(hex.slice(5, 7), 16)}, ${normalizedOpacity})`
+  }
+
+  return color
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

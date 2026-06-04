@@ -2,7 +2,7 @@ import type { SubflowNode } from '../elements/SubflowNode'
 import type { NodeDrawContext } from '../types/flow'
 import { drawTextBlock } from '../renderer/TextRenderer'
 import { BaseNodeView } from './BaseNodeView'
-import { getNodeBorderStyle, getNodeTextStyle } from './nodeStyle'
+import { getNodeBorderStyle, getNodeFillStyle, getNodeTextStyle } from './nodeStyle'
 
 export class SubflowNodeView extends BaseNodeView<SubflowNode> {
   draw(ctx: CanvasRenderingContext2D, node: SubflowNode, context: NodeDrawContext) {
@@ -15,6 +15,10 @@ export class SubflowNodeView extends BaseNodeView<SubflowNode> {
       width: 1.5,
       dash: 'solid',
     })
+    const fillStyle = getNodeFillStyle(node.getProps(), {
+      color: '#f8fafc',
+      opacity: 1,
+    })
     const borderColor = context.selected
       ? context.theme.colors.selected
       : context.hovered
@@ -23,7 +27,7 @@ export class SubflowNodeView extends BaseNodeView<SubflowNode> {
 
     ctx.save()
     ctx.globalAlpha = context.dragging ? 0.82 : 1
-    ctx.fillStyle = '#f8fafc'
+    ctx.fillStyle = fillStyle.color
     ctx.strokeStyle = borderColor
     ctx.lineWidth = context.selected ? Math.max(borderStyle.width, 2) : borderStyle.width
     if (borderStyle.dash === 'dashed') ctx.setLineDash([8, 5])

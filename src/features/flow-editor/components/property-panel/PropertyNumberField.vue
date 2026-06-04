@@ -4,6 +4,7 @@ import PropertyField from './PropertyField.vue'
 defineProps<{
   label: string
   min?: number
+  max?: number
   step?: number
 }>()
 
@@ -21,6 +22,7 @@ const emit = defineEmits<{
       class="field-input"
       type="number"
       :min="min"
+      :max="max"
       :step="step"
       @blur="emit('commit')"
       @keydown.enter.prevent="emit('commit')"
