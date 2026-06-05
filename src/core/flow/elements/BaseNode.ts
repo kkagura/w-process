@@ -1,4 +1,5 @@
-import type { FlowNode, FlowPort, Point, Size } from '../types/flow'
+import type { FlowNode, FlowPort, Point, Rect, Size } from '../types/flow'
+import { getRectCenter, getRotatedRectBounds, normalizeAngle } from '../utils/geometry'
 
 export abstract class BaseNode {
   protected data: FlowNode
@@ -29,6 +30,25 @@ export abstract class BaseNode {
 
   getSize(): Size {
     return this.data.size
+  }
+
+  getRotation() {
+    return normalizeAngle(this.data.rotation)
+  }
+
+  getRawRect(): Rect {
+    return {
+      ...this.data.position,
+      ...this.data.size,
+    }
+  }
+
+  getBounds(): Rect {
+    return getRotatedRectBounds(this.getRawRect(), this.getRotation())
+  }
+
+  getCenter(): Point {
+    return getRectCenter(this.getRawRect())
   }
 
   getProps() {

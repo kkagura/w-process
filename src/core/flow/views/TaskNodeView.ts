@@ -25,6 +25,7 @@ export class TaskNodeView extends BaseNodeView<TaskNode> {
         : borderStyle.color
 
     ctx.save()
+    this.applyNodeTransform(ctx, node)
     ctx.globalAlpha = context.dragging ? 0.82 : 1
     ctx.fillStyle = fillStyle.color
     ctx.strokeStyle = borderColor
@@ -48,7 +49,7 @@ export class TaskNodeView extends BaseNodeView<TaskNode> {
     })
 
     for (const port of node.getPorts()) {
-      const portPosition = this.getPortPosition(node, port)
+      const portPosition = this.getLocalPortPosition(node, port)
       ctx.beginPath()
       ctx.arc(portPosition.x, portPosition.y, 5, 0, Math.PI * 2)
       ctx.fillStyle = context.theme.colors.portFill

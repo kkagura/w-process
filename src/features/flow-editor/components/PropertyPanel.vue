@@ -32,6 +32,7 @@ const emit = defineEmits<{
   updateNodeLabel: [nodeId: NodeId, label: string]
   updateNodePosition: [nodeId: NodeId, position: Point]
   updateNodeSize: [nodeId: NodeId, size: Size]
+  updateNodeRotation: [nodeId: NodeId, rotation: number]
   updateNodeTextStyle: [nodeId: NodeId, textStyle: Partial<NodeTextStyleData>]
   updateNodeBorderStyle: [nodeId: NodeId, borderStyle: Partial<NodeBorderStyleData>]
   updateNodeFillStyle: [nodeId: NodeId, fillStyle: Partial<NodeFillStyleData>]
@@ -48,6 +49,7 @@ const geometryDraft = reactive({
   y: 0,
   width: 0,
   height: 0,
+  rotation: 0,
 })
 const collapsedGroups = reactive({
   base: false,
@@ -113,6 +115,7 @@ watch(
     geometryDraft.y = node.position.y
     geometryDraft.width = node.size.width
     geometryDraft.height = node.size.height
+    geometryDraft.rotation = node.rotation
     Object.assign(textStyleDraft, getTextStyleData(node.props))
     Object.assign(fillStyleDraft, getFillStyleData(node.props))
     Object.assign(borderStyleDraft, getBorderStyleData(node.props))
@@ -174,6 +177,17 @@ function commitSize() {
 
   if (size.width === node.size.width && size.height === node.size.height) return
   emit('updateNodeSize', node.id, size)
+}
+
+function commitRotation() {
+  const node = selectedNode.value
+  if (!node) return
+
+  const rotation = normalizeAngle(getFiniteNumber(geometryDraft.rotation, node.rotation))
+  geometryDraft.rotation = rotation
+
+  if (rotation === normalizeAngle(node.rotation)) return
+  emit('updateNodeRotation', node.id, rotation)
 }
 
 function commitTextStyle() {
@@ -388,6 +402,11 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))
 }
 
+function normalizeAngle(value: number) {
+  const normalized = value % 360
+  return normalized < 0 ? normalized + 360 : normalized
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
@@ -455,6 +474,13 @@ function isEdgeRouteType(value: unknown): value is EdgeRouteType {
           <PropertyNumberField v-model="geometryDraft.width" label="宽" :min="40" @commit="commitSize" />
           <PropertyNumberField v-model="geometryDraft.height" label="高" :min="32" @commit="commitSize" />
         </div>
+        <PropertyNumberField
+          v-model="geometryDraft.rotation"
+          label="旋转"
+          :min="0"
+          :max="359"
+          @commit="commitRotation"
+        />
       </PropertyGroup>
 
       <PropertyGroup

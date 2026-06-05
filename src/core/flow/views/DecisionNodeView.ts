@@ -23,6 +23,7 @@ export class DecisionNodeView extends BaseNodeView<DecisionNode> {
         : borderStyle.color
 
     ctx.save()
+    this.applyNodeTransform(ctx, node)
     ctx.globalAlpha = context.dragging ? 0.82 : 1
     ctx.fillStyle = fillStyle.color
     ctx.strokeStyle = borderColor
@@ -56,7 +57,7 @@ export class DecisionNodeView extends BaseNodeView<DecisionNode> {
   }
 
   hitTest(node: DecisionNode, point: Point) {
-    return isPointInPolygon(point, getDiamondPoints(node))
+    return isPointInPolygon(this.getLocalPoint(node, point), getDiamondPoints(node))
   }
 }
 
@@ -96,7 +97,7 @@ function isPointInPolygon(point: Point, polygon: Point[]) {
 
 function drawPorts(ctx: CanvasRenderingContext2D, view: BaseNodeView<DecisionNode>, node: DecisionNode, context: NodeDrawContext) {
   for (const port of node.getPorts()) {
-    const portPosition = view.getPortPosition(node, port)
+    const portPosition = view.getLocalPortPosition(node, port)
     ctx.beginPath()
     ctx.arc(portPosition.x, portPosition.y, 5, 0, Math.PI * 2)
     ctx.fillStyle = context.theme.colors.portFill

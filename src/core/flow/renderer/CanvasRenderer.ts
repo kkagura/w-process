@@ -5,6 +5,7 @@ import type { FlowTheme, NodeDrawContext, Point, Rect, SnapGuide, ViewportData }
 import type { CanvasLayerManager } from './CanvasLayerManager'
 import { routeOrthogonalEdge } from '../routing/orthogonal'
 import { getResizeHandles } from '../interaction/NodeResizeInteraction'
+import { getRotateHandle, getRotateHandleAnchor } from '../interaction/NodeRotateInteraction'
 
 export interface CanvasInteractionState {
   draggingNodeId: string | null
@@ -60,6 +61,7 @@ export class CanvasRenderer {
     this.drawNodes(ctx, context)
     this.drawSelectedNodeBounds(ctx, context)
     this.drawResizeHandles(ctx, context)
+    this.drawRotateHandle(ctx, context)
     this.drawSnapGuides(ctx, context)
     this.drawSelectionRect(ctx, context)
 
@@ -221,6 +223,36 @@ export class CanvasRenderer {
       ctx.stroke()
     }
 
+    ctx.restore()
+  }
+
+  private drawRotateHandle(ctx: CanvasRenderingContext2D, context: RenderContext) {
+    const selection = context.scene.getSelection()
+    if (selection.items.length !== 1 || selection.primary?.type !== 'node') return
+
+    const node = context.scene.getNodeData(selection.primary.id)
+    const rect = context.scene.getNodeRawRect(selection.primary.id)
+    if (!node || !rect) return
+
+    const viewport = context.scene.getViewport()
+    const theme = context.scene.getTheme()
+    const handle = getRotateHandle(rect, node.rotation, viewport)
+    const anchor = getRotateHandleAnchor(rect, node.rotation)
+    const radius = handle.rect.width / 2
+
+    ctx.save()
+    ctx.strokeStyle = theme.colors.selected
+    ctx.fillStyle = '#ffffff'
+    ctx.lineWidth = 1.2 / viewport.zoom
+    ctx.beginPath()
+    ctx.moveTo(anchor.x, anchor.y)
+    ctx.lineTo(handle.center.x, handle.center.y)
+    ctx.stroke()
+
+    ctx.beginPath()
+    ctx.arc(handle.center.x, handle.center.y, radius, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
     ctx.restore()
   }
 

@@ -124,11 +124,7 @@ export class Box {
   }
 
   getBounds(): Rect {
-    const bounds = this.getNodesDeep().map((node) => {
-      const position = node.getPosition()
-      const size = node.getSize()
-      return { ...position, ...size }
-    })
+    const bounds = this.getNodesDeep().map(node => node.getBounds())
 
     if (bounds.length === 0) {
       return { ...this.data.position, ...this.data.size }

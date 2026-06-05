@@ -56,6 +56,7 @@ export interface FlowNode {
   label: string
   position: Point
   size: Size
+  rotation: number
   ports: FlowPort[]
   props: Record<string, unknown>
 }

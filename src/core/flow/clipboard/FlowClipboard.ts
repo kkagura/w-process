@@ -1,5 +1,5 @@
 import type { FlowEdge, FlowNode, Point, Rect } from '../types/flow'
-import { getUnionBounds } from '../utils/geometry'
+import { getRotatedRectBounds, getUnionBounds } from '../utils/geometry'
 import { createId } from '../utils/ids'
 import type { SceneManager } from '../scene/SceneManager'
 
@@ -100,10 +100,10 @@ export function createPastedFlowData(data: FlowClipboardData, offset: Point): Pa
 }
 
 function getNodeRect(node: FlowNode): Rect {
-  return {
+  return getRotatedRectBounds({
     ...node.position,
     ...node.size,
-  }
+  }, node.rotation)
 }
 
 function getPortKey(nodeId: string, portId: string) {

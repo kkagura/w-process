@@ -31,6 +31,7 @@ import type {
 } from './types/flow'
 import { findElementTemplate } from './constants/elementTemplates'
 import { createId } from './utils/ids'
+import { normalizeAngle } from './utils/geometry'
 import { CoordinateTransformer } from './viewport/CoordinateTransformer'
 
 const TOOLBAR_ZOOM_FACTOR = 1.2
@@ -198,6 +199,19 @@ export class FlowEditorCore {
     this.history.execute(new UpdateNodeDataCommand(node, nextNode))
   }
 
+  updateNodeRotation(nodeId: NodeId, rotation: number) {
+    const node = this.scene.getNodeData(nodeId)
+    if (!node) return
+
+    const nextRotation = normalizeAngle(rotation)
+    if (normalizeAngle(node.rotation) === nextRotation) return
+
+    this.history.execute(new UpdateNodeDataCommand(node, {
+      ...node,
+      rotation: nextRotation,
+    }))
+  }
+
   updateNodeTextStyle(nodeId: NodeId, textStyle: Partial<NodeTextStyleData>) {
     this.updateNodeProps(nodeId, 'textStyle', textStyle)
   }
@@ -344,6 +358,7 @@ export class FlowEditorCore {
       label: template.label,
       position,
       size: template.defaultSize,
+      rotation: 0,
       ports: template.ports.map(port => ({
         id: createId('port'),
         nodeId,

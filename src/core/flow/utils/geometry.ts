@@ -28,6 +28,66 @@ export function containsPoint(rect: Rect, point: Point) {
     && point.y <= rect.y + rect.height
 }
 
+export function toRadians(degrees: number) {
+  return (degrees * Math.PI) / 180
+}
+
+export function normalizeAngle(degrees: number) {
+  if (!Number.isFinite(degrees)) return 0
+
+  const normalized = degrees % 360
+  return normalized < 0 ? normalized + 360 : normalized
+}
+
+export function getRectCenter(rect: Rect): Point {
+  return {
+    x: rect.x + rect.width / 2,
+    y: rect.y + rect.height / 2,
+  }
+}
+
+export function rotatePoint(point: Point, center: Point, rotation: number): Point {
+  const radians = toRadians(rotation)
+  const cos = Math.cos(radians)
+  const sin = Math.sin(radians)
+  const dx = point.x - center.x
+  const dy = point.y - center.y
+
+  return {
+    x: center.x + dx * cos - dy * sin,
+    y: center.y + dx * sin + dy * cos,
+  }
+}
+
+export function inverseRotatePoint(point: Point, center: Point, rotation: number): Point {
+  return rotatePoint(point, center, -rotation)
+}
+
+export function getRotatedRectCorners(rect: Rect, rotation: number): Point[] {
+  const center = getRectCenter(rect)
+  return [
+    { x: rect.x, y: rect.y },
+    { x: rect.x + rect.width, y: rect.y },
+    { x: rect.x + rect.width, y: rect.y + rect.height },
+    { x: rect.x, y: rect.y + rect.height },
+  ].map(point => rotatePoint(point, center, rotation))
+}
+
+export function getRotatedRectBounds(rect: Rect, rotation: number): Rect {
+  const points = getRotatedRectCorners(rect, rotation)
+  const left = Math.min(...points.map(point => point.x))
+  const top = Math.min(...points.map(point => point.y))
+  const right = Math.max(...points.map(point => point.x))
+  const bottom = Math.max(...points.map(point => point.y))
+
+  return {
+    x: left,
+    y: top,
+    width: right - left,
+    height: bottom - top,
+  }
+}
+
 export function normalizeRect(start: Point, end: Point): Rect {
   const left = Math.min(start.x, end.x)
   const top = Math.min(start.y, end.y)

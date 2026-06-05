@@ -26,6 +26,7 @@ export class SubflowNodeView extends BaseNodeView<SubflowNode> {
         : borderStyle.color
 
     ctx.save()
+    this.applyNodeTransform(ctx, node)
     ctx.globalAlpha = context.dragging ? 0.82 : 1
     ctx.fillStyle = fillStyle.color
     ctx.strokeStyle = borderColor
@@ -80,7 +81,7 @@ function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, width:
 
 function drawPorts(ctx: CanvasRenderingContext2D, view: BaseNodeView<SubflowNode>, node: SubflowNode, context: NodeDrawContext) {
   for (const port of node.getPorts()) {
-    const portPosition = view.getPortPosition(node, port)
+    const portPosition = view.getLocalPortPosition(node, port)
     ctx.beginPath()
     ctx.arc(portPosition.x, portPosition.y, 5, 0, Math.PI * 2)
     ctx.fillStyle = context.theme.colors.portFill

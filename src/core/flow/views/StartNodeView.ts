@@ -24,6 +24,7 @@ export class StartNodeView extends BaseNodeView<StartNode> {
         : borderStyle.color
 
     ctx.save()
+    this.applyNodeTransform(ctx, node)
     ctx.globalAlpha = context.dragging ? 0.82 : 1
     ctx.fillStyle = fillStyle.color
     ctx.strokeStyle = borderColor
@@ -61,7 +62,7 @@ export class StartNodeView extends BaseNodeView<StartNode> {
     })
 
     for (const port of node.getPorts()) {
-      const portPosition = this.getPortPosition(node, port)
+      const portPosition = this.getLocalPortPosition(node, port)
       ctx.beginPath()
       ctx.arc(portPosition.x, portPosition.y, 5, 0, Math.PI * 2)
       ctx.fillStyle = context.theme.colors.portFill
@@ -75,6 +76,7 @@ export class StartNodeView extends BaseNodeView<StartNode> {
   }
 
   hitTest(node: StartNode, point: Point) {
+    const localPoint = this.getLocalPoint(node, point)
     const position = node.getPosition()
     const size = node.getSize()
     const radiusX = size.width / 2
@@ -84,8 +86,8 @@ export class StartNodeView extends BaseNodeView<StartNode> {
 
     if (radiusX <= 0 || radiusY <= 0) return false
 
-    const normalizedX = (point.x - centerX) / radiusX
-    const normalizedY = (point.y - centerY) / radiusY
+    const normalizedX = (localPoint.x - centerX) / radiusX
+    const normalizedY = (localPoint.y - centerY) / radiusY
     return normalizedX * normalizedX + normalizedY * normalizedY <= 1
   }
 }

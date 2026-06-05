@@ -26,6 +26,7 @@ export class CircleNodeView extends BaseNodeView<CircleNode> {
         : borderStyle.color
 
     ctx.save()
+    this.applyNodeTransform(ctx, node)
     ctx.globalAlpha = context.dragging ? 0.82 : 1
     ctx.fillStyle = fillStyle.color
     ctx.strokeStyle = borderColor
@@ -58,21 +59,22 @@ export class CircleNodeView extends BaseNodeView<CircleNode> {
   }
 
   hitTest(node: CircleNode, point: Point) {
+    const localPoint = this.getLocalPoint(node, point)
     const position = node.getPosition()
     const size = node.getSize()
     const radiusX = size.width / 2
     const radiusY = size.height / 2
     if (radiusX <= 0 || radiusY <= 0) return false
 
-    const dx = (point.x - (position.x + radiusX)) / radiusX
-    const dy = (point.y - (position.y + radiusY)) / radiusY
+    const dx = (localPoint.x - (position.x + radiusX)) / radiusX
+    const dy = (localPoint.y - (position.y + radiusY)) / radiusY
     return dx * dx + dy * dy <= 1
   }
 }
 
 function drawPorts(ctx: CanvasRenderingContext2D, view: BaseNodeView<CircleNode>, node: CircleNode, context: NodeDrawContext) {
   for (const port of node.getPorts()) {
-    const portPosition = view.getPortPosition(node, port)
+    const portPosition = view.getLocalPortPosition(node, port)
     ctx.beginPath()
     ctx.arc(portPosition.x, portPosition.y, 5, 0, Math.PI * 2)
     ctx.fillStyle = context.theme.colors.portFill

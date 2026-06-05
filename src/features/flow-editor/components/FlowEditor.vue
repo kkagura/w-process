@@ -36,6 +36,7 @@ const {
   updateNodeLabel,
   updateNodePosition,
   updateNodeSize,
+  updateNodeRotation,
   updateNodeTextStyle,
   updateNodeBorderStyle,
   updateNodeFillStyle,
@@ -145,6 +146,7 @@ function formatEdgeSuffix(edgeCount: number) {
       @update-node-label="updateNodeLabel"
       @update-node-position="updateNodePosition"
       @update-node-size="updateNodeSize"
+      @update-node-rotation="updateNodeRotation"
       @update-node-text-style="updateNodeTextStyle"
       @update-node-border-style="updateNodeBorderStyle"
       @update-node-fill-style="updateNodeFillStyle"

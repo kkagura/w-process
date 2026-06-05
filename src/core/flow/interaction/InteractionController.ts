@@ -29,6 +29,12 @@ import {
   hitTestResizeHandle,
 } from './NodeResizeInteraction'
 import {
+  getPointAngle,
+  getRotatedNodeData,
+  hasNodeRotationChanges,
+  hitTestRotateHandle,
+} from './NodeRotateInteraction'
+import {
   getPannedViewport,
   getZoomedViewport,
   shouldStartPanning,
@@ -117,6 +123,31 @@ export class InteractionController {
     }
 
     const point = this.getWorldPoint(event)
+    const rotateHit = this.getSelectedRotateHandle(point)
+    if (rotateHit && event.button === 0) {
+      this.mode = {
+        type: 'rotating-node',
+        nodeId: rotateHit.node.id,
+        center: {
+          x: rotateHit.rect.x + rotateHit.rect.width / 2,
+          y: rotateHit.rect.y + rotateHit.rect.height / 2,
+        },
+        before: rotateHit.node,
+        startAngle: getPointAngle({
+          x: rotateHit.rect.x + rotateHit.rect.width / 2,
+          y: rotateHit.rect.y + rotateHit.rect.height / 2,
+        }, point),
+        startRotation: rotateHit.node.rotation,
+      }
+      this.options.scene.setHovered({ type: 'node', id: rotateHit.node.id })
+      this.snapGuides = []
+      this.options.canvas.setPointerCapture(event.pointerId)
+      this.setCursor('grabbing')
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
     const resizeHit = this.getSelectedResizeHandle(point)
     if (resizeHit && event.button === 0) {
       this.mode = {
@@ -277,6 +308,18 @@ export class InteractionController {
       return
     }
 
+    if (this.mode.type === 'rotating-node') {
+      const nextNode = getRotatedNodeData({
+        mode: this.mode,
+        current: point,
+        snap: event.shiftKey,
+      })
+      this.options.scene.updateNodeData(nextNode)
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
     if (this.mode.type === 'dragging-node') {
       const snapResult = snapRectToNodes({
         movingBounds: getDraggedNodeBounds(this.mode, point),
@@ -315,6 +358,13 @@ export class InteractionController {
       return
     }
 
+    const rotateHit = this.getSelectedRotateHandle(point)
+    if (rotateHit) {
+      this.setCursor(rotateHit.handle.cursor)
+      this.options.scene.setHovered({ type: 'node', id: rotateHit.node.id })
+      return
+    }
+
     const resizeHit = this.getSelectedResizeHandle(point)
     if (resizeHit) {
       this.setCursor(resizeHit.handle.cursor)
@@ -340,6 +390,17 @@ export class InteractionController {
 
     if (this.mode.type === 'resizing-node') {
       this.recordNodeResizeHistory(this.mode)
+      this.options.canvas.releasePointerCapture(event.pointerId)
+      this.mode = { type: 'idle' }
+      this.snapGuides = []
+      this.setCursor('')
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
+    if (this.mode.type === 'rotating-node') {
+      this.recordNodeRotateHistory(this.mode)
       this.options.canvas.releasePointerCapture(event.pointerId)
       this.mode = { type: 'idle' }
       this.snapGuides = []
@@ -478,6 +539,9 @@ export class InteractionController {
     if (this.mode.type === 'resizing-node') {
       this.options.scene.updateNodeData(this.mode.before)
     }
+    if (this.mode.type === 'rotating-node') {
+      this.options.scene.updateNodeData(this.mode.before)
+    }
 
     this.mode = { type: 'idle' }
     this.snapGuides = []
@@ -590,6 +654,13 @@ export class InteractionController {
     this.options.history.record(new UpdateNodeDataCommand(mode.before, after))
   }
 
+  private recordNodeRotateHistory(mode: Extract<InteractionMode, { type: 'rotating-node' }>) {
+    const after = this.options.scene.getNodeData(mode.nodeId)
+    if (!after || !hasNodeRotationChanges(mode.before, after)) return
+
+    this.options.history.record(new UpdateNodeDataCommand(mode.before, after))
+  }
+
   private getResizeSnap(mode: Extract<InteractionMode, { type: 'resizing-node' }>, point: Point) {
     const rawRect = getRawResizedRect({
       mode,
@@ -628,5 +699,17 @@ export class InteractionController {
 
     const handle = hitTestResizeHandle(point, rect, this.options.scene.getViewport())
     return handle ? { node, handle } : null
+  }
+
+  private getSelectedRotateHandle(point: Point) {
+    const selection = this.options.scene.getSelection()
+    if (selection.items.length !== 1 || selection.primary?.type !== 'node') return null
+
+    const node = this.options.scene.getNodeData(selection.primary.id)
+    const rect = this.options.scene.getNodeRawRect(selection.primary.id)
+    if (!node || !rect) return null
+
+    const handle = hitTestRotateHandle(point, rect, node.rotation, this.options.scene.getViewport())
+    return handle ? { node, rect, handle } : null
   }
 }

@@ -322,9 +322,7 @@ export class SceneManager {
   selectNodesInRect(rect: Rect) {
     const selectedNodes = this.getNodes()
       .filter((node) => {
-        const position = node.getPosition()
-        const size = node.getSize()
-        return rectsIntersect(rect, { ...position, ...size })
+        return rectsIntersect(rect, node.getBounds())
       })
       .map<SelectableRef>(node => ({ type: 'node', id: node.id }))
 
@@ -386,10 +384,14 @@ export class SceneManager {
     const node = this.getNode(id)
     if (!node) return null
 
-    return {
-      ...node.getPosition(),
-      ...node.getSize(),
-    }
+    return node.getBounds()
+  }
+
+  getNodeRawRect(id: NodeId): Rect | null {
+    const node = this.getNode(id)
+    if (!node) return null
+
+    return node.getRawRect()
   }
 
   getNodeRects(excludedNodeIds: NodeId[] = []): Rect[] {
@@ -397,10 +399,7 @@ export class SceneManager {
 
     return this.getNodes()
       .filter(node => !excluded.has(node.id))
-      .map(node => ({
-        ...node.getPosition(),
-        ...node.getSize(),
-      }))
+      .map(node => node.getBounds())
   }
 
   getSelectedNodeIds(): NodeId[] {

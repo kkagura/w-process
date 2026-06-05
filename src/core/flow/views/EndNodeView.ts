@@ -24,6 +24,7 @@ export class EndNodeView extends BaseNodeView<EndNode> {
         : borderStyle.color
 
     ctx.save()
+    this.applyNodeTransform(ctx, node)
     ctx.globalAlpha = context.dragging ? 0.82 : 1
     ctx.fillStyle = fillStyle.color
     ctx.strokeStyle = borderColor
@@ -62,21 +63,22 @@ export class EndNodeView extends BaseNodeView<EndNode> {
   }
 
   hitTest(node: EndNode, point: Point) {
+    const localPoint = this.getLocalPoint(node, point)
     const position = node.getPosition()
     const size = node.getSize()
     const radiusX = size.width / 2
     const radiusY = size.height / 2
     if (radiusX <= 0 || radiusY <= 0) return false
 
-    const normalizedX = (point.x - (position.x + radiusX)) / radiusX
-    const normalizedY = (point.y - (position.y + radiusY)) / radiusY
+    const normalizedX = (localPoint.x - (position.x + radiusX)) / radiusX
+    const normalizedY = (localPoint.y - (position.y + radiusY)) / radiusY
     return normalizedX * normalizedX + normalizedY * normalizedY <= 1
   }
 }
 
 function drawPorts(ctx: CanvasRenderingContext2D, view: BaseNodeView<EndNode>, node: EndNode, context: NodeDrawContext) {
   for (const port of node.getPorts()) {
-    const portPosition = view.getPortPosition(node, port)
+    const portPosition = view.getLocalPortPosition(node, port)
     ctx.beginPath()
     ctx.arc(portPosition.x, portPosition.y, 5, 0, Math.PI * 2)
     ctx.fillStyle = context.theme.colors.portFill

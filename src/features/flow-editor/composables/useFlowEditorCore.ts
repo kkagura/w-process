@@ -94,6 +94,10 @@ export function useFlowEditorCore() {
     core.value?.updateNodeSize(nodeId, size)
   }
 
+  function updateNodeRotation(nodeId: NodeId, rotation: number) {
+    core.value?.updateNodeRotation(nodeId, rotation)
+  }
+
   function updateNodeTextStyle(nodeId: NodeId, textStyle: Partial<NodeTextStyleData>) {
     core.value?.updateNodeTextStyle(nodeId, textStyle)
   }
@@ -162,6 +166,7 @@ export function useFlowEditorCore() {
     updateNodeLabel,
     updateNodePosition,
     updateNodeSize,
+    updateNodeRotation,
     updateNodeTextStyle,
     updateNodeBorderStyle,
     updateNodeFillStyle,

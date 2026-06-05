@@ -25,6 +25,7 @@ export class DocumentNodeView extends BaseNodeView<DocumentNode> {
         : borderStyle.color
 
     ctx.save()
+    this.applyNodeTransform(ctx, node)
     ctx.globalAlpha = context.dragging ? 0.82 : 1
     ctx.fillStyle = fillStyle.color
     ctx.strokeStyle = borderColor
@@ -69,7 +70,7 @@ export class DocumentNodeView extends BaseNodeView<DocumentNode> {
 
 function drawPorts(ctx: CanvasRenderingContext2D, view: BaseNodeView<DocumentNode>, node: DocumentNode, context: NodeDrawContext) {
   for (const port of node.getPorts()) {
-    const portPosition = view.getPortPosition(node, port)
+    const portPosition = view.getLocalPortPosition(node, port)
     ctx.beginPath()
     ctx.arc(portPosition.x, portPosition.y, 5, 0, Math.PI * 2)
     ctx.fillStyle = context.theme.colors.portFill
