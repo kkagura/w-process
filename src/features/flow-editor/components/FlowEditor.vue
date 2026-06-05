@@ -32,6 +32,7 @@ const {
   zoomIn,
   zoomOut,
   resetView,
+  fitContent,
   updateNodeLabel,
   updateNodePosition,
   updateNodeSize,
@@ -136,6 +137,7 @@ function formatEdgeSuffix(edgeCount: number) {
       @zoom-in="zoomIn"
       @zoom-out="zoomOut"
       @reset-view="resetView"
+      @fit-content="fitContent"
       @save="emit('saveRequested')"
     />
     <PropertyPanel

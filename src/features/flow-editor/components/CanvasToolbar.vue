@@ -9,6 +9,7 @@ interface Props {
   canZoomIn: boolean
   canZoomOut: boolean
   canResetView: boolean
+  canFitContent: boolean
   selectedNodeCount: number
   dirty: boolean
 }
@@ -20,6 +21,7 @@ interface Emits {
   zoomIn: []
   zoomOut: []
   resetView: []
+  fitContent: []
   save: []
 }
 
@@ -122,6 +124,16 @@ function handleArrangeAction(item: ArrangeActionItem) {
       @click="emit('resetView')"
     >
       Reset View
+    </button>
+    <button
+      class="toolbar-button"
+      type="button"
+      :disabled="!canFitContent"
+      title="Fit All"
+      aria-label="Fit all content"
+      @click="emit('fitContent')"
+    >
+      Fit All
     </button>
     <div
       class="toolbar-menu-wrapper"

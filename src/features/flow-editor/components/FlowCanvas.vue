@@ -22,6 +22,7 @@ interface Emits {
   zoomIn: []
   zoomOut: []
   resetView: []
+  fitContent: []
   save: []
 }
 
@@ -47,6 +48,7 @@ const canResetView = computed(() =>
   || viewport.value.y !== defaultViewport.y
   || viewport.value.zoom !== defaultViewport.zoom,
 )
+const canFitContent = computed(() => nodeCount.value > 0)
 const selectedNodeCount = computed(() =>
   props.uiState?.selection.items.filter(item => item.type === 'node').length ?? 0,
 )
@@ -98,6 +100,7 @@ function updateCanvasSize() {
         :can-zoom-in="canZoomIn"
         :can-zoom-out="canZoomOut"
         :can-reset-view="canResetView"
+        :can-fit-content="canFitContent"
         :selected-node-count="selectedNodeCount"
         :dirty="dirty"
         @undo="emit('undo')"
@@ -106,6 +109,7 @@ function updateCanvasSize() {
         @zoom-in="emit('zoomIn')"
         @zoom-out="emit('zoomOut')"
         @reset-view="emit('resetView')"
+        @fit-content="emit('fitContent')"
         @save="emit('save')"
       />
       <CanvasStatusBar

@@ -431,6 +431,10 @@ export class SceneManager {
     return getUnionBounds(rects)
   }
 
+  getContentBounds(): Rect {
+    return this.rootBox.getBounds()
+  }
+
   getSelection(): SelectionState {
     return cloneSelectionState(this.selection)
   }

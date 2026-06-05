@@ -10,7 +10,7 @@ import { MoveNodesCommand } from './commands/MoveNodesCommand'
 import { UpdateEdgeDataCommand } from './commands/UpdateEdgeDataCommand'
 import { UpdateNodeDataCommand } from './commands/UpdateNodeDataCommand'
 import { UpdateNodeLabelCommand } from './commands/UpdateNodeLabelCommand'
-import { getZoomedViewportAtCanvasPoint } from './interaction/ViewportInteraction'
+import { clampZoom, getZoomedViewportAtCanvasPoint } from './interaction/ViewportInteraction'
 import type { HistoryState } from './commands/SceneCommand'
 import type {
   EdgeId,
@@ -35,6 +35,7 @@ import { CoordinateTransformer } from './viewport/CoordinateTransformer'
 
 const TOOLBAR_ZOOM_FACTOR = 1.2
 const DEFAULT_VIEWPORT = { x: 0, y: 0, zoom: 1 }
+const FIT_CONTENT_PADDING = 64
 
 export interface FlowEditorCoreOptions {
   backgroundCanvas: HTMLCanvasElement
@@ -146,6 +147,28 @@ export class FlowEditorCore {
 
   resetView() {
     this.scene.setViewport(DEFAULT_VIEWPORT)
+    this.requestRender({ background: true, main: true })
+  }
+
+  fitContent() {
+    if (this.scene.getNodes().length === 0) return
+
+    const rect = this.layers.mainCanvas.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) return
+
+    const bounds = this.scene.getContentBounds()
+    const availableWidth = Math.max(1, rect.width - FIT_CONTENT_PADDING * 2)
+    const availableHeight = Math.max(1, rect.height - FIT_CONTENT_PADDING * 2)
+    const zoom = clampZoom(Math.min(
+      availableWidth / Math.max(1, bounds.width),
+      availableHeight / Math.max(1, bounds.height),
+    ))
+
+    this.scene.setViewport({
+      x: rect.width / 2 - (bounds.x + bounds.width / 2) * zoom,
+      y: rect.height / 2 - (bounds.y + bounds.height / 2) * zoom,
+      zoom,
+    })
     this.requestRender({ background: true, main: true })
   }
 
