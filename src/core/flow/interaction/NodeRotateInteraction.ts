@@ -17,6 +17,7 @@ export interface NodeRotateModeData {
 
 const ROTATE_HANDLE_SIZE = 10
 const ROTATE_HANDLE_OFFSET = 30
+const ROTATION_STEP_DEGREES = 5
 const ROTATION_SNAP_DEGREES = 15
 
 export function getRotateHandle(rect: Rect, rotation: number, viewport: ViewportData): RotateHandleRect {
@@ -74,14 +75,12 @@ export function getRotatedNodeData(options: {
   snap: boolean
 }): FlowNode {
   const delta = getPointAngle(options.mode.center, options.current) - options.mode.startAngle
-  const rotation = normalizeAngle(options.mode.startRotation + delta)
-  const nextRotation = options.snap
-    ? Math.round(rotation / ROTATION_SNAP_DEGREES) * ROTATION_SNAP_DEGREES
-    : rotation
+  const step = options.snap ? ROTATION_SNAP_DEGREES : ROTATION_STEP_DEGREES
+  const steppedDelta = Math.round(delta / step) * step
 
   return {
     ...options.mode.before,
-    rotation: normalizeAngle(nextRotation),
+    rotation: normalizeAngle(options.mode.startRotation + steppedDelta),
   }
 }
 
