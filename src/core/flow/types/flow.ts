@@ -185,6 +185,7 @@ export type EditorFeedbackEvent =
 export type SceneEvent =
   | { type: 'node-added'; node: FlowNode; selection: SelectionState }
   | { type: 'node-updated'; node: FlowNode }
+  | { type: 'nodes-updated'; nodes: FlowNode[] }
   | { type: 'node-moved'; nodeId: NodeId; position: Point }
   | { type: 'nodes-moved'; moves: NodeMove[] }
   | { type: 'nodes-removed'; nodeIds: NodeId[]; removedEdgeCount: number }

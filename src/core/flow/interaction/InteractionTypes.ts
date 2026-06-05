@@ -8,6 +8,7 @@ export type InteractionMode =
   | { type: 'idle' }
   | { type: 'dragging-node'; nodeId: NodeId; start: Point; origins: Array<{ nodeId: NodeId; origin: Point; size: Size }> }
   | { type: 'resizing-node'; nodeId: NodeId; handle: ResizeHandle; start: Point; before: FlowNode; startRect: Rect }
+  | { type: 'resizing-selection'; handle: ResizeHandle; start: Point; before: FlowNode[]; startBounds: Rect }
   | ({ type: 'rotating-node' } & NodeRotateModeData)
   | { type: 'connecting'; source: Endpoint; current: Point }
   | { type: 'panning'; start: Point; origin: ViewportData }

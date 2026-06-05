@@ -9,12 +9,23 @@ export interface ResizeHandleRect {
   cursor: string
 }
 
+export interface ResizeHandleOptions {
+  offset?: number
+}
+
 export interface NodeResizeModeData {
   nodeId: string
   handle: ResizeHandle
   start: Point
   before: FlowNode
   startRect: Rect
+}
+
+export interface SelectionResizeModeData {
+  handle: ResizeHandle
+  start: Point
+  before: FlowNode[]
+  startBounds: Rect
 }
 
 const MIN_NODE_SIZE: Size = {
@@ -36,10 +47,14 @@ const handleCursors: Record<ResizeHandle, string> = {
   se: 'nwse-resize',
 }
 
-export function getResizeHandles(rect: Rect, viewport: ViewportData): ResizeHandleRect[] {
+export function getResizeHandles(
+  rect: Rect,
+  viewport: ViewportData,
+  options: ResizeHandleOptions = {},
+): ResizeHandleRect[] {
   const size = HANDLE_SIZE / viewport.zoom
   const half = size / 2
-  const offset = HANDLE_OFFSET / viewport.zoom
+  const offset = (options.offset ?? HANDLE_OFFSET) / viewport.zoom
   const centerX = rect.x + rect.width / 2
   const centerY = rect.y + rect.height / 2
   const left = rect.x - offset
@@ -70,8 +85,13 @@ export function getResizeHandles(rect: Rect, viewport: ViewportData): ResizeHand
   }))
 }
 
-export function hitTestResizeHandle(point: Point, rect: Rect, viewport: ViewportData): ResizeHandleRect | null {
-  return getResizeHandles(rect, viewport)
+export function hitTestResizeHandle(
+  point: Point,
+  rect: Rect,
+  viewport: ViewportData,
+  options: ResizeHandleOptions = {},
+): ResizeHandleRect | null {
+  return getResizeHandles(rect, viewport, options)
     .find(handle => point.x >= handle.rect.x
       && point.x <= handle.rect.x + handle.rect.width
       && point.y >= handle.rect.y
@@ -108,6 +128,35 @@ export function getResizedNodeData(options: {
   return resizeNodeData(options.mode.before, nextRect)
 }
 
+export function getResizedSelectionNodeData(options: {
+  mode: SelectionResizeModeData
+  current: Point
+  keepAspectRatio: boolean
+  snap?: ResizeSnap
+}): FlowNode[] {
+  const minSize = getSelectionMinSize(options.mode.before, options.mode.startBounds)
+  const resizedBounds = getRawResizedSelectionBounds({
+    mode: options.mode,
+    current: options.current,
+    keepAspectRatio: options.keepAspectRatio,
+    minSize,
+  })
+  const nextBounds = options.snap && !options.keepAspectRatio
+    ? applyResizeSnapDelta({
+        rect: resizedBounds,
+        handle: options.mode.handle,
+        snap: options.snap,
+        minSize,
+      })
+    : resizedBounds
+
+  return options.mode.before.map(node => resizeSelectionNodeData(
+    node,
+    options.mode.startBounds,
+    nextBounds,
+  ))
+}
+
 export function getRawResizedRect(options: {
   mode: NodeResizeModeData
   current: Point
@@ -128,11 +177,38 @@ export function getRawResizedRect(options: {
   })
 }
 
+export function getRawResizedSelectionBounds(options: {
+  mode: SelectionResizeModeData
+  current: Point
+  keepAspectRatio: boolean
+  minSize?: Size
+}) {
+  return getResizedRect({
+    startRect: options.mode.startBounds,
+    delta: {
+      x: options.current.x - options.mode.start.x,
+      y: options.current.y - options.mode.start.y,
+    },
+    handle: options.mode.handle,
+    minSize: options.minSize ?? getSelectionMinSize(options.mode.before, options.mode.startBounds),
+    keepAspectRatio: options.keepAspectRatio,
+  })
+}
+
 export function hasNodeResizeChanges(before: FlowNode, after: FlowNode) {
   return before.position.x !== after.position.x
     || before.position.y !== after.position.y
     || before.size.width !== after.size.width
     || before.size.height !== after.size.height
+}
+
+export function hasNodesResizeChanges(before: FlowNode[], after: FlowNode[]) {
+  if (before.length !== after.length) return true
+
+  return before.some((beforeNode) => {
+    const afterNode = after.find(node => node.id === beforeNode.id)
+    return !afterNode || hasNodeResizeChanges(beforeNode, afterNode)
+  })
 }
 
 function getResizedRect(options: {
@@ -289,7 +365,7 @@ function getAspectResizedRect(options: {
   return { x, y, width, height }
 }
 
-function resizeNodeData(node: FlowNode, rect: Rect): FlowNode {
+export function resizeNodeData(node: FlowNode, rect: Rect): FlowNode {
   const scaleX = node.size.width === 0 ? 1 : rect.width / node.size.width
   const scaleY = node.size.height === 0 ? 1 : rect.height / node.size.height
 
@@ -310,5 +386,44 @@ function resizeNodeData(node: FlowNode, rect: Rect): FlowNode {
         y: port.offset.y * scaleY,
       },
     })),
+  }
+}
+
+function resizeSelectionNodeData(node: FlowNode, startBounds: Rect, nextBounds: Rect): FlowNode {
+  const scaleX = startBounds.width === 0 ? 1 : nextBounds.width / startBounds.width
+  const scaleY = startBounds.height === 0 ? 1 : nextBounds.height / startBounds.height
+  const center = {
+    x: node.position.x + node.size.width / 2,
+    y: node.position.y + node.size.height / 2,
+  }
+  const nextSize = {
+    width: Math.max(MIN_NODE_SIZE.width, node.size.width * scaleX),
+    height: Math.max(MIN_NODE_SIZE.height, node.size.height * scaleY),
+  }
+  const nextCenter = {
+    x: nextBounds.x + (center.x - startBounds.x) * scaleX,
+    y: nextBounds.y + (center.y - startBounds.y) * scaleY,
+  }
+
+  return resizeNodeData(node, {
+    x: nextCenter.x - nextSize.width / 2,
+    y: nextCenter.y - nextSize.height / 2,
+    ...nextSize,
+  })
+}
+
+function getSelectionMinSize(nodes: FlowNode[], startBounds: Rect): Size {
+  const minScaleX = Math.max(
+    MIN_NODE_SIZE.width / Math.max(1, startBounds.width),
+    ...nodes.map(node => MIN_NODE_SIZE.width / Math.max(1, node.size.width)),
+  )
+  const minScaleY = Math.max(
+    MIN_NODE_SIZE.height / Math.max(1, startBounds.height),
+    ...nodes.map(node => MIN_NODE_SIZE.height / Math.max(1, node.size.height)),
+  )
+
+  return {
+    width: Math.max(MIN_NODE_SIZE.width, startBounds.width * minScaleX),
+    height: Math.max(MIN_NODE_SIZE.height, startBounds.height * minScaleY),
   }
 }

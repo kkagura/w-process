@@ -128,6 +128,26 @@ export class SceneManager {
     return data
   }
 
+  updateNodesData(nodesData: FlowNode[]) {
+    const updatedNodes: FlowNode[] = []
+
+    for (const nodeData of nodesData) {
+      const node = this.rootBox.find(nodeData.id)
+      if (!(node instanceof BaseNode)) continue
+
+      node.updateData(nodeData)
+      updatedNodes.push(node.serialize())
+    }
+
+    if (updatedNodes.length === 0) return []
+
+    this.emit({
+      type: 'nodes-updated',
+      nodes: updatedNodes,
+    })
+    return updatedNodes
+  }
+
   moveNodes(moves: NodeMove[]) {
     const appliedMoves: NodeMove[] = []
 

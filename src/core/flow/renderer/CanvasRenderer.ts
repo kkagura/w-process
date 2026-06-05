@@ -187,31 +187,29 @@ export class CanvasRenderer {
 
     const viewport = context.scene.getViewport()
     const theme = context.scene.getTheme()
-    const padding = 4 / viewport.zoom
+    const paddedRect = getSelectionResizeRect(rect, viewport)
 
     ctx.save()
     ctx.strokeStyle = theme.colors.selected
     ctx.lineWidth = 1 / viewport.zoom
     ctx.setLineDash([6 / viewport.zoom, 4 / viewport.zoom])
-    ctx.strokeRect(
-      rect.x - padding,
-      rect.y - padding,
-      rect.width + padding * 2,
-      rect.height + padding * 2,
-    )
+    ctx.strokeRect(paddedRect.x, paddedRect.y, paddedRect.width, paddedRect.height)
     ctx.restore()
   }
 
   private drawResizeHandles(ctx: CanvasRenderingContext2D, context: RenderContext) {
     const selection = context.scene.getSelection()
-    if (selection.items.length !== 1 || selection.primary?.type !== 'node') return
-
-    const rect = context.scene.getNodeRect(selection.primary.id)
+    const singleNodeSelected = selection.items.length === 1 && selection.primary?.type === 'node'
+    const rect = singleNodeSelected
+      ? context.scene.getNodeRect(selection.primary!.id)
+      : getNullableSelectionResizeRect(context.scene.getSelectedNodeBounds(), context.scene.getViewport())
     if (!rect) return
 
     const viewport = context.scene.getViewport()
     const theme = context.scene.getTheme()
-    const handles = getResizeHandles(rect, viewport)
+    const handles = getResizeHandles(rect, viewport, {
+      offset: singleNodeSelected ? undefined : 0,
+    })
 
     ctx.save()
     ctx.fillStyle = '#ffffff'
@@ -288,6 +286,20 @@ export class CanvasRenderer {
 
 function getEndpointObstacles(...rects: Array<Rect | null>) {
   return rects.filter((rect): rect is Rect => Boolean(rect))
+}
+
+function getNullableSelectionResizeRect(rect: Rect | null, viewport: ViewportData) {
+  return rect ? getSelectionResizeRect(rect, viewport) : null
+}
+
+function getSelectionResizeRect(rect: Rect, viewport: ViewportData): Rect {
+  const padding = 4 / viewport.zoom
+  return {
+    x: rect.x - padding,
+    y: rect.y - padding,
+    width: rect.width + padding * 2,
+    height: rect.height + padding * 2,
+  }
 }
 
 function drawPolyline(ctx: CanvasRenderingContext2D, path: Point[]) {

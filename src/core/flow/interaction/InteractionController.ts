@@ -4,9 +4,10 @@ import { DeleteSelectionCommand } from '../commands/DeleteSelectionCommand'
 import { MoveNodesCommand } from '../commands/MoveNodesCommand'
 import { PasteElementsCommand } from '../commands/PasteElementsCommand'
 import { UpdateNodeDataCommand } from '../commands/UpdateNodeDataCommand'
+import { UpdateNodesDataCommand } from '../commands/UpdateNodesDataCommand'
 import { copySelectionToClipboard, createPastedFlowData } from '../clipboard/FlowClipboard'
 import type { FlowClipboardData } from '../clipboard/FlowClipboard'
-import type { Endpoint, Point, SnapGuide } from '../types/flow'
+import type { Endpoint, FlowNode, Point, Rect, SnapGuide, ViewportData } from '../types/flow'
 import { createId } from '../utils/ids'
 import type { InteractionControllerOptions, InteractionMode } from './InteractionTypes'
 import {
@@ -24,8 +25,11 @@ import {
 } from './SelectionBoxInteraction'
 import {
   getRawResizedRect,
+  getRawResizedSelectionBounds,
   getResizedNodeData,
+  getResizedSelectionNodeData,
   hasNodeResizeChanges,
+  hasNodesResizeChanges,
   hitTestResizeHandle,
 } from './NodeResizeInteraction'
 import {
@@ -172,6 +176,24 @@ export class InteractionController {
       return
     }
 
+    const selectionResizeHit = this.getSelectedSelectionResizeHandle(point)
+    if (selectionResizeHit && event.button === 0) {
+      this.mode = {
+        type: 'resizing-selection',
+        handle: selectionResizeHit.handle.handle,
+        start: point,
+        before: selectionResizeHit.nodes,
+        startBounds: selectionResizeHit.bounds,
+      }
+      this.options.scene.setHovered(null)
+      this.snapGuides = []
+      this.options.canvas.setPointerCapture(event.pointerId)
+      this.setCursor(selectionResizeHit.handle.cursor)
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
     const hit = this.options.scene.hitTest(point)
 
     if (hit?.type === 'edge' && event.button === 0) {
@@ -310,6 +332,25 @@ export class InteractionController {
       return
     }
 
+    if (this.mode.type === 'resizing-selection') {
+      const snap = event.shiftKey
+        ? null
+        : this.getSelectionResizeSnap(this.mode, point)
+      if (event.shiftKey) {
+        this.snapGuides = []
+      }
+      const nextNodes = getResizedSelectionNodeData({
+        mode: this.mode,
+        current: point,
+        keepAspectRatio: event.shiftKey,
+        snap: snap ?? undefined,
+      })
+      this.options.scene.updateNodesData(nextNodes)
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
     if (this.mode.type === 'rotating-node') {
       const nextNode = getRotatedNodeData({
         mode: this.mode,
@@ -367,6 +408,13 @@ export class InteractionController {
       return
     }
 
+    const selectionResizeHit = this.getSelectedSelectionResizeHandle(point)
+    if (selectionResizeHit) {
+      this.setCursor(selectionResizeHit.handle.cursor)
+      this.options.scene.setHovered(null)
+      return
+    }
+
     const resizeHit = this.getSelectedResizeHandle(point)
     if (resizeHit) {
       this.setCursor(resizeHit.handle.cursor)
@@ -392,6 +440,17 @@ export class InteractionController {
 
     if (this.mode.type === 'resizing-node') {
       this.recordNodeResizeHistory(this.mode)
+      this.options.canvas.releasePointerCapture(event.pointerId)
+      this.mode = { type: 'idle' }
+      this.snapGuides = []
+      this.setCursor('')
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
+    if (this.mode.type === 'resizing-selection') {
+      this.recordSelectionResizeHistory(this.mode)
       this.options.canvas.releasePointerCapture(event.pointerId)
       this.mode = { type: 'idle' }
       this.snapGuides = []
@@ -541,6 +600,9 @@ export class InteractionController {
     if (this.mode.type === 'resizing-node') {
       this.options.scene.updateNodeData(this.mode.before)
     }
+    if (this.mode.type === 'resizing-selection') {
+      this.options.scene.updateNodesData(this.mode.before)
+    }
     if (this.mode.type === 'rotating-node') {
       this.options.scene.updateNodeData(this.mode.before)
     }
@@ -656,6 +718,15 @@ export class InteractionController {
     this.options.history.record(new UpdateNodeDataCommand(mode.before, after))
   }
 
+  private recordSelectionResizeHistory(mode: Extract<InteractionMode, { type: 'resizing-selection' }>) {
+    const after = mode.before
+      .map(node => this.options.scene.getNodeData(node.id))
+      .filter((node): node is FlowNode => Boolean(node))
+    if (!hasNodesResizeChanges(mode.before, after)) return
+
+    this.options.history.record(new UpdateNodesDataCommand(mode.before, after))
+  }
+
   private recordNodeRotateHistory(mode: Extract<InteractionMode, { type: 'rotating-node' }>) {
     const after = this.options.scene.getNodeData(mode.nodeId)
     if (!after || !hasNodeRotationChanges(mode.before, after)) return
@@ -691,6 +762,35 @@ export class InteractionController {
     }
   }
 
+  private getSelectionResizeSnap(mode: Extract<InteractionMode, { type: 'resizing-selection' }>, point: Point) {
+    const rawRect = getRawResizedSelectionBounds({
+      mode,
+      current: point,
+      keepAspectRatio: false,
+    })
+    const excludedNodeIds = mode.before.map(node => node.id)
+    const snapResult = snapRectToNodes({
+      movingBounds: rawRect,
+      targetRects: this.options.scene.getNodeRects(excludedNodeIds),
+      threshold: 8 / this.options.scene.getViewport().zoom,
+    })
+    const affectsX = mode.handle.includes('e') || mode.handle.includes('w')
+    const affectsY = mode.handle.includes('n') || mode.handle.includes('s')
+    this.snapGuides = snapResult.guides.filter(guide => (
+      (affectsX && guide.type === 'vertical')
+      || (affectsY && guide.type === 'horizontal')
+    ))
+
+    return {
+      delta: {
+        x: affectsX ? snapResult.delta.x : 0,
+        y: affectsY ? snapResult.delta.y : 0,
+      },
+      xKind: affectsX ? snapResult.snappedXKind : undefined,
+      yKind: affectsY ? snapResult.snappedYKind : undefined,
+    }
+  }
+
   private getSelectedResizeHandle(point: Point) {
     const selection = this.options.scene.getSelection()
     if (selection.items.length !== 1 || selection.primary?.type !== 'node') return null
@@ -703,6 +803,25 @@ export class InteractionController {
     return handle ? { node, handle } : null
   }
 
+  private getSelectedSelectionResizeHandle(point: Point) {
+    const nodeIds = this.options.scene.getSelectedNodeIds()
+    if (nodeIds.length < 2) return null
+
+    const bounds = this.options.scene.getSelectedNodeBounds()
+    if (!bounds) return null
+
+    const resizeBounds = getSelectionResizeRect(bounds, this.options.scene.getViewport())
+    const handle = hitTestResizeHandle(point, resizeBounds, this.options.scene.getViewport(), { offset: 0 })
+    if (!handle) return null
+
+    const nodes = nodeIds
+      .map(nodeId => this.options.scene.getNodeData(nodeId))
+      .filter((node): node is FlowNode => Boolean(node))
+    if (nodes.length < 2) return null
+
+    return { bounds: resizeBounds, nodes, handle }
+  }
+
   private getSelectedRotateHandle(point: Point) {
     const selection = this.options.scene.getSelection()
     if (selection.items.length !== 1 || selection.primary?.type !== 'node') return null
@@ -713,5 +832,15 @@ export class InteractionController {
 
     const handle = hitTestRotateHandle(point, rect, node.rotation, this.options.scene.getViewport())
     return handle ? { node, rect, handle } : null
+  }
+}
+
+function getSelectionResizeRect(rect: Rect, viewport: ViewportData): Rect {
+  const padding = 4 / viewport.zoom
+  return {
+    x: rect.x - padding,
+    y: rect.y - padding,
+    width: rect.width + padding * 2,
+    height: rect.height + padding * 2,
   }
 }
