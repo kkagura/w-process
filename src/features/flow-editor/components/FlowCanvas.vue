@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, shallowRef, useTemplateRef } from 'vue'
 import type { HistoryState } from '../../../core/flow/commands/SceneCommand'
 import type { EditorUiState, SelectionArrangeAction, ViewportData } from '../../../core/flow/types/flow'
+import { MAX_ZOOM, MIN_ZOOM } from '../../../core/flow/interaction/ViewportInteraction'
 import CanvasToolbar from './CanvasToolbar.vue'
 import CanvasStatusBar from './CanvasStatusBar.vue'
 
@@ -18,6 +19,8 @@ interface Emits {
   undo: []
   redo: []
   arrangeSelection: [action: SelectionArrangeAction]
+  zoomIn: []
+  zoomOut: []
   save: []
 }
 
@@ -36,6 +39,8 @@ const edgeCount = computed(() => props.uiState?.summary.edgeCount ?? 0)
 const canUndo = computed(() => props.historyState.canUndo)
 const canRedo = computed(() => props.historyState.canRedo)
 const dirty = computed(() => props.historyState.dirty)
+const canZoomIn = computed(() => viewport.value.zoom < MAX_ZOOM)
+const canZoomOut = computed(() => viewport.value.zoom > MIN_ZOOM)
 const selectedNodeCount = computed(() =>
   props.uiState?.selection.items.filter(item => item.type === 'node').length ?? 0,
 )
@@ -84,11 +89,15 @@ function updateCanvasSize() {
         :can-undo="canUndo"
         :can-redo="canRedo"
         :can-arrange-selection="canArrangeSelection"
+        :can-zoom-in="canZoomIn"
+        :can-zoom-out="canZoomOut"
         :selected-node-count="selectedNodeCount"
         :dirty="dirty"
         @undo="emit('undo')"
         @redo="emit('redo')"
         @arrange-selection="emit('arrangeSelection', $event)"
+        @zoom-in="emit('zoomIn')"
+        @zoom-out="emit('zoomOut')"
         @save="emit('save')"
       />
       <CanvasStatusBar

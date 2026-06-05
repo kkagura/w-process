@@ -1,8 +1,8 @@
 import type { Point, ViewportData } from '../types/flow'
 import { CoordinateTransformer } from '../viewport/CoordinateTransformer'
 
-const MIN_ZOOM = 0.25
-const MAX_ZOOM = 3
+export const MIN_ZOOM = 0.25
+export const MAX_ZOOM = 3
 const WHEEL_ZOOM_SENSITIVITY = 0.001
 
 export function shouldStartPanning(event: PointerEvent) {
@@ -26,20 +26,29 @@ export function getZoomedViewport(options: {
   viewport: ViewportData
 }): ViewportData | null {
   const canvasPoint = CoordinateTransformer.clientToCanvas(options.event, options.canvas)
-  const nextZoom = clampZoom(
-    options.viewport.zoom * Math.exp(-options.event.deltaY * WHEEL_ZOOM_SENSITIVITY),
-  )
+  return getZoomedViewportAtCanvasPoint({
+    canvasPoint,
+    viewport: options.viewport,
+    zoom: options.viewport.zoom * Math.exp(-options.event.deltaY * WHEEL_ZOOM_SENSITIVITY),
+  })
+}
 
+export function getZoomedViewportAtCanvasPoint(options: {
+  canvasPoint: Point
+  viewport: ViewportData
+  zoom: number
+}): ViewportData | null {
+  const nextZoom = clampZoom(options.zoom)
   if (nextZoom === options.viewport.zoom) return null
 
-  const worldPoint = CoordinateTransformer.canvasToWorld(canvasPoint, options.viewport)
+  const worldPoint = CoordinateTransformer.canvasToWorld(options.canvasPoint, options.viewport)
   return {
-    x: canvasPoint.x - worldPoint.x * nextZoom,
-    y: canvasPoint.y - worldPoint.y * nextZoom,
+    x: options.canvasPoint.x - worldPoint.x * nextZoom,
+    y: options.canvasPoint.y - worldPoint.y * nextZoom,
     zoom: nextZoom,
   }
 }
 
-function clampZoom(zoom: number) {
+export function clampZoom(zoom: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom))
 }

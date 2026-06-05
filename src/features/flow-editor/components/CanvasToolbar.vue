@@ -6,6 +6,8 @@ interface Props {
   canUndo: boolean
   canRedo: boolean
   canArrangeSelection: boolean
+  canZoomIn: boolean
+  canZoomOut: boolean
   selectedNodeCount: number
   dirty: boolean
 }
@@ -14,6 +16,8 @@ interface Emits {
   undo: []
   redo: []
   arrangeSelection: [action: SelectionArrangeAction]
+  zoomIn: []
+  zoomOut: []
   save: []
 }
 
@@ -86,6 +90,26 @@ function handleArrangeAction(item: ArrangeActionItem) {
       @click="emit('redo')"
     >
       Redo
+    </button>
+    <button
+      class="toolbar-button"
+      type="button"
+      :disabled="!canZoomOut"
+      title="Zoom Out"
+      aria-label="Zoom out canvas"
+      @click="emit('zoomOut')"
+    >
+      Zoom Out
+    </button>
+    <button
+      class="toolbar-button"
+      type="button"
+      :disabled="!canZoomIn"
+      title="Zoom In"
+      aria-label="Zoom in canvas"
+      @click="emit('zoomIn')"
+    >
+      Zoom In
     </button>
     <div
       class="toolbar-menu-wrapper"

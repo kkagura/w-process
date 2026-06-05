@@ -10,6 +10,7 @@ import { MoveNodesCommand } from './commands/MoveNodesCommand'
 import { UpdateEdgeDataCommand } from './commands/UpdateEdgeDataCommand'
 import { UpdateNodeDataCommand } from './commands/UpdateNodeDataCommand'
 import { UpdateNodeLabelCommand } from './commands/UpdateNodeLabelCommand'
+import { getZoomedViewportAtCanvasPoint } from './interaction/ViewportInteraction'
 import type { HistoryState } from './commands/SceneCommand'
 import type {
   EdgeId,
@@ -31,6 +32,8 @@ import type {
 import { findElementTemplate } from './constants/elementTemplates'
 import { createId } from './utils/ids'
 import { CoordinateTransformer } from './viewport/CoordinateTransformer'
+
+const TOOLBAR_ZOOM_FACTOR = 1.2
 
 export interface FlowEditorCoreOptions {
   backgroundCanvas: HTMLCanvasElement
@@ -132,6 +135,14 @@ export class FlowEditorCore {
     this.history.execute(new MoveNodesCommand(before, after))
   }
 
+  zoomIn() {
+    this.zoomBy(TOOLBAR_ZOOM_FACTOR)
+  }
+
+  zoomOut() {
+    this.zoomBy(1 / TOOLBAR_ZOOM_FACTOR)
+  }
+
   updateNodeLabel(nodeId: NodeId, label: string) {
     const node = this.scene.getNodeData(nodeId)
     if (!node || node.label === label) return
@@ -228,6 +239,23 @@ export class FlowEditorCore {
 
   private emitFeedback(event: EditorFeedbackEvent) {
     for (const listener of this.feedbackListeners) listener(event)
+  }
+
+  private zoomBy(factor: number) {
+    const viewport = this.scene.getViewport()
+    const rect = this.layers.mainCanvas.getBoundingClientRect()
+    const nextViewport = getZoomedViewportAtCanvasPoint({
+      canvasPoint: {
+        x: rect.width / 2,
+        y: rect.height / 2,
+      },
+      viewport,
+      zoom: viewport.zoom * factor,
+    })
+    if (!nextViewport) return
+
+    this.scene.setViewport(nextViewport)
+    this.requestRender({ background: true, main: true })
   }
 
   private renderBackground() {

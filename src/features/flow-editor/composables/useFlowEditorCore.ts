@@ -66,6 +66,14 @@ export function useFlowEditorCore() {
     core.value?.arrangeSelection(action)
   }
 
+  function zoomIn() {
+    core.value?.zoomIn()
+  }
+
+  function zoomOut() {
+    core.value?.zoomOut()
+  }
+
   function updateNodeLabel(nodeId: NodeId, label: string) {
     core.value?.updateNodeLabel(nodeId, label)
   }
@@ -139,6 +147,8 @@ export function useFlowEditorCore() {
     undo,
     redo,
     arrangeSelection,
+    zoomIn,
+    zoomOut,
     updateNodeLabel,
     updateNodePosition,
     updateNodeSize,
