@@ -5,6 +5,7 @@ import { DataNode } from './DataNode'
 import { DecisionNode } from './DecisionNode'
 import { DocumentNode } from './DocumentNode'
 import { EndNode } from './EndNode'
+import { IconNode } from './IconNode'
 import { RectangleNode } from './RectangleNode'
 import { StartNode } from './StartNode'
 import { SubflowNode } from './SubflowNode'
@@ -22,6 +23,7 @@ import { DataNodeView } from '../views/DataNodeView'
 import { DecisionNodeView } from '../views/DecisionNodeView'
 import { DocumentNodeView } from '../views/DocumentNodeView'
 import { EndNodeView } from '../views/EndNodeView'
+import { IconNodeView } from '../views/IconNodeView'
 import { RectangleNodeView } from '../views/RectangleNodeView'
 import { StartNodeView } from '../views/StartNodeView'
 import { SubflowNodeView } from '../views/SubflowNodeView'
@@ -81,6 +83,10 @@ export class ElementRegistry {
     registry.registerNode('shape-triangle', {
       node: TriangleNode,
       view: TriangleNodeView,
+    })
+    registry.registerNode('icon-service', {
+      node: IconNode,
+      view: IconNodeView,
     })
     return registry
   }

@@ -329,9 +329,50 @@ export const basicShapeTemplates: ElementTemplate[] = [
   },
 ]
 
+export const iconNodeTemplates: ElementTemplate[] = [
+  {
+    type: 'icon-service',
+    label: '服务',
+    defaultSize: { width: 120, height: 112 },
+    ports: [
+      { id: 'top', label: '上方端口', offset: { x: 60, y: 0 } },
+      { id: 'right', label: '右侧端口', offset: { x: 120, y: 56 } },
+      { id: 'bottom', label: '下方端口', offset: { x: 60, y: 112 } },
+      { id: 'left', label: '左侧端口', offset: { x: 0, y: 56 } },
+    ],
+    defaultProps: {
+      iconStyle: {
+        color: '#2563eb',
+        backgroundColor: '#dbeafe',
+      },
+      textStyle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#1e3a8a',
+        align: 'center',
+        verticalAlign: 'middle',
+        lineHeight: 18,
+        padding: 2,
+        maxLines: 2,
+        overflow: 'ellipsis',
+      },
+      fillStyle: {
+        color: '#ffffff',
+        opacity: 1,
+      },
+      borderStyle: {
+        color: '#2563eb',
+        width: 1.5,
+        dash: 'solid',
+      },
+    },
+  },
+]
+
 export const elementTemplates: ElementTemplate[] = [
   ...flowNodeTemplates,
   ...basicShapeTemplates,
+  ...iconNodeTemplates,
 ]
 
 export function findElementTemplate(type: string) {

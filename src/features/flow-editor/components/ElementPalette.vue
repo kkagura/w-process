@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { basicShapeTemplates, flowNodeTemplates } from '../../../core/flow/constants/elementTemplates'
+import { basicShapeTemplates, flowNodeTemplates, iconNodeTemplates } from '../../../core/flow/constants/elementTemplates'
 
 const paletteGroups = [
   {
     title: '基础图形',
     templates: basicShapeTemplates,
+  },
+  {
+    title: '图标节点',
+    templates: iconNodeTemplates,
   },
   {
     title: '流程节点',
@@ -226,6 +230,44 @@ function handleDragStart(event: DragEvent, type: string) {
   left: -12px;
   position: absolute;
   top: 3px;
+}
+
+.element-icon--icon-service {
+  background: #dbeafe;
+  border-color: #2563eb;
+  border-radius: 999px;
+  height: 26px;
+  width: 26px;
+}
+
+.element-icon--icon-service::before {
+  border: 1.5px solid #2563eb;
+  border-radius: 4px;
+  content: '';
+  height: 12px;
+  left: 6px;
+  position: absolute;
+  top: 6px;
+  width: 12px;
+}
+
+.element-icon--icon-service::after {
+  background: linear-gradient(
+    to bottom,
+    #2563eb 0,
+    #2563eb 1.5px,
+    transparent 1.5px,
+    transparent 5px,
+    #2563eb 5px,
+    #2563eb 6.5px,
+    transparent 6.5px
+  );
+  content: '';
+  height: 8px;
+  left: 10px;
+  position: absolute;
+  top: 10px;
+  width: 7px;
 }
 
 .element-label {
