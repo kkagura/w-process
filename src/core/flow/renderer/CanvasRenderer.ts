@@ -15,6 +15,7 @@ export interface CanvasInteractionState {
     sourcePoint: { x: number; y: number }
     currentPoint: { x: number; y: number }
     sourceRect: Rect | null
+    targetRect: Rect | null
     valid: boolean
   } | null
 }
@@ -88,7 +89,8 @@ export class CanvasRenderer {
       source: pendingEdge.sourcePoint,
       target: pendingEdge.currentPoint,
       sourceRect: pendingEdge.sourceRect,
-      obstacles: context.scene.getNodeRects(),
+      targetRect: pendingEdge.targetRect,
+      obstacles: getEndpointObstacles(pendingEdge.sourceRect, pendingEdge.targetRect),
     })
 
     ctx.save()
@@ -282,6 +284,10 @@ export class CanvasRenderer {
     ctx.stroke()
     ctx.restore()
   }
+}
+
+function getEndpointObstacles(...rects: Array<Rect | null>) {
+  return rects.filter((rect): rect is Rect => Boolean(rect))
 }
 
 function drawPolyline(ctx: CanvasRenderingContext2D, path: Point[]) {

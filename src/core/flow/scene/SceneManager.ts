@@ -498,15 +498,17 @@ export class SceneManager {
     const sourcePoint = this.getEndpointPoint(edge.source)
     const targetPoint = this.getEndpointPoint(edge.target)
     if (!sourcePoint || !targetPoint) return null
+    const sourceRect = this.getNodeRect(edge.source.nodeId)
+    const targetRect = this.getNodeRect(edge.target.nodeId)
 
     return {
       selected: this.isSelected({ type: 'edge', id: edge.id }),
       hovered: this.isHovered({ type: 'edge', id: edge.id }),
       sourcePoint,
       targetPoint,
-      sourceRect: this.getNodeRect(edge.source.nodeId),
-      targetRect: this.getNodeRect(edge.target.nodeId),
-      obstacles: this.getNodeRects(),
+      sourceRect,
+      targetRect,
+      obstacles: [sourceRect, targetRect].filter((rect): rect is Rect => Boolean(rect)),
       theme: this.getTheme(),
       viewport: this.getViewport(),
     }

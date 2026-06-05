@@ -84,11 +84,13 @@ export class InteractionController {
     const target = hit?.type === 'port'
       ? { nodeId: hit.nodeId, portId: hit.portId }
       : null
+    const targetRect = target ? this.options.scene.getNodeRect(target.nodeId) : null
 
     return {
       sourcePoint,
       currentPoint: this.mode.current,
       sourceRect: this.options.scene.getNodeRect(this.mode.source.nodeId),
+      targetRect,
       valid: target ? this.options.scene.canConnect(this.mode.source, target) : false,
     }
   }
