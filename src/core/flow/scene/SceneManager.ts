@@ -287,6 +287,15 @@ export class SceneManager {
     this.updateSelection(createSelectionState(items, primary))
   }
 
+  selectAll() {
+    const nodeSelections = this.getNodes()
+      .map<SelectableRef>(node => ({ type: 'node', id: node.id }))
+    const edgeSelections = this.getEdges()
+      .map<SelectableRef>(edge => ({ type: 'edge', id: edge.id }))
+
+    this.selectMany([...nodeSelections, ...edgeSelections])
+  }
+
   addSelection(item: SelectableRef) {
     if (this.isSelected(item)) {
       this.updateSelection(createSelectionState(this.selection.items, item))

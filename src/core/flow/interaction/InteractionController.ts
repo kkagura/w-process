@@ -394,6 +394,15 @@ export class InteractionController {
   }
 
   private handleKeyDown = (event: KeyboardEvent) => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
+      if (this.mode.type === 'idle') {
+        this.options.scene.selectAll()
+        this.options.requestRender()
+      }
+      event.preventDefault()
+      return
+    }
+
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
       if (event.shiftKey) {
         this.options.history.redo()
