@@ -283,7 +283,7 @@ export class SceneManager {
     this.selectMany(selection ? [selection] : [])
   }
 
-  selectMany(items: SelectableRef[], primary = items[0] ?? null) {
+  selectMany(items: SelectableRef[], primary: SelectableRef | null = items[0] ?? null) {
     this.updateSelection(createSelectionState(items, primary))
   }
 

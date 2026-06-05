@@ -2,7 +2,10 @@ import { CoordinateTransformer } from '../viewport/CoordinateTransformer'
 import { CreateEdgeCommand } from '../commands/CreateEdgeCommand'
 import { DeleteSelectionCommand } from '../commands/DeleteSelectionCommand'
 import { MoveNodesCommand } from '../commands/MoveNodesCommand'
+import { PasteElementsCommand } from '../commands/PasteElementsCommand'
 import { UpdateNodeDataCommand } from '../commands/UpdateNodeDataCommand'
+import { copySelectionToClipboard, createPastedFlowData } from '../clipboard/FlowClipboard'
+import type { FlowClipboardData } from '../clipboard/FlowClipboard'
 import type { Endpoint, Point, SnapGuide } from '../types/flow'
 import { createId } from '../utils/ids'
 import type { InteractionControllerOptions, InteractionMode } from './InteractionTypes'
@@ -34,6 +37,8 @@ import {
 export class InteractionController {
   private mode: InteractionMode = { type: 'idle' }
   private snapGuides: SnapGuide[] = []
+  private clipboard: FlowClipboardData | null = null
+  private pasteCount = 0
   private options: InteractionControllerOptions
 
   constructor(options: InteractionControllerOptions) {
@@ -394,6 +399,22 @@ export class InteractionController {
   }
 
   private handleKeyDown = (event: KeyboardEvent) => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c') {
+      if (this.mode.type === 'idle') {
+        this.copySelection()
+      }
+      event.preventDefault()
+      return
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v') {
+      if (this.mode.type === 'idle') {
+        this.pasteSelection()
+      }
+      event.preventDefault()
+      return
+    }
+
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
       if (this.mode.type === 'idle') {
         this.options.scene.selectAll()
@@ -495,6 +516,31 @@ export class InteractionController {
       source: mode.source,
       target,
       props: {},
+    }))
+  }
+
+  private copySelection() {
+    const clipboard = copySelectionToClipboard(this.options.scene)
+    if (!clipboard) return
+
+    this.clipboard = clipboard
+    this.pasteCount = 0
+  }
+
+  private pasteSelection() {
+    if (!this.clipboard) return
+
+    this.pasteCount += 1
+    const offset = {
+      x: 24 * this.pasteCount,
+      y: 24 * this.pasteCount,
+    }
+    const pasted = createPastedFlowData(this.clipboard, offset)
+    if (pasted.nodes.length === 0) return
+
+    this.options.history.execute(new PasteElementsCommand({
+      ...pasted,
+      selectionBefore: this.options.scene.getSelection(),
     }))
   }
 
