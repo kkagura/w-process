@@ -21,6 +21,7 @@ interface Emits {
   arrangeSelection: [action: SelectionArrangeAction]
   zoomIn: []
   zoomOut: []
+  resetView: []
   save: []
 }
 
@@ -41,6 +42,11 @@ const canRedo = computed(() => props.historyState.canRedo)
 const dirty = computed(() => props.historyState.dirty)
 const canZoomIn = computed(() => viewport.value.zoom < MAX_ZOOM)
 const canZoomOut = computed(() => viewport.value.zoom > MIN_ZOOM)
+const canResetView = computed(() =>
+  viewport.value.x !== defaultViewport.x
+  || viewport.value.y !== defaultViewport.y
+  || viewport.value.zoom !== defaultViewport.zoom,
+)
 const selectedNodeCount = computed(() =>
   props.uiState?.selection.items.filter(item => item.type === 'node').length ?? 0,
 )
@@ -91,6 +97,7 @@ function updateCanvasSize() {
         :can-arrange-selection="canArrangeSelection"
         :can-zoom-in="canZoomIn"
         :can-zoom-out="canZoomOut"
+        :can-reset-view="canResetView"
         :selected-node-count="selectedNodeCount"
         :dirty="dirty"
         @undo="emit('undo')"
@@ -98,6 +105,7 @@ function updateCanvasSize() {
         @arrange-selection="emit('arrangeSelection', $event)"
         @zoom-in="emit('zoomIn')"
         @zoom-out="emit('zoomOut')"
+        @reset-view="emit('resetView')"
         @save="emit('save')"
       />
       <CanvasStatusBar

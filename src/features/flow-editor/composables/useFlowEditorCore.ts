@@ -74,6 +74,10 @@ export function useFlowEditorCore() {
     core.value?.zoomOut()
   }
 
+  function resetView() {
+    core.value?.resetView()
+  }
+
   function updateNodeLabel(nodeId: NodeId, label: string) {
     core.value?.updateNodeLabel(nodeId, label)
   }
@@ -149,6 +153,7 @@ export function useFlowEditorCore() {
     arrangeSelection,
     zoomIn,
     zoomOut,
+    resetView,
     updateNodeLabel,
     updateNodePosition,
     updateNodeSize,

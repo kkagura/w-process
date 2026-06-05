@@ -34,6 +34,7 @@ import { createId } from './utils/ids'
 import { CoordinateTransformer } from './viewport/CoordinateTransformer'
 
 const TOOLBAR_ZOOM_FACTOR = 1.2
+const DEFAULT_VIEWPORT = { x: 0, y: 0, zoom: 1 }
 
 export interface FlowEditorCoreOptions {
   backgroundCanvas: HTMLCanvasElement
@@ -141,6 +142,11 @@ export class FlowEditorCore {
 
   zoomOut() {
     this.zoomBy(1 / TOOLBAR_ZOOM_FACTOR)
+  }
+
+  resetView() {
+    this.scene.setViewport(DEFAULT_VIEWPORT)
+    this.requestRender({ background: true, main: true })
   }
 
   updateNodeLabel(nodeId: NodeId, label: string) {

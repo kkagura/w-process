@@ -8,6 +8,7 @@ interface Props {
   canArrangeSelection: boolean
   canZoomIn: boolean
   canZoomOut: boolean
+  canResetView: boolean
   selectedNodeCount: number
   dirty: boolean
 }
@@ -18,6 +19,7 @@ interface Emits {
   arrangeSelection: [action: SelectionArrangeAction]
   zoomIn: []
   zoomOut: []
+  resetView: []
   save: []
 }
 
@@ -110,6 +112,16 @@ function handleArrangeAction(item: ArrangeActionItem) {
       @click="emit('zoomIn')"
     >
       Zoom In
+    </button>
+    <button
+      class="toolbar-button"
+      type="button"
+      :disabled="!canResetView"
+      title="Reset View"
+      aria-label="Reset canvas view"
+      @click="emit('resetView')"
+    >
+      Reset View
     </button>
     <div
       class="toolbar-menu-wrapper"

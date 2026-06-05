@@ -31,6 +31,7 @@ const {
   arrangeSelection,
   zoomIn,
   zoomOut,
+  resetView,
   updateNodeLabel,
   updateNodePosition,
   updateNodeSize,
@@ -134,6 +135,7 @@ function formatEdgeSuffix(edgeCount: number) {
       @arrange-selection="arrangeSelection"
       @zoom-in="zoomIn"
       @zoom-out="zoomOut"
+      @reset-view="resetView"
       @save="emit('saveRequested')"
     />
     <PropertyPanel
