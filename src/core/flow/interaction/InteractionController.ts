@@ -35,7 +35,11 @@ import {
 import {
   getPointAngle,
   getRotatedNodeData,
+  getRotatedSelectionNodeData,
+  getSelectionRotationDelta,
   hasNodeRotationChanges,
+  hasNodesRotationChanges,
+  hitTestSelectionRotateHandle,
   hitTestRotateHandle,
 } from './NodeRotateInteraction'
 import {
@@ -71,6 +75,15 @@ export class InteractionController {
   getSelectionRect() {
     return this.mode.type === 'selecting'
       ? getSelectionRect(this.mode.start, this.mode.current)
+      : null
+  }
+
+  getSelectionBoundsOverlay() {
+    return this.mode.type === 'rotating-selection'
+      ? {
+          rect: this.mode.startBounds,
+          rotation: this.mode.currentRotation,
+        }
       : null
   }
 
@@ -146,6 +159,25 @@ export class InteractionController {
         startRotation: rotateHit.node.rotation,
       }
       this.options.scene.setHovered({ type: 'node', id: rotateHit.node.id })
+      this.snapGuides = []
+      this.options.canvas.setPointerCapture(event.pointerId)
+      this.setCursor('grabbing')
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
+    const selectionRotateHit = this.getSelectedSelectionRotateHandle(point)
+    if (selectionRotateHit && event.button === 0) {
+      this.mode = {
+        type: 'rotating-selection',
+        center: selectionRotateHit.center,
+        before: selectionRotateHit.nodes,
+        startAngle: getPointAngle(selectionRotateHit.center, point),
+        startBounds: selectionRotateHit.bounds,
+        currentRotation: 0,
+      }
+      this.options.scene.setHovered(null)
       this.snapGuides = []
       this.options.canvas.setPointerCapture(event.pointerId)
       this.setCursor('grabbing')
@@ -363,6 +395,26 @@ export class InteractionController {
       return
     }
 
+    if (this.mode.type === 'rotating-selection') {
+      this.mode = {
+        ...this.mode,
+        currentRotation: getSelectionRotationDelta({
+          mode: this.mode,
+          current: point,
+          snap: event.shiftKey,
+        }),
+      }
+      const nextNodes = getRotatedSelectionNodeData({
+        mode: this.mode,
+        current: point,
+        snap: event.shiftKey,
+      })
+      this.options.scene.updateNodesData(nextNodes)
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
     if (this.mode.type === 'dragging-node') {
       const snapResult = snapRectToNodes({
         movingBounds: getDraggedNodeBounds(this.mode, point),
@@ -405,6 +457,13 @@ export class InteractionController {
     if (rotateHit) {
       this.setCursor(rotateHit.handle.cursor)
       this.options.scene.setHovered({ type: 'node', id: rotateHit.node.id })
+      return
+    }
+
+    const selectionRotateHit = this.getSelectedSelectionRotateHandle(point)
+    if (selectionRotateHit) {
+      this.setCursor(selectionRotateHit.handle.cursor)
+      this.options.scene.setHovered(null)
       return
     }
 
@@ -462,6 +521,17 @@ export class InteractionController {
 
     if (this.mode.type === 'rotating-node') {
       this.recordNodeRotateHistory(this.mode)
+      this.options.canvas.releasePointerCapture(event.pointerId)
+      this.mode = { type: 'idle' }
+      this.snapGuides = []
+      this.setCursor('')
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
+    if (this.mode.type === 'rotating-selection') {
+      this.recordSelectionRotateHistory(this.mode)
       this.options.canvas.releasePointerCapture(event.pointerId)
       this.mode = { type: 'idle' }
       this.snapGuides = []
@@ -606,6 +676,9 @@ export class InteractionController {
     if (this.mode.type === 'rotating-node') {
       this.options.scene.updateNodeData(this.mode.before)
     }
+    if (this.mode.type === 'rotating-selection') {
+      this.options.scene.updateNodesData(this.mode.before)
+    }
 
     this.mode = { type: 'idle' }
     this.snapGuides = []
@@ -734,6 +807,15 @@ export class InteractionController {
     this.options.history.record(new UpdateNodeDataCommand(mode.before, after))
   }
 
+  private recordSelectionRotateHistory(mode: Extract<InteractionMode, { type: 'rotating-selection' }>) {
+    const after = mode.before
+      .map(node => this.options.scene.getNodeData(node.id))
+      .filter((node): node is FlowNode => Boolean(node))
+    if (!hasNodesRotationChanges(mode.before, after)) return
+
+    this.options.history.record(new UpdateNodesDataCommand(mode.before, after))
+  }
+
   private getResizeSnap(mode: Extract<InteractionMode, { type: 'resizing-node' }>, point: Point) {
     const rawRect = getRawResizedRect({
       mode,
@@ -820,6 +902,34 @@ export class InteractionController {
     if (nodes.length < 2) return null
 
     return { bounds: resizeBounds, nodes, handle }
+  }
+
+  private getSelectedSelectionRotateHandle(point: Point) {
+    const nodeIds = this.options.scene.getSelectedNodeIds()
+    if (nodeIds.length < 2) return null
+
+    const bounds = this.options.scene.getSelectedNodeBounds()
+    if (!bounds) return null
+
+    const viewport = this.options.scene.getViewport()
+    const rotateBounds = getSelectionResizeRect(bounds, viewport)
+    const handle = hitTestSelectionRotateHandle(point, rotateBounds, viewport)
+    if (!handle) return null
+
+    const nodes = nodeIds
+      .map(nodeId => this.options.scene.getNodeData(nodeId))
+      .filter((node): node is FlowNode => Boolean(node))
+    if (nodes.length < 2) return null
+
+    return {
+      bounds: rotateBounds,
+      center: {
+        x: rotateBounds.x + rotateBounds.width / 2,
+        y: rotateBounds.y + rotateBounds.height / 2,
+      },
+      nodes,
+      handle,
+    }
   }
 
   private getSelectedRotateHandle(point: Point) {

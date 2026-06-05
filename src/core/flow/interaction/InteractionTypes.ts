@@ -2,7 +2,7 @@ import type { EditorFeedbackEvent, Endpoint, FlowNode, NodeId, Point, Rect, Size
 import type { SceneManager } from '../scene/SceneManager'
 import type { HistoryManager } from '../commands/HistoryManager'
 import type { ResizeHandle } from './NodeResizeInteraction'
-import type { NodeRotateModeData } from './NodeRotateInteraction'
+import type { NodeRotateModeData, SelectionRotateModeData } from './NodeRotateInteraction'
 
 export type InteractionMode =
   | { type: 'idle' }
@@ -10,6 +10,7 @@ export type InteractionMode =
   | { type: 'resizing-node'; nodeId: NodeId; handle: ResizeHandle; start: Point; before: FlowNode; startRect: Rect }
   | { type: 'resizing-selection'; handle: ResizeHandle; start: Point; before: FlowNode[]; startBounds: Rect }
   | ({ type: 'rotating-node' } & NodeRotateModeData)
+  | ({ type: 'rotating-selection' } & SelectionRotateModeData)
   | { type: 'connecting'; source: Endpoint; current: Point }
   | { type: 'panning'; start: Point; origin: ViewportData }
   | { type: 'pending-selection'; startCanvas: Point; startWorld: Point }

@@ -5,11 +5,23 @@ import type { FlowTheme, NodeDrawContext, Point, Rect, SnapGuide, ViewportData }
 import type { CanvasLayerManager } from './CanvasLayerManager'
 import { routeOrthogonalEdge } from '../routing/orthogonal'
 import { getResizeHandles } from '../interaction/NodeResizeInteraction'
-import { getRotateHandle, getRotateHandleAnchor } from '../interaction/NodeRotateInteraction'
+import {
+  getRotateHandle,
+  getRotateHandleAnchor,
+  getRotatedSelectionRotateHandle,
+  getRotatedSelectionRotateHandleAnchor,
+  getSelectionRotateHandle,
+  getSelectionRotateHandleAnchor,
+} from '../interaction/NodeRotateInteraction'
+import { getRectCenter, rotatePoint } from '../utils/geometry'
 
 export interface CanvasInteractionState {
   draggingNodeId: string | null
   selectionRect: Rect | null
+  selectionBoundsOverlay: {
+    rect: Rect
+    rotation: number
+  } | null
   snapGuides: SnapGuide[]
   pendingEdge: {
     sourcePoint: { x: number; y: number }
@@ -182,34 +194,36 @@ export class CanvasRenderer {
   }
 
   private drawSelectedNodeBounds(ctx: CanvasRenderingContext2D, context: RenderContext) {
-    const rect = context.scene.getSelectedNodeBounds()
-    if (!rect) return
-
     const viewport = context.scene.getViewport()
     const theme = context.scene.getTheme()
-    const paddedRect = getSelectionResizeRect(rect, viewport)
+    const overlay = context.interaction.selectionBoundsOverlay
+    const paddedRect = overlay?.rect
+      ?? getNullableSelectionResizeRect(context.scene.getSelectedNodeBounds(), viewport)
+    if (!paddedRect) return
 
     ctx.save()
     ctx.strokeStyle = theme.colors.selected
     ctx.lineWidth = 1 / viewport.zoom
     ctx.setLineDash([6 / viewport.zoom, 4 / viewport.zoom])
-    ctx.strokeRect(paddedRect.x, paddedRect.y, paddedRect.width, paddedRect.height)
+    strokeRotatedRect(ctx, paddedRect, overlay?.rotation ?? 0)
     ctx.restore()
   }
 
   private drawResizeHandles(ctx: CanvasRenderingContext2D, context: RenderContext) {
     const selection = context.scene.getSelection()
     const singleNodeSelected = selection.items.length === 1 && selection.primary?.type === 'node'
-    const rect = singleNodeSelected
+    const overlay = context.interaction.selectionBoundsOverlay
+    const baseRect = singleNodeSelected
       ? context.scene.getNodeRect(selection.primary!.id)
-      : getNullableSelectionResizeRect(context.scene.getSelectedNodeBounds(), context.scene.getViewport())
-    if (!rect) return
+      : overlay?.rect ?? getNullableSelectionResizeRect(context.scene.getSelectedNodeBounds(), context.scene.getViewport())
+    if (!baseRect) return
 
     const viewport = context.scene.getViewport()
     const theme = context.scene.getTheme()
-    const handles = getResizeHandles(rect, viewport, {
+    const handles = getResizeHandles(baseRect, viewport, {
       offset: singleNodeSelected ? undefined : 0,
     })
+    const rotation = singleNodeSelected ? 0 : overlay?.rotation ?? 0
 
     ctx.save()
     ctx.fillStyle = '#ffffff'
@@ -217,8 +231,11 @@ export class CanvasRenderer {
     ctx.lineWidth = 1.2 / viewport.zoom
 
     for (const handle of handles) {
+      const handleRect = rotation === 0
+        ? handle.rect
+        : rotateHandleRect(handle.rect, getRectCenter(baseRect), rotation)
       ctx.beginPath()
-      ctx.rect(handle.rect.x, handle.rect.y, handle.rect.width, handle.rect.height)
+      ctx.rect(handleRect.x, handleRect.y, handleRect.width, handleRect.height)
       ctx.fill()
       ctx.stroke()
     }
@@ -228,16 +245,35 @@ export class CanvasRenderer {
 
   private drawRotateHandle(ctx: CanvasRenderingContext2D, context: RenderContext) {
     const selection = context.scene.getSelection()
-    if (selection.items.length !== 1 || selection.primary?.type !== 'node') return
-
-    const node = context.scene.getNodeData(selection.primary.id)
-    const rect = context.scene.getNodeRawRect(selection.primary.id)
-    if (!node || !rect) return
-
     const viewport = context.scene.getViewport()
     const theme = context.scene.getTheme()
-    const handle = getRotateHandle(rect, node.rotation, viewport)
-    const anchor = getRotateHandleAnchor(rect, node.rotation)
+
+    const singleNodeSelected = selection.items.length === 1 && selection.primary?.type === 'node'
+    const node = singleNodeSelected ? context.scene.getNodeData(selection.primary!.id) : null
+    const singleNodeRect = singleNodeSelected ? context.scene.getNodeRawRect(selection.primary!.id) : null
+    const overlay = context.interaction.selectionBoundsOverlay
+    const selectionRect = singleNodeSelected
+      ? null
+      : overlay?.rect ?? getNullableSelectionResizeRect(context.scene.getSelectedNodeBounds(), viewport)
+    const rotateHandleData = node && singleNodeRect
+      ? {
+          handle: getRotateHandle(singleNodeRect, node.rotation, viewport),
+          anchor: getRotateHandleAnchor(singleNodeRect, node.rotation),
+        }
+      : overlay
+        ? {
+            handle: getRotatedSelectionRotateHandle(overlay.rect, overlay.rotation, viewport),
+            anchor: getRotatedSelectionRotateHandleAnchor(overlay.rect, overlay.rotation),
+          }
+      : selectionRect
+        ? {
+            handle: getSelectionRotateHandle(selectionRect, viewport),
+            anchor: getSelectionRotateHandleAnchor(selectionRect),
+          }
+        : null
+    if (!rotateHandleData) return
+
+    const { handle, anchor } = rotateHandleData
     const radius = handle.rect.width / 2
 
     ctx.save()
@@ -299,6 +335,30 @@ function getSelectionResizeRect(rect: Rect, viewport: ViewportData): Rect {
     y: rect.y - padding,
     width: rect.width + padding * 2,
     height: rect.height + padding * 2,
+  }
+}
+
+function strokeRotatedRect(ctx: CanvasRenderingContext2D, rect: Rect, rotation: number) {
+  if (rotation === 0) {
+    ctx.strokeRect(rect.x, rect.y, rect.width, rect.height)
+    return
+  }
+
+  const center = getRectCenter(rect)
+  ctx.save()
+  ctx.translate(center.x, center.y)
+  ctx.rotate(rotation * Math.PI / 180)
+  ctx.strokeRect(-rect.width / 2, -rect.height / 2, rect.width, rect.height)
+  ctx.restore()
+}
+
+function rotateHandleRect(rect: Rect, center: Point, rotation: number): Rect {
+  const handleCenter = rotatePoint(getRectCenter(rect), center, rotation)
+  return {
+    x: handleCenter.x - rect.width / 2,
+    y: handleCenter.y - rect.height / 2,
+    width: rect.width,
+    height: rect.height,
   }
 }
 
