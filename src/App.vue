@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { shallowRef } from 'vue'
 import FlowEditor from './features/flow-editor/components/FlowEditor.vue'
-import type { FlowEditorApi } from './features/flow-editor/types'
+import type { FlowEditorApi, SaveFeedback } from './features/flow-editor/types'
 import type { FlowDocument } from './core/flow/types/flow'
 
 interface FlowSaveFile {
@@ -12,6 +12,8 @@ interface FlowSaveFile {
 
 const STORAGE_KEY = 'w-process:flow-document'
 const editorApi = shallowRef<FlowEditorApi | null>(null)
+const saveFeedback = shallowRef<SaveFeedback | null>(null)
+let saveFeedbackId = 0
 
 function handleEditorReady(api: FlowEditorApi) {
   editorApi.value = api
@@ -24,13 +26,31 @@ function handleEditorReady(api: FlowEditorApi) {
 
 function handleSaveRequested() {
   const api = editorApi.value
-  if (!api) return
+  if (!api) {
+    notifySaveFeedback('error')
+    return
+  }
 
   const document = api.exportDocument()
-  if (!document) return
+  if (!document) {
+    notifySaveFeedback('error')
+    return
+  }
 
   if (saveFlowDocumentToStorage(document)) {
     api.markSaved()
+    notifySaveFeedback('success')
+    return
+  }
+
+  notifySaveFeedback('error')
+}
+
+function notifySaveFeedback(type: SaveFeedback['type']) {
+  saveFeedbackId += 1
+  saveFeedback.value = {
+    id: saveFeedbackId,
+    type,
   }
 }
 
@@ -84,6 +104,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 <template>
   <FlowEditor
+    :save-feedback="saveFeedback"
     @editor-ready="handleEditorReady"
     @save-requested="handleSaveRequested"
   />

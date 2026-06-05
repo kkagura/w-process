@@ -1,4 +1,4 @@
-import type { Endpoint, FlowNode, NodeId, Point, Rect, Size, ViewportData } from '../types/flow'
+import type { EditorFeedbackEvent, Endpoint, FlowNode, NodeId, Point, Rect, Size, ViewportData } from '../types/flow'
 import type { SceneManager } from '../scene/SceneManager'
 import type { HistoryManager } from '../commands/HistoryManager'
 import type { ResizeHandle } from './NodeResizeInteraction'
@@ -17,4 +17,5 @@ export interface InteractionControllerOptions {
   scene: SceneManager
   history: HistoryManager
   requestRender: (options?: { background?: boolean; main?: boolean }) => void
+  emitFeedback?: (event: EditorFeedbackEvent) => void
 }

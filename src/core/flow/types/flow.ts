@@ -175,6 +175,12 @@ export interface EditorUiState {
   summary: SceneSummary
 }
 
+export type EditorFeedbackEvent =
+  | { type: 'clipboard-copied'; nodeCount: number; edgeCount: number }
+  | { type: 'clipboard-copy-empty' }
+  | { type: 'clipboard-pasted'; nodeCount: number; edgeCount: number }
+  | { type: 'clipboard-paste-empty' }
+
 export type SceneEvent =
   | { type: 'node-added'; node: FlowNode; selection: SelectionState }
   | { type: 'node-updated'; node: FlowNode }

@@ -521,14 +521,25 @@ export class InteractionController {
 
   private copySelection() {
     const clipboard = copySelectionToClipboard(this.options.scene)
-    if (!clipboard) return
+    if (!clipboard) {
+      this.options.emitFeedback?.({ type: 'clipboard-copy-empty' })
+      return
+    }
 
     this.clipboard = clipboard
     this.pasteCount = 0
+    this.options.emitFeedback?.({
+      type: 'clipboard-copied',
+      nodeCount: clipboard.nodes.length,
+      edgeCount: clipboard.edges.length,
+    })
   }
 
   private pasteSelection() {
-    if (!this.clipboard) return
+    if (!this.clipboard) {
+      this.options.emitFeedback?.({ type: 'clipboard-paste-empty' })
+      return
+    }
 
     this.pasteCount += 1
     const offset = {
@@ -536,12 +547,20 @@ export class InteractionController {
       y: 24 * this.pasteCount,
     }
     const pasted = createPastedFlowData(this.clipboard, offset)
-    if (pasted.nodes.length === 0) return
+    if (pasted.nodes.length === 0) {
+      this.options.emitFeedback?.({ type: 'clipboard-paste-empty' })
+      return
+    }
 
     this.options.history.execute(new PasteElementsCommand({
       ...pasted,
       selectionBefore: this.options.scene.getSelection(),
     }))
+    this.options.emitFeedback?.({
+      type: 'clipboard-pasted',
+      nodeCount: pasted.nodes.length,
+      edgeCount: pasted.edges.length,
+    })
   }
 
   private recordNodeDragHistory(mode: Extract<InteractionMode, { type: 'dragging-node' }>) {

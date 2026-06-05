@@ -16,6 +16,7 @@ import type {
   EdgeLineStyleData,
   EdgeRouteData,
   ElementTemplate,
+  EditorFeedbackEvent,
   FlowDocument,
   FlowEdge,
   FlowNode,
@@ -48,6 +49,7 @@ export class FlowEditorCore {
   private mainFrame = 0
   private backgroundFrame = 0
   private unsubscribeScene: (() => void) | null = null
+  private feedbackListeners = new Set<(event: EditorFeedbackEvent) => void>()
 
   constructor(options: FlowEditorCoreOptions) {
     this.layers = new CanvasLayerManager(options)
@@ -57,6 +59,7 @@ export class FlowEditorCore {
       scene: this.scene,
       history: this.history,
       requestRender: options => this.requestRender(options),
+      emitFeedback: event => this.emitFeedback(event),
     })
 
     options.mainCanvas.addEventListener('dragover', this.handleDragOver)
@@ -208,6 +211,11 @@ export class FlowEditorCore {
     return this.history.subscribe(listener)
   }
 
+  subscribeFeedback(listener: (event: EditorFeedbackEvent) => void) {
+    this.feedbackListeners.add(listener)
+    return () => this.feedbackListeners.delete(listener)
+  }
+
   private requestRender(options: { background?: boolean; main?: boolean } = { main: true }) {
     if (options.background) {
       this.requestBackgroundRender()
@@ -216,6 +224,10 @@ export class FlowEditorCore {
     if (options.main ?? !options.background) {
       this.requestMainRender()
     }
+  }
+
+  private emitFeedback(event: EditorFeedbackEvent) {
+    for (const listener of this.feedbackListeners) listener(event)
   }
 
   private renderBackground() {

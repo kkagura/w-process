@@ -5,3 +5,8 @@ export interface FlowEditorApi {
   importDocument(document: FlowDocument): void
   markSaved(): void
 }
+
+export interface SaveFeedback {
+  id: number
+  type: 'success' | 'error'
+}

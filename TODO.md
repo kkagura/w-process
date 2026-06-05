@@ -42,6 +42,8 @@
 - [x] dirty 状态
 - [x] 保存到 localStorage
 - [x] 页面加载自动从 localStorage 导入
+- [x] Toast 操作反馈提示
+- [x] 保存成功 / 失败 Toast 提示
 - [x] 多选快捷排列工具
 - [x] 左对齐、右对齐、上对齐、下对齐
 - [x] 水平/垂直中心对齐

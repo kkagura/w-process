@@ -5,6 +5,7 @@ import type {
   EdgeId,
   EdgeLineStyleData,
   EdgeRouteData,
+  EditorFeedbackEvent,
   EditorUiState,
   FlowDocument,
   NodeBorderStyleData,
@@ -27,13 +28,16 @@ export function useFlowEditorCore() {
   const core = shallowRef<FlowEditorCore | null>(null)
   const uiState = shallowRef<EditorUiState | null>(null)
   const historyState = shallowRef<HistoryState>(createEmptyHistoryState())
+  const latestFeedback = shallowRef<EditorFeedbackEvent | null>(null)
   let unsubscribe: (() => void) | null = null
   let unsubscribeHistory: (() => void) | null = null
+  let unsubscribeFeedback: (() => void) | null = null
 
   function mount(elements: FlowEditorCanvasElements) {
     core.value?.dispose()
     unsubscribe?.()
     unsubscribeHistory?.()
+    unsubscribeFeedback?.()
 
     const nextCore = new FlowEditorCore(elements)
     core.value = nextCore
@@ -44,6 +48,9 @@ export function useFlowEditorCore() {
     })
     unsubscribeHistory = nextCore.subscribeHistory((state) => {
       historyState.value = state
+    })
+    unsubscribeFeedback = nextCore.subscribeFeedback((event) => {
+      latestFeedback.value = event
     })
   }
 
@@ -119,6 +126,7 @@ export function useFlowEditorCore() {
   onBeforeUnmount(() => {
     unsubscribe?.()
     unsubscribeHistory?.()
+    unsubscribeFeedback?.()
     core.value?.dispose()
   })
 
@@ -126,6 +134,7 @@ export function useFlowEditorCore() {
     core,
     uiState,
     historyState,
+    latestFeedback,
     mount,
     undo,
     redo,

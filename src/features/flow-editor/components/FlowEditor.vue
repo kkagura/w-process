@@ -1,20 +1,30 @@
 <script setup lang="ts">
+import { watch } from 'vue'
 import ElementPalette from './ElementPalette.vue'
 import FlowCanvas from './FlowCanvas.vue'
 import PropertyPanel from './PropertyPanel.vue'
+import ToastContainer from './toast/ToastContainer.vue'
 import { useFlowEditorCore } from '../composables/useFlowEditorCore'
-import type { FlowEditorApi } from '../types'
+import { useToast } from '../composables/useToast'
+import type { FlowEditorApi, SaveFeedback } from '../types'
 import type { FlowEditorCanvasElements } from '../composables/useFlowEditorCore'
+import type { EditorFeedbackEvent } from '../../../core/flow/types/flow'
+
+interface Props {
+  saveFeedback: SaveFeedback | null
+}
 
 interface Emits {
   editorReady: [api: FlowEditorApi]
   saveRequested: []
 }
 
+const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 const {
   uiState,
   historyState,
+  latestFeedback,
   mount,
   undo,
   redo,
@@ -32,6 +42,21 @@ const {
   importDocument,
   markSaved,
 } = useFlowEditorCore()
+const {
+  toasts,
+  show: showToast,
+  remove: removeToast,
+} = useToast()
+
+watch(latestFeedback, (event) => {
+  if (!event) return
+  handleFeedback(event)
+})
+
+watch(() => props.saveFeedback, (feedback) => {
+  if (!feedback) return
+  handleSaveFeedback(feedback)
+})
 
 function handleCanvasReady(elements: FlowEditorCanvasElements) {
   mount(elements)
@@ -40,6 +65,58 @@ function handleCanvasReady(elements: FlowEditorCanvasElements) {
     importDocument,
     markSaved,
   })
+}
+
+function handleFeedback(event: EditorFeedbackEvent) {
+  if (event.type === 'clipboard-copied') {
+    showToast({
+      type: 'success',
+      message: `已复制 ${event.nodeCount} 个节点${formatEdgeSuffix(event.edgeCount)}`,
+    })
+    return
+  }
+
+  if (event.type === 'clipboard-copy-empty') {
+    showToast({
+      type: 'warning',
+      message: '请先选择要复制的节点',
+    })
+    return
+  }
+
+  if (event.type === 'clipboard-pasted') {
+    showToast({
+      type: 'success',
+      message: `已粘贴 ${event.nodeCount} 个节点${formatEdgeSuffix(event.edgeCount)}`,
+    })
+    return
+  }
+
+  if (event.type === 'clipboard-paste-empty') {
+    showToast({
+      type: 'warning',
+      message: '没有可粘贴的内容',
+    })
+  }
+}
+
+function handleSaveFeedback(feedback: SaveFeedback) {
+  if (feedback.type === 'success') {
+    showToast({
+      type: 'success',
+      message: '保存成功',
+    })
+    return
+  }
+
+  showToast({
+    type: 'error',
+    message: '保存失败，请稍后重试',
+  })
+}
+
+function formatEdgeSuffix(edgeCount: number) {
+  return edgeCount > 0 ? `，${edgeCount} 条连线` : ''
 }
 </script>
 
@@ -67,6 +144,7 @@ function handleCanvasReady(elements: FlowEditorCanvasElements) {
       @update-edge-line-style="updateEdgeLineStyle"
       @update-edge-route="updateEdgeRoute"
     />
+    <ToastContainer :toasts="toasts" @close="removeToast" />
   </main>
 </template>
 
@@ -76,5 +154,6 @@ function handleCanvasReady(elements: FlowEditorCanvasElements) {
   grid-template-columns: 184px minmax(0, 1fr) 260px;
   height: 100svh;
   overflow: hidden;
+  position: relative;
 }
 </style>
