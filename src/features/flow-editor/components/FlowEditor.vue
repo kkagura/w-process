@@ -102,6 +102,22 @@ function handleFeedback(event: EditorFeedbackEvent) {
       type: 'warning',
       message: '没有可粘贴的内容',
     })
+    return
+  }
+
+  if (event.type === 'selection-duplicated') {
+    showToast({
+      type: 'success',
+      message: `已快速复制 ${event.nodeCount} 个节点${formatEdgeSuffix(event.edgeCount)}`,
+    })
+    return
+  }
+
+  if (event.type === 'selection-duplicate-empty') {
+    showToast({
+      type: 'warning',
+      message: '请先选择要快速复制的节点',
+    })
   }
 }
 

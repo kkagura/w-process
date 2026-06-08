@@ -607,6 +607,14 @@ export class InteractionController {
       return
     }
 
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd') {
+      if (this.mode.type === 'idle') {
+        this.duplicateSelection()
+      }
+      event.preventDefault()
+      return
+    }
+
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
       if (this.mode.type === 'idle') {
         this.options.scene.selectAll()
@@ -761,6 +769,33 @@ export class InteractionController {
       type: 'clipboard-pasted',
       nodeCount: pasted.nodes.length,
       edgeCount: pasted.edges.length,
+    })
+  }
+
+  private duplicateSelection() {
+    const selectionSnapshot = copySelectionToClipboard(this.options.scene)
+    if (!selectionSnapshot) {
+      this.options.emitFeedback?.({ type: 'selection-duplicate-empty' })
+      return
+    }
+
+    const duplicated = createPastedFlowData(selectionSnapshot, {
+      x: 24,
+      y: 24,
+    })
+    if (duplicated.nodes.length === 0) {
+      this.options.emitFeedback?.({ type: 'selection-duplicate-empty' })
+      return
+    }
+
+    this.options.history.execute(new PasteElementsCommand({
+      ...duplicated,
+      selectionBefore: this.options.scene.getSelection(),
+    }))
+    this.options.emitFeedback?.({
+      type: 'selection-duplicated',
+      nodeCount: duplicated.nodes.length,
+      edgeCount: duplicated.edges.length,
     })
   }
 

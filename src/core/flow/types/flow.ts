@@ -181,6 +181,8 @@ export type EditorFeedbackEvent =
   | { type: 'clipboard-copy-empty' }
   | { type: 'clipboard-pasted'; nodeCount: number; edgeCount: number }
   | { type: 'clipboard-paste-empty' }
+  | { type: 'selection-duplicated'; nodeCount: number; edgeCount: number }
+  | { type: 'selection-duplicate-empty' }
 
 export type SceneEvent =
   | { type: 'node-added'; node: FlowNode; selection: SelectionState }
