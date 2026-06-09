@@ -103,6 +103,10 @@ export class Box {
     return nodes
   }
 
+  getNodes(): BaseNode[] {
+    return this.children.filter((child): child is BaseNode => child instanceof BaseNode)
+  }
+
   getBoxesDeep(): Box[] {
     const boxes: Box[] = []
     for (const child of this.children) {

@@ -6,6 +6,7 @@ interface Props {
   canUndo: boolean
   canRedo: boolean
   canArrangeSelection: boolean
+  canAutoLayout: boolean
   canZoomIn: boolean
   canZoomOut: boolean
   canResetView: boolean
@@ -18,6 +19,7 @@ interface Emits {
   undo: []
   redo: []
   arrangeSelection: [action: SelectionArrangeAction]
+  autoLayout: []
   zoomIn: []
   zoomOut: []
   resetView: []
@@ -171,6 +173,15 @@ function handleArrangeAction(item: ArrangeActionItem) {
         </button>
       </div>
     </div>
+    <button
+      class="toolbar-button"
+      type="button"
+      :disabled="!canAutoLayout"
+      title="从左到右自动布局全部节点"
+      @click="emit('autoLayout')"
+    >
+      自动布局
+    </button>
     <button
       class="toolbar-button"
       :class="{ 'toolbar-button-dirty': dirty }"

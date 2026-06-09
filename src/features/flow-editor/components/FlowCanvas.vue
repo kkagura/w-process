@@ -19,6 +19,7 @@ interface Emits {
   undo: []
   redo: []
   arrangeSelection: [action: SelectionArrangeAction]
+  autoLayout: []
   zoomIn: []
   zoomOut: []
   resetView: []
@@ -49,6 +50,7 @@ const canResetView = computed(() =>
   || viewport.value.zoom !== defaultViewport.zoom,
 )
 const canFitContent = computed(() => nodeCount.value > 0)
+const canAutoLayout = computed(() => nodeCount.value > 1)
 const selectedNodeCount = computed(() =>
   props.uiState?.selection.items.filter(item => item.type === 'node').length ?? 0,
 )
@@ -97,6 +99,7 @@ function updateCanvasSize() {
         :can-undo="canUndo"
         :can-redo="canRedo"
         :can-arrange-selection="canArrangeSelection"
+        :can-auto-layout="canAutoLayout"
         :can-zoom-in="canZoomIn"
         :can-zoom-out="canZoomOut"
         :can-reset-view="canResetView"
@@ -106,6 +109,7 @@ function updateCanvasSize() {
         @undo="emit('undo')"
         @redo="emit('redo')"
         @arrange-selection="emit('arrangeSelection', $event)"
+        @auto-layout="emit('autoLayout')"
         @zoom-in="emit('zoomIn')"
         @zoom-out="emit('zoomOut')"
         @reset-view="emit('resetView')"

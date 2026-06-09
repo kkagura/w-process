@@ -4,6 +4,7 @@ import { CanvasLayerManager } from './renderer/CanvasLayerManager'
 import { CanvasRenderer } from './renderer/CanvasRenderer'
 import { SceneManager } from './scene/SceneManager'
 import { getArrangedNodeMoves } from './alignment/arrangeSelection'
+import { getAutoLayoutMoves } from './layout/layeredLayout'
 import { CreateNodeCommand } from './commands/CreateNodeCommand'
 import { HistoryManager } from './commands/HistoryManager'
 import { MoveNodesCommand } from './commands/MoveNodesCommand'
@@ -136,6 +137,56 @@ export class FlowEditorCore {
     if (!MoveNodesCommand.hasChanges(before, after)) return
 
     this.history.execute(new MoveNodesCommand(before, after))
+  }
+
+  autoLayout() {
+    const nodes = this.scene.getRootNodes()
+    if (nodes.length < 2) {
+      this.emitFeedback({
+        type: 'auto-layout-skipped',
+        reason: 'insufficient-nodes',
+      })
+      return
+    }
+
+    const nodeIds = new Set(nodes.map(node => node.id))
+    const after = getAutoLayoutMoves({
+      nodes: nodes.map(node => ({
+        nodeId: node.id,
+        position: node.getPosition(),
+        bounds: node.getBounds(),
+      })),
+      edges: this.scene.getEdges()
+        .filter(edge => nodeIds.has(edge.source.nodeId) && nodeIds.has(edge.target.nodeId))
+        .map(edge => ({
+          sourceNodeId: edge.source.nodeId,
+          targetNodeId: edge.target.nodeId,
+        })),
+    })
+    const nodeMap = new Map(nodes.map(node => [node.id, node]))
+    const before = after.flatMap((move) => {
+      const node = nodeMap.get(move.nodeId)
+      return node
+        ? [{
+            nodeId: node.id,
+            position: node.getPosition(),
+          }]
+        : []
+    })
+
+    if (!MoveNodesCommand.hasChanges(before, after)) {
+      this.emitFeedback({
+        type: 'auto-layout-skipped',
+        reason: 'unchanged',
+      })
+      return
+    }
+
+    this.history.execute(new MoveNodesCommand(before, after))
+    this.emitFeedback({
+      type: 'auto-layout-applied',
+      nodeCount: after.length,
+    })
   }
 
   zoomIn() {

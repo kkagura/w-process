@@ -400,6 +400,10 @@ export class SceneManager {
     return this.rootBox.getNodesDeep()
   }
 
+  getRootNodes() {
+    return this.rootBox.getNodes()
+  }
+
   getNodeRect(id: NodeId): Rect | null {
     const node = this.getNode(id)
     if (!node) return null

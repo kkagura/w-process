@@ -66,6 +66,10 @@ export function useFlowEditorCore() {
     core.value?.arrangeSelection(action)
   }
 
+  function autoLayout() {
+    core.value?.autoLayout()
+  }
+
   function zoomIn() {
     core.value?.zoomIn()
   }
@@ -159,6 +163,7 @@ export function useFlowEditorCore() {
     undo,
     redo,
     arrangeSelection,
+    autoLayout,
     zoomIn,
     zoomOut,
     resetView,

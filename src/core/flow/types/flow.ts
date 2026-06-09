@@ -183,6 +183,8 @@ export type EditorFeedbackEvent =
   | { type: 'clipboard-paste-empty' }
   | { type: 'selection-duplicated'; nodeCount: number; edgeCount: number }
   | { type: 'selection-duplicate-empty' }
+  | { type: 'auto-layout-applied'; nodeCount: number }
+  | { type: 'auto-layout-skipped'; reason: 'insufficient-nodes' | 'unchanged' }
 
 export type SceneEvent =
   | { type: 'node-added'; node: FlowNode; selection: SelectionState }

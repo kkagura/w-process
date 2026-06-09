@@ -29,6 +29,7 @@ const {
   undo,
   redo,
   arrangeSelection,
+  autoLayout,
   zoomIn,
   zoomOut,
   resetView,
@@ -118,6 +119,24 @@ function handleFeedback(event: EditorFeedbackEvent) {
       type: 'warning',
       message: '请先选择要快速复制的节点',
     })
+    return
+  }
+
+  if (event.type === 'auto-layout-applied') {
+    showToast({
+      type: 'success',
+      message: `已自动布局 ${event.nodeCount} 个节点`,
+    })
+    return
+  }
+
+  if (event.type === 'auto-layout-skipped') {
+    showToast({
+      type: 'warning',
+      message: event.reason === 'insufficient-nodes'
+        ? '至少需要两个节点才能自动布局'
+        : '当前节点已经符合自动布局结果',
+    })
   }
 }
 
@@ -151,6 +170,7 @@ function formatEdgeSuffix(edgeCount: number) {
       @undo="undo"
       @redo="redo"
       @arrange-selection="arrangeSelection"
+      @auto-layout="autoLayout"
       @zoom-in="zoomIn"
       @zoom-out="zoomOut"
       @reset-view="resetView"
