@@ -92,6 +92,10 @@ export function getHoveredSelection(hit: HitTestResult): SelectableRef | null {
     return { type: 'edge', id: hit.id }
   }
 
+  if (hit?.type === 'box') {
+    return { type: 'box', id: hit.id }
+  }
+
   return null
 }
 

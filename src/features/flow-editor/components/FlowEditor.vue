@@ -44,6 +44,10 @@ const {
   updateEdgeLabel,
   updateEdgeLineStyle,
   updateEdgeRoute,
+  updateBoxLabel,
+  updateSwimlaneOrientation,
+  addSwimlaneLane,
+  removeSwimlaneLane,
   exportDocument,
   importDocument,
   markSaved,
@@ -189,6 +193,10 @@ function formatEdgeSuffix(edgeCount: number) {
       @update-edge-label="updateEdgeLabel"
       @update-edge-line-style="updateEdgeLineStyle"
       @update-edge-route="updateEdgeRoute"
+      @update-box-label="updateBoxLabel"
+      @update-swimlane-orientation="updateSwimlaneOrientation"
+      @add-swimlane-lane="addSwimlaneLane"
+      @remove-swimlane-lane="removeSwimlaneLane"
     />
     <ToastContainer :toasts="toasts" @close="removeToast" />
   </main>

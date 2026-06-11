@@ -39,6 +39,7 @@ const defaultViewport: ViewportData = { x: 0, y: 0, zoom: 1 }
 const viewport = computed(() => props.uiState?.viewport ?? defaultViewport)
 const nodeCount = computed(() => props.uiState?.summary.nodeCount ?? 0)
 const edgeCount = computed(() => props.uiState?.summary.edgeCount ?? 0)
+const boxCount = computed(() => props.uiState?.summary.boxCount ?? 0)
 const canUndo = computed(() => props.historyState.canUndo)
 const canRedo = computed(() => props.historyState.canRedo)
 const dirty = computed(() => props.historyState.dirty)
@@ -49,7 +50,7 @@ const canResetView = computed(() =>
   || viewport.value.y !== defaultViewport.y
   || viewport.value.zoom !== defaultViewport.zoom,
 )
-const canFitContent = computed(() => nodeCount.value > 0)
+const canFitContent = computed(() => nodeCount.value > 0 || boxCount.value > 0)
 const canAutoLayout = computed(() => nodeCount.value > 1)
 const selectedNodeCount = computed(() =>
   props.uiState?.selection.items.filter(item => item.type === 'node').length ?? 0,

@@ -17,6 +17,8 @@ import { getRectCenter, rotatePoint } from '../utils/geometry'
 
 export interface CanvasInteractionState {
   draggingNodeId: string | null
+  draggingBoxId: string | null
+  dropTargetBoxId: string | null
   selectionRect: Rect | null
   selectionBoundsOverlay: {
     rect: Rect
@@ -68,9 +70,10 @@ export class CanvasRenderer {
     ctx.translate(viewport.x, viewport.y)
     ctx.scale(viewport.zoom, viewport.zoom)
 
+    this.drawBoxBackgrounds(ctx, context)
     this.drawEdges(ctx, context)
     this.drawPendingEdge(ctx, context)
-    this.drawBoxes(ctx, context)
+    this.drawBoxForegrounds(ctx, context)
     this.drawNodes(ctx, context)
     this.drawSelectedNodeBounds(ctx, context)
     this.drawResizeHandles(ctx, context)
@@ -145,15 +148,27 @@ export class CanvasRenderer {
     ctx.restore()
   }
 
-  private drawBoxes(ctx: CanvasRenderingContext2D, context: RenderContext) {
+  private drawBoxBackgrounds(ctx: CanvasRenderingContext2D, context: RenderContext) {
     for (const box of context.scene.getBoxes()) {
       const boxView = this.registry.getBoxView(box.type)
-      boxView.draw(ctx, box, {
-        selected: context.scene.isSelected({ type: 'box', id: box.id }),
-        hovered: context.scene.isHovered({ type: 'box', id: box.id }),
-        theme: context.scene.getTheme(),
-        viewport: context.scene.getViewport(),
-      })
+      boxView.drawBackground(ctx, box, this.createBoxDrawContext(box.id, context))
+    }
+  }
+
+  private drawBoxForegrounds(ctx: CanvasRenderingContext2D, context: RenderContext) {
+    for (const box of context.scene.getBoxes()) {
+      const boxView = this.registry.getBoxView(box.type)
+      boxView.drawForeground(ctx, box, this.createBoxDrawContext(box.id, context))
+    }
+  }
+
+  private createBoxDrawContext(boxId: string, context: RenderContext) {
+    return {
+      selected: context.scene.isSelected({ type: 'box' as const, id: boxId }),
+      hovered: context.scene.isHovered({ type: 'box' as const, id: boxId }),
+      dropTarget: context.interaction.dropTargetBoxId === boxId,
+      theme: context.scene.getTheme(),
+      viewport: context.scene.getViewport(),
     }
   }
 

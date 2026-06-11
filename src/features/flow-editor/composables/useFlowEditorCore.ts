@@ -3,6 +3,7 @@ import { FlowEditorCore } from '../../../core/flow/FlowEditorCore'
 import type { HistoryState } from '../../../core/flow/commands/SceneCommand'
 import type {
   EdgeId,
+  BoxId,
   EdgeLineStyleData,
   EdgeRouteData,
   EditorFeedbackEvent,
@@ -17,6 +18,7 @@ import type {
   NodeTextStyleData,
   Point,
   Size,
+  SwimlaneOrientation,
 } from '../../../core/flow/types/flow'
 
 export interface FlowEditorCanvasElements {
@@ -126,6 +128,22 @@ export function useFlowEditorCore() {
     core.value?.updateEdgeRoute(edgeId, route)
   }
 
+  function updateBoxLabel(boxId: BoxId, label: string) {
+    core.value?.updateBoxLabel(boxId, label)
+  }
+
+  function updateSwimlaneOrientation(boxId: BoxId, orientation: SwimlaneOrientation) {
+    core.value?.updateSwimlaneOrientation(boxId, orientation)
+  }
+
+  function addSwimlaneLane(boxId: BoxId) {
+    core.value?.addSwimlaneLane(boxId)
+  }
+
+  function removeSwimlaneLane(laneId: BoxId) {
+    core.value?.removeSwimlaneLane(laneId)
+  }
+
   function exportDocument() {
     return core.value?.exportDocument() ?? null
   }
@@ -178,6 +196,10 @@ export function useFlowEditorCore() {
     updateEdgeLabel,
     updateEdgeLineStyle,
     updateEdgeRoute,
+    updateBoxLabel,
+    updateSwimlaneOrientation,
+    addSwimlaneLane,
+    removeSwimlaneLane,
     exportDocument,
     importDocument,
     markSaved,
@@ -198,6 +220,7 @@ function applySceneEvent(current: EditorUiState | null, event: SceneEvent): Edit
       hovered: null,
       selectedNode: event.node,
       selectedEdge: null,
+      selectedBox: null,
       summary: {
         ...state.summary,
         nodeCount: state.summary.nodeCount + 1,
@@ -248,9 +271,11 @@ function applySceneEvent(current: EditorUiState | null, event: SceneEvent): Edit
       hovered: null,
       selectedNode: null,
       selectedEdge: null,
+      selectedBox: null,
       summary: {
         nodeCount: Math.max(0, state.summary.nodeCount - event.nodeIds.length),
         edgeCount: Math.max(0, state.summary.edgeCount - event.removedEdgeCount),
+        boxCount: state.summary.boxCount,
       },
     }
   }
@@ -262,6 +287,7 @@ function applySceneEvent(current: EditorUiState | null, event: SceneEvent): Edit
       hovered: null,
       selectedNode: null,
       selectedEdge: event.edge,
+      selectedBox: null,
       summary: {
         ...state.summary,
         edgeCount: state.summary.edgeCount + 1,
@@ -285,6 +311,7 @@ function applySceneEvent(current: EditorUiState | null, event: SceneEvent): Edit
       hovered: null,
       selectedNode: null,
       selectedEdge: null,
+      selectedBox: null,
       summary: {
         ...state.summary,
         edgeCount: Math.max(0, state.summary.edgeCount - event.edgeIds.length),
@@ -298,6 +325,46 @@ function applySceneEvent(current: EditorUiState | null, event: SceneEvent): Edit
       selection: event.selection,
       selectedNode: event.selectedNode,
       selectedEdge: event.selectedEdge,
+      selectedBox: event.selectedBox,
+    }
+  }
+
+  if (event.type === 'box-added') {
+    return {
+      ...state,
+      selection: event.selection,
+      hovered: null,
+      selectedNode: null,
+      selectedEdge: null,
+      selectedBox: event.box,
+      summary: {
+        ...state.summary,
+        boxCount: state.summary.boxCount + countBoxData(event.box),
+      },
+    }
+  }
+
+  if (event.type === 'box-updated') {
+    if (state.selectedBox?.id !== event.box.id) return state
+    return {
+      ...state,
+      selectedBox: event.box,
+    }
+  }
+
+  if (event.type === 'boxes-removed') {
+    return {
+      ...state,
+      selection: createEmptySelectionState(),
+      hovered: null,
+      selectedNode: null,
+      selectedEdge: null,
+      selectedBox: null,
+      summary: {
+        nodeCount: Math.max(0, state.summary.nodeCount - event.nodeIds.length),
+        edgeCount: Math.max(0, state.summary.edgeCount - event.removedEdgeCount),
+        boxCount: Math.max(0, state.summary.boxCount - event.removedBoxCount),
+      },
     }
   }
 
@@ -325,9 +392,11 @@ function createEmptyUiState(): EditorUiState {
     viewport: { x: 0, y: 0, zoom: 1 },
     selectedNode: null,
     selectedEdge: null,
+    selectedBox: null,
     summary: {
       nodeCount: 0,
       edgeCount: 0,
+      boxCount: 0,
     },
   }
 }
@@ -345,4 +414,10 @@ function createEmptyHistoryState(): HistoryState {
     canRedo: false,
     dirty: false,
   }
+}
+
+function countBoxData(data: import('../../../core/flow/types/flow').BoxData): number {
+  return 1 + data.children.reduce((total, child) => (
+    total + ('children' in child ? countBoxData(child) : 0)
+  ), 0)
 }

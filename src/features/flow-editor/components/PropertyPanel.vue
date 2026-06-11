@@ -6,6 +6,7 @@ import PropertyNumberField from './property-panel/PropertyNumberField.vue'
 import PropertySelectField from './property-panel/PropertySelectField.vue'
 import PropertyTextField from './property-panel/PropertyTextField.vue'
 import type {
+  BoxId,
   EdgeId,
   EdgeLineDash,
   EdgeLineStyleData,
@@ -22,6 +23,7 @@ import type {
   NodeTextVerticalAlign,
   Point,
   Size,
+  SwimlaneOrientation,
 } from '../../../core/flow/types/flow'
 
 const props = defineProps<{
@@ -39,9 +41,15 @@ const emit = defineEmits<{
   updateEdgeLabel: [edgeId: EdgeId, label: string]
   updateEdgeLineStyle: [edgeId: EdgeId, lineStyle: Partial<EdgeLineStyleData>]
   updateEdgeRoute: [edgeId: EdgeId, route: EdgeRouteData]
+  updateBoxLabel: [boxId: BoxId, label: string]
+  updateSwimlaneOrientation: [boxId: BoxId, orientation: SwimlaneOrientation]
+  addSwimlaneLane: [boxId: BoxId]
+  removeSwimlaneLane: [laneId: BoxId]
 }>()
 
 const labelDraft = shallowRef('')
+const boxLabelDraft = shallowRef('')
+const swimlaneOrientationDraft = shallowRef<SwimlaneOrientation>('horizontal')
 const edgeLabelDraft = shallowRef('')
 const edgeRouteTypeDraft = shallowRef<EdgeRouteType>('orthogonal')
 const geometryDraft = reactive({
@@ -60,6 +68,7 @@ const collapsedGroups = reactive({
   edgeBase: false,
   edgeRoute: false,
   edgeLine: false,
+  boxBase: false,
 })
 const textStyleDraft = reactive<NodeTextStyleData>(createDefaultTextStyle())
 const fillStyleDraft = reactive<NodeFillStyleData>(createDefaultFillStyle())
@@ -92,12 +101,26 @@ const edgeRouteTypeOptions: Array<{ label: string; value: EdgeRouteType }> = [
   { label: '正交线', value: 'orthogonal' },
   { label: '贝塞尔曲线', value: 'bezier' },
 ]
+const swimlaneOrientationOptions: Array<{ label: string; value: SwimlaneOrientation }> = [
+  { label: '水平泳道', value: 'horizontal' },
+  { label: '垂直泳道', value: 'vertical' },
+]
 
 const selectedNode = computed(() => props.uiState?.selectedNode ?? null)
 const selectedEdge = computed(() => props.uiState?.selectedEdge ?? null)
+const selectedBox = computed(() => props.uiState?.selectedBox ?? null)
 const selectedCount = computed(() => props.uiState?.selection.items.length ?? 0)
 const showSingleNode = computed(() => selectedCount.value <= 1 && Boolean(selectedNode.value))
 const showSingleEdge = computed(() => selectedCount.value <= 1 && Boolean(selectedEdge.value))
+const showSingleBox = computed(() => selectedCount.value <= 1 && Boolean(selectedBox.value))
+const selectedBoxTypeLabel = computed(() => (
+  selectedBox.value?.type === 'swimlane' ? '泳池' : '泳道'
+))
+const selectedLaneCount = computed(() => (
+  selectedBox.value?.type === 'swimlane'
+    ? selectedBox.value.children.filter(child => 'children' in child && child.type === 'lane').length
+    : 0
+))
 const fillOpacityPercent = computed({
   get: () => Math.round(fillStyleDraft.opacity * 100),
   set: (value: number) => {
@@ -131,6 +154,17 @@ watch(
 
     edgeRouteTypeDraft.value = getEdgeRouteData(edge.props ?? {}).type
     Object.assign(edgeLineStyleDraft, getEdgeLineStyleData(edge.props ?? {}))
+  },
+  { immediate: true },
+)
+
+watch(
+  selectedBox,
+  (box) => {
+    boxLabelDraft.value = box?.label ?? ''
+    swimlaneOrientationDraft.value = box?.props?.orientation === 'vertical'
+      ? 'vertical'
+      : 'horizontal'
   },
   { immediate: true },
 )
@@ -242,6 +276,25 @@ function commitEdgeRoute() {
   const route = normalizeEdgeRoute({ type: edgeRouteTypeDraft.value })
   edgeRouteTypeDraft.value = route.type
   emit('updateEdgeRoute', edge.id, route)
+}
+
+function commitBoxLabel() {
+  const box = selectedBox.value
+  if (!box) return
+
+  const nextLabel = boxLabelDraft.value.trim()
+  if (!nextLabel) {
+    boxLabelDraft.value = box.label ?? ''
+    return
+  }
+  if (nextLabel === box.label) return
+  emit('updateBoxLabel', box.id, nextLabel)
+}
+
+function commitSwimlaneOrientation() {
+  const box = selectedBox.value
+  if (!box || box.type !== 'swimlane') return
+  emit('updateSwimlaneOrientation', box.id, swimlaneOrientationDraft.value)
 }
 
 function toggleGroup(group: keyof typeof collapsedGroups) {
@@ -637,6 +690,61 @@ function isEdgeRouteType(value: unknown): value is EdgeRouteType {
       </PropertyGroup>
     </div>
 
+    <div v-else-if="showSingleBox && selectedBox" class="property-section">
+      <div class="property-title">{{ selectedBox.label || selectedBoxTypeLabel }}</div>
+
+      <PropertyGroup
+        title="基础信息"
+        :collapsed="collapsedGroups.boxBase"
+        @toggle="toggleGroup('boxBase')"
+      >
+        <dl class="property-list">
+          <div>
+            <dt>ID</dt>
+            <dd>{{ selectedBox.id }}</dd>
+          </div>
+          <div>
+            <dt>类型</dt>
+            <dd>{{ selectedBoxTypeLabel }}</dd>
+          </div>
+          <div v-if="selectedBox.type === 'swimlane'">
+            <dt>泳道数量</dt>
+            <dd>{{ selectedLaneCount }}</dd>
+          </div>
+        </dl>
+        <PropertyTextField
+          v-model="boxLabelDraft"
+          label="名称"
+          @commit="commitBoxLabel"
+        />
+        <PropertySelectField
+          v-if="selectedBox.type === 'swimlane'"
+          v-model="swimlaneOrientationDraft"
+          label="方向"
+          :options="swimlaneOrientationOptions"
+          @commit="commitSwimlaneOrientation"
+        />
+        <div class="box-actions">
+          <button
+            v-if="selectedBox.type === 'swimlane'"
+            class="box-action"
+            type="button"
+            @click="emit('addSwimlaneLane', selectedBox.id)"
+          >
+            添加泳道
+          </button>
+          <button
+            v-if="selectedBox.type === 'lane'"
+            class="box-action box-action--danger"
+            type="button"
+            @click="emit('removeSwimlaneLane', selectedBox.id)"
+          >
+            删除泳道
+          </button>
+        </div>
+      </PropertyGroup>
+    </div>
+
     <div v-else-if="selectedCount > 1" class="property-section">
       <div class="property-title">已选择 {{ selectedCount }} 个元素</div>
       <p class="property-hint">多选状态下暂不展示单个节点属性。</p>
@@ -717,5 +825,37 @@ function isEdgeRouteType(value: unknown): value is EdgeRouteType {
 .property-hint {
   line-height: 1.6;
   margin: 0;
+}
+
+.box-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.box-action {
+  background: #fff;
+  border: 1px solid #0f766e;
+  border-radius: 5px;
+  color: #0f766e;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  height: 30px;
+  padding: 0 10px;
+}
+
+.box-action:hover {
+  background: #f0fdfa;
+}
+
+.box-action--danger {
+  border-color: #dc2626;
+  color: #b91c1c;
+}
+
+.box-action--danger:hover {
+  background: #fef2f2;
 }
 </style>

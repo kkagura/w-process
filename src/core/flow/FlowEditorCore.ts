@@ -6,11 +6,13 @@ import { SceneManager } from './scene/SceneManager'
 import { getArrangedNodeMoves } from './alignment/arrangeSelection'
 import { getAutoLayoutMoves } from './layout/layeredLayout'
 import { CreateNodeCommand } from './commands/CreateNodeCommand'
+import { CreateBoxCommand } from './commands/CreateBoxCommand'
 import { HistoryManager } from './commands/HistoryManager'
 import { MoveNodesCommand } from './commands/MoveNodesCommand'
 import { UpdateEdgeDataCommand } from './commands/UpdateEdgeDataCommand'
 import { UpdateNodeDataCommand } from './commands/UpdateNodeDataCommand'
 import { UpdateNodeLabelCommand } from './commands/UpdateNodeLabelCommand'
+import { UpdateBoxDataCommand } from './commands/UpdateBoxDataCommand'
 import { clampZoom, getZoomedViewportAtCanvasPoint } from './interaction/ViewportInteraction'
 import type { HistoryState } from './commands/SceneCommand'
 import type {
@@ -18,6 +20,8 @@ import type {
   EdgeLineStyleData,
   EdgeRouteData,
   ElementTemplate,
+  BoxTemplate,
+  BoxId,
   EditorFeedbackEvent,
   FlowDocument,
   FlowEdge,
@@ -29,11 +33,23 @@ import type {
   Point,
   SelectionArrangeAction,
   Size,
+  SwimlaneOrientation,
 } from './types/flow'
 import { findElementTemplate } from './constants/elementTemplates'
 import { createId } from './utils/ids'
 import { normalizeAngle } from './utils/geometry'
 import { CoordinateTransformer } from './viewport/CoordinateTransformer'
+import {
+  addLaneData,
+  createSwimlaneData,
+  DEFAULT_SWIMLANE_CROSS_SIZE,
+  DEFAULT_SWIMLANE_VERTICAL_HEIGHT,
+  HORIZONTAL_LANE_SIZE,
+  layoutSwimlaneData,
+  removeLaneData,
+  SWIMLANE_HEADER_SIZE,
+  VERTICAL_LANE_SIZE,
+} from './scene/swimlane'
 
 const TOOLBAR_ZOOM_FACTOR = 1.2
 const DEFAULT_VIEWPORT = { x: 0, y: 0, zoom: 1 }
@@ -203,7 +219,7 @@ export class FlowEditorCore {
   }
 
   fitContent() {
-    if (this.scene.getNodes().length === 0) return
+    if (this.scene.getNodes().length === 0 && this.scene.getBoxes().length === 0) return
 
     const rect = this.layers.mainCanvas.getBoundingClientRect()
     if (rect.width <= 0 || rect.height <= 0) return
@@ -294,6 +310,45 @@ export class FlowEditorCore {
     this.updateEdgeProps(edgeId, 'route', { ...route })
   }
 
+  updateBoxLabel(boxId: BoxId, label: string) {
+    const box = this.scene.getBoxData(boxId)
+    const nextLabel = label.trim()
+    if (!box || !nextLabel || box.label === nextLabel) return
+
+    this.history.execute(new UpdateBoxDataCommand(box, {
+      ...box,
+      label: nextLabel,
+    }))
+  }
+
+  updateSwimlaneOrientation(boxId: BoxId, orientation: SwimlaneOrientation) {
+    const box = this.scene.getBoxData(boxId)
+    if (!box || box.type !== 'swimlane' || box.props?.orientation === orientation) return
+
+    this.history.execute(new UpdateBoxDataCommand(
+      box,
+      layoutSwimlaneData(box, orientation),
+    ))
+  }
+
+  addSwimlaneLane(boxId: BoxId) {
+    const box = this.scene.getBoxData(boxId)
+    if (!box || box.type !== 'swimlane') return
+
+    this.history.execute(new UpdateBoxDataCommand(box, addLaneData(box)))
+  }
+
+  removeSwimlaneLane(laneId: BoxId) {
+    const parentBoxId = this.scene.getParentBoxId(laneId)
+    if (!parentBoxId) return
+    const swimlane = this.scene.getBoxData(parentBoxId)
+    if (!swimlane || swimlane.type !== 'swimlane') return
+
+    const next = removeLaneData(swimlane, laneId)
+    if (!next) return
+    this.history.execute(new UpdateBoxDataCommand(swimlane, next))
+  }
+
   exportDocument(): FlowDocument {
     return this.scene.toDocument()
   }
@@ -358,6 +413,8 @@ export class FlowEditorCore {
       scene: this.scene,
       interaction: {
         draggingNodeId: this.interaction.getDraggingNodeId(),
+        draggingBoxId: this.interaction.getDraggingBoxId(),
+        dropTargetBoxId: this.interaction.getDropTargetBoxId(),
         selectionRect: this.interaction.getSelectionRect(),
         selectionBoundsOverlay: this.interaction.getSelectionBoundsOverlay(),
         snapGuides: this.interaction.getSnapGuides(),
@@ -372,6 +429,8 @@ export class FlowEditorCore {
       scene: this.scene,
       interaction: {
         draggingNodeId: this.interaction.getDraggingNodeId(),
+        draggingBoxId: this.interaction.getDraggingBoxId(),
+        dropTargetBoxId: this.interaction.getDropTargetBoxId(),
         selectionRect: this.interaction.getSelectionRect(),
         selectionBoundsOverlay: this.interaction.getSelectionBoundsOverlay(),
         snapGuides: this.interaction.getSnapGuides(),
@@ -386,6 +445,19 @@ export class FlowEditorCore {
 
   private handleDrop = (event: DragEvent) => {
     event.preventDefault()
+    const boxTemplateRaw = event.dataTransfer?.getData('application/x-flow-box')
+    if (boxTemplateRaw) {
+      const template = parseBoxTemplate(boxTemplateRaw)
+      if (!template) return
+      const worldPoint = CoordinateTransformer.clientToWorld(
+        event,
+        this.layers.mainCanvas,
+        this.scene.getViewport(),
+      )
+      this.createBoxFromTemplate(template, worldPoint)
+      return
+    }
+
     const type = event.dataTransfer?.getData('application/x-flow-node')
     if (!type) return
 
@@ -397,13 +469,22 @@ export class FlowEditorCore {
       this.layers.mainCanvas,
       this.scene.getViewport(),
     )
-    this.createNodeFromTemplate(template, {
+    const position = {
       x: worldPoint.x - template.defaultSize.width / 2,
       y: worldPoint.y - template.defaultSize.height / 2,
-    })
+    }
+    this.createNodeFromTemplate(
+      template,
+      position,
+      this.scene.getDropTargetBoxId(worldPoint),
+    )
   }
 
-  private createNodeFromTemplate(template: ElementTemplate, position: Point) {
+  private createNodeFromTemplate(
+    template: ElementTemplate,
+    position: Point,
+    parentBoxId?: BoxId,
+  ) {
     const nodeId = createId('node')
     const nodeData: FlowNode = {
       id: nodeId,
@@ -422,7 +503,26 @@ export class FlowEditorCore {
       props: { ...(template.defaultProps ?? {}) },
     }
 
-    this.history.execute(new CreateNodeCommand(nodeData))
+    this.history.execute(new CreateNodeCommand(nodeData, parentBoxId))
+  }
+
+  private createBoxFromTemplate(template: BoxTemplate, center: Point) {
+    const width = template.orientation === 'horizontal'
+      ? DEFAULT_SWIMLANE_CROSS_SIZE
+      : template.laneCount * VERTICAL_LANE_SIZE
+    const height = template.orientation === 'horizontal'
+      ? SWIMLANE_HEADER_SIZE + template.laneCount * HORIZONTAL_LANE_SIZE
+      : DEFAULT_SWIMLANE_VERTICAL_HEIGHT
+    const data = createSwimlaneData({
+      label: template.label,
+      orientation: template.orientation,
+      laneCount: template.laneCount,
+      position: {
+        x: center.x - width / 2,
+        y: center.y - height / 2,
+      },
+    })
+    this.history.execute(new CreateBoxCommand(data))
   }
 
   private updateNodeProps(nodeId: NodeId, propKey: string, propValue: Record<string, unknown>) {
@@ -466,6 +566,25 @@ export class FlowEditorCore {
       },
     }
     this.history.execute(new UpdateEdgeDataCommand(edge, nextEdge))
+  }
+}
+
+function parseBoxTemplate(value: string): BoxTemplate | null {
+  try {
+    const parsed: unknown = JSON.parse(value)
+    if (!isRecord(parsed)) return null
+    if (parsed.type !== 'swimlane') return null
+    if (parsed.orientation !== 'horizontal' && parsed.orientation !== 'vertical') return null
+    if (typeof parsed.label !== 'string' || typeof parsed.laneCount !== 'number') return null
+    return {
+      type: 'swimlane',
+      label: parsed.label,
+      orientation: parsed.orientation,
+      laneCount: parsed.laneCount,
+    }
+  }
+  catch {
+    return null
   }
 }
 

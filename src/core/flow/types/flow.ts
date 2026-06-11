@@ -42,6 +42,15 @@ export interface ElementTemplate {
   defaultProps?: Record<string, unknown>
 }
 
+export type SwimlaneOrientation = 'horizontal' | 'vertical'
+
+export interface BoxTemplate {
+  type: 'swimlane'
+  label: string
+  orientation: SwimlaneOrientation
+  laneCount: number
+}
+
 export interface FlowPort {
   id: PortId
   nodeId: NodeId
@@ -123,7 +132,7 @@ export type SceneElementData = FlowNode | BoxData
 
 export interface BoxData {
   id: BoxId
-  type: 'root' | 'group' | 'swimlane' | 'subflow'
+  type: 'root' | 'group' | 'swimlane' | 'lane' | 'subflow'
   label?: string
   position: Point
   size: Size
@@ -165,6 +174,7 @@ export type SelectionArrangeAction =
 export interface SceneSummary {
   nodeCount: number
   edgeCount: number
+  boxCount: number
 }
 
 export interface EditorUiState {
@@ -173,6 +183,7 @@ export interface EditorUiState {
   viewport: ViewportData
   selectedNode: FlowNode | null
   selectedEdge: FlowEdge | null
+  selectedBox: BoxData | null
   summary: SceneSummary
 }
 
@@ -192,11 +203,15 @@ export type SceneEvent =
   | { type: 'nodes-updated'; nodes: FlowNode[] }
   | { type: 'node-moved'; nodeId: NodeId; position: Point }
   | { type: 'nodes-moved'; moves: NodeMove[] }
+  | { type: 'nodes-reparented'; nodeIds: NodeId[] }
   | { type: 'nodes-removed'; nodeIds: NodeId[]; removedEdgeCount: number }
+  | { type: 'box-added'; box: BoxData; selection: SelectionState }
+  | { type: 'box-updated'; box: BoxData }
+  | { type: 'boxes-removed'; boxIds: BoxId[]; removedBoxCount: number; nodeIds: NodeId[]; removedEdgeCount: number }
   | { type: 'edge-added'; edge: FlowEdge; selection: SelectionState }
   | { type: 'edge-updated'; edge: FlowEdge }
   | { type: 'edges-removed'; edgeIds: EdgeId[] }
-  | { type: 'selection-changed'; selection: SelectionState; selectedNode: FlowNode | null; selectedEdge: FlowEdge | null }
+  | { type: 'selection-changed'; selection: SelectionState; selectedNode: FlowNode | null; selectedEdge: FlowEdge | null; selectedBox: BoxData | null }
   | { type: 'hover-changed'; hovered: SelectableRef | null }
   | { type: 'viewport-changed'; viewport: ViewportData }
   | { type: 'document-loaded'; uiState: EditorUiState }
@@ -234,6 +249,7 @@ export interface NodeDrawContext {
 export interface BoxDrawContext {
   selected: boolean
   hovered: boolean
+  dropTarget: boolean
   theme: FlowTheme
   viewport: ViewportData
 }

@@ -14,8 +14,12 @@ import { TriangleNode } from './TriangleNode'
 import { Box } from '../scene/Box'
 import { EdgeLayer } from '../scene/EdgeLayer'
 import { RootBox } from '../scene/RootBox'
+import { SwimlaneBox } from '../scene/SwimlaneBox'
+import { LaneBox } from '../scene/LaneBox'
 import type { BoxData, FlowEdge, FlowNode } from '../types/flow'
 import { BaseBoxView } from '../views/BaseBoxView'
+import { SwimlaneBoxView } from '../views/SwimlaneBoxView'
+import { LaneBoxView } from '../views/LaneBoxView'
 import { BaseEdgeView } from '../views/BaseEdgeView'
 import { BaseNodeView } from '../views/BaseNodeView'
 import { CircleNodeView } from '../views/CircleNodeView'
@@ -32,6 +36,8 @@ import { TriangleNodeView } from '../views/TriangleNodeView'
 
 type NodeConstructor = new (data: FlowNode) => BaseNode
 type NodeViewConstructor = new () => BaseNodeView
+type BoxConstructor = new (data: BoxData) => Box
+type BoxViewConstructor = new () => BaseBoxView
 
 export class ElementRegistry {
   private nodeTypes = new Map<string, {
@@ -39,6 +45,10 @@ export class ElementRegistry {
     view: BaseNodeView
   }>()
 
+  private boxTypes = new Map<string, {
+    box: BoxConstructor
+    view: BaseBoxView
+  }>()
   private boxView = new BaseBoxView()
   private edgeView = new BaseEdgeView()
 
@@ -88,6 +98,14 @@ export class ElementRegistry {
       node: IconNode,
       view: IconNodeView,
     })
+    registry.registerBox('swimlane', {
+      box: SwimlaneBox,
+      view: SwimlaneBoxView,
+    })
+    registry.registerBox('lane', {
+      box: LaneBox,
+      view: LaneBoxView,
+    })
     return registry
   }
 
@@ -108,7 +126,12 @@ export class ElementRegistry {
   }
 
   createBox(data: BoxData): Box {
-    const box = data.type === 'root' ? new RootBox() : new Box(data)
+    const matched = this.boxTypes.get(data.type)
+    const box = data.type === 'root'
+      ? new RootBox()
+      : matched
+        ? new matched.box(data)
+        : new Box(data)
     for (const child of data.children) {
       if ('children' in child) {
         box.add(this.createBox(child))
@@ -117,6 +140,16 @@ export class ElementRegistry {
       }
     }
     return box
+  }
+
+  registerBox(type: string, options: {
+    box: BoxConstructor
+    view: BoxViewConstructor
+  }) {
+    this.boxTypes.set(type, {
+      box: options.box,
+      view: new options.view(),
+    })
   }
 
   createEdge(data: FlowEdge) {
@@ -137,8 +170,8 @@ export class ElementRegistry {
     return matched.view
   }
 
-  getBoxView(_type: string) {
-    return this.boxView
+  getBoxView(type: string) {
+    return this.boxTypes.get(type)?.view ?? this.boxView
   }
 
   getEdgeView(_type: string) {

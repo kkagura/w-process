@@ -28,6 +28,9 @@ export class DeleteSelectionCommand implements SceneCommand {
     const edgeIds = this.selection
       .filter((item): item is Extract<SelectableRef, { type: 'edge' }> => item.type === 'edge')
       .map(item => item.id)
+    const boxIds = this.selection
+      .filter((item): item is Extract<SelectableRef, { type: 'box' }> => item.type === 'box')
+      .map(item => item.id)
 
     if (nodeIds.length > 0) {
       const snapshot = scene.removeNodes(nodeIds)
@@ -38,6 +41,13 @@ export class DeleteSelectionCommand implements SceneCommand {
 
     if (edgeIds.length > 0) {
       this.removedEdges = scene.removeEdges(edgeIds)
+    }
+
+    if (boxIds.length > 0) {
+      const snapshot = scene.removeBoxes(boxIds)
+      if (snapshot.elements.length > 0) {
+        this.nodeSnapshot = snapshot
+      }
     }
   }
 

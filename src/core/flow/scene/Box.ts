@@ -1,6 +1,6 @@
 import { BaseNode } from '../elements/BaseNode'
 import type { BoxData, BoxId, Point, Rect, SceneElementData } from '../types/flow'
-import { getUnionBounds } from '../utils/geometry'
+import { containsPoint } from '../utils/geometry'
 
 export type SceneElement = BaseNode | Box
 
@@ -24,6 +24,33 @@ export class Box {
 
   get type() {
     return this.data.type
+  }
+
+  get label() {
+    return this.data.label ?? ''
+  }
+
+  getPosition() {
+    return { ...this.data.position }
+  }
+
+  getSize() {
+    return { ...this.data.size }
+  }
+
+  getRect(): Rect {
+    return {
+      ...this.data.position,
+      ...this.data.size,
+    }
+  }
+
+  getProps() {
+    return structuredClone(this.data.props ?? {})
+  }
+
+  getChildren() {
+    return [...this.children]
   }
 
   add(child: SceneElement) {
@@ -91,6 +118,18 @@ export class Box {
     return matched instanceof Box ? matched : null
   }
 
+  findParentBox(id: string): Box | null {
+    if (this.children.some(child => child.id === id)) return this
+
+    for (const child of this.children) {
+      if (!(child instanceof Box)) continue
+      const matched = child.findParentBox(id)
+      if (matched) return matched
+    }
+
+    return null
+  }
+
   getNodesDeep(): BaseNode[] {
     const nodes: BaseNode[] = []
     for (const child of this.children) {
@@ -118,9 +157,19 @@ export class Box {
   }
 
   moveBy(delta: Point) {
-    for (const node of this.getNodesDeep()) {
-      const position = node.getPosition()
-      node.moveTo({
+    this.data.position = {
+      x: this.data.position.x + delta.x,
+      y: this.data.position.y + delta.y,
+    }
+
+    for (const child of this.children) {
+      if (child instanceof Box) {
+        child.moveBy(delta)
+        continue
+      }
+
+      const position = child.getPosition()
+      child.moveTo({
         x: position.x + delta.x,
         y: position.y + delta.y,
       })
@@ -128,13 +177,15 @@ export class Box {
   }
 
   getBounds(): Rect {
-    const bounds = this.getNodesDeep().map(node => node.getBounds())
+    return this.getRect()
+  }
 
-    if (bounds.length === 0) {
-      return { ...this.data.position, ...this.data.size }
-    }
+  containsPoint(point: Point) {
+    return containsPoint(this.getRect(), point)
+  }
 
-    return getUnionBounds(bounds)
+  getNodeIdsDeep() {
+    return this.getNodesDeep().map(node => node.id)
   }
 
   serialize(): BoxData {

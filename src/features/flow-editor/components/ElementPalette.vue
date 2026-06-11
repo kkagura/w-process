@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { basicShapeTemplates, flowNodeTemplates, iconNodeTemplates } from '../../../core/flow/constants/elementTemplates'
+import { basicShapeTemplates, boxTemplates, flowNodeTemplates, iconNodeTemplates } from '../../../core/flow/constants/elementTemplates'
+import type { BoxTemplate } from '../../../core/flow/types/flow'
 
 const paletteGroups = [
   {
@@ -22,11 +23,40 @@ function handleDragStart(event: DragEvent, type: string) {
     event.dataTransfer.effectAllowed = 'copy'
   }
 }
+
+function handleBoxDragStart(event: DragEvent, template: BoxTemplate) {
+  event.dataTransfer?.setData('application/x-flow-box', JSON.stringify(template))
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'copy'
+  }
+}
 </script>
 
 <template>
   <aside class="element-palette">
     <div class="panel-heading">元素</div>
+    <section class="element-group">
+      <div class="element-group-title">容器</div>
+      <div class="element-list">
+        <button
+          v-for="template in boxTemplates"
+          :key="template.orientation"
+          :aria-label="template.label"
+          class="element-item"
+          draggable="true"
+          :title="template.label"
+          type="button"
+          @dragstart="handleBoxDragStart($event, template)"
+        >
+          <span
+            class="element-icon"
+            :class="`element-icon--swimlane-${template.orientation}`"
+            aria-hidden="true"
+          />
+          <span class="element-label" aria-hidden="true">{{ template.label }}</span>
+        </button>
+      </div>
+    </section>
     <section v-for="group in paletteGroups" :key="group.title" class="element-group">
       <div class="element-group-title">{{ group.title }}</div>
       <div class="element-list">
@@ -268,6 +298,27 @@ function handleDragStart(event: DragEvent, type: string) {
   position: absolute;
   top: 10px;
   width: 7px;
+}
+
+.element-icon--swimlane-horizontal,
+.element-icon--swimlane-vertical {
+  background: #f8fafc;
+  border-color: #64748b;
+  border-radius: 2px;
+  height: 24px;
+  width: 32px;
+}
+
+.element-icon--swimlane-horizontal {
+  background:
+    linear-gradient(to bottom, #cbd5e1 0 5px, transparent 5px),
+    repeating-linear-gradient(to bottom, transparent 0 10px, #94a3b8 10px 11px);
+}
+
+.element-icon--swimlane-vertical {
+  background:
+    linear-gradient(to bottom, #cbd5e1 0 5px, transparent 5px),
+    repeating-linear-gradient(to right, transparent 0 10px, #94a3b8 10px 11px);
 }
 
 .element-label {

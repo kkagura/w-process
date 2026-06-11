@@ -1,4 +1,19 @@
-import type { ElementTemplate } from '../types/flow'
+import type { BoxTemplate, ElementTemplate } from '../types/flow'
+
+export const boxTemplates: BoxTemplate[] = [
+  {
+    type: 'swimlane',
+    label: '水平泳道',
+    orientation: 'horizontal',
+    laneCount: 3,
+  },
+  {
+    type: 'swimlane',
+    label: '垂直泳道',
+    orientation: 'vertical',
+    laneCount: 3,
+  },
+]
 
 export const flowNodeTemplates: ElementTemplate[] = [
   {

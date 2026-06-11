@@ -3,6 +3,8 @@ import { BaseEdge } from '../elements/BaseEdge'
 import { ElementRegistry } from '../elements/ElementRegistry'
 import { EdgeLayer } from './EdgeLayer'
 import { RootBox } from './RootBox'
+import { Box } from './Box'
+import type { NodeParentAssignment } from '../commands/ReparentNodesCommand'
 import type {
   BoxId,
   EdgeId,
@@ -73,6 +75,23 @@ export class SceneManager {
 
   addNodeData(nodeData: FlowNode, parentBoxId?: BoxId) {
     this.addNode(this.registry.createNode(nodeData), parentBoxId)
+  }
+
+  addBoxData(boxData: import('../types/flow').BoxData, parentBoxId?: BoxId) {
+    const parent = parentBoxId
+      ? this.rootBox.findBox(parentBoxId)
+      : this.rootBox
+    if (!parent) throw new Error(`Unknown parent box: ${parentBoxId}`)
+
+    const box = this.registry.createBox(boxData)
+    parent.add(box)
+    this.selection = createSelectionState([{ type: 'box', id: box.id }])
+    this.hovered = null
+    this.emit({
+      type: 'box-added',
+      box: box.serialize(),
+      selection: this.selection,
+    })
   }
 
   addEdgeData(edgeData: FlowEdge) {
@@ -170,6 +189,46 @@ export class SceneManager {
     })
   }
 
+  moveBox(id: BoxId, position: Point) {
+    const box = this.getBox(id)
+    if (!box) return null
+
+    const current = box.getPosition()
+    const delta = {
+      x: position.x - current.x,
+      y: position.y - current.y,
+    }
+    if (delta.x === 0 && delta.y === 0) return box.serialize()
+
+    box.moveBy(delta)
+    const data = box.serialize()
+    this.emit({ type: 'box-updated', box: data })
+    return data
+  }
+
+  updateBoxData(boxData: import('../types/flow').BoxData) {
+    const parent = this.rootBox.findParentBox(boxData.id)
+    if (!parent) return null
+
+    const removed = parent.removeWithLocation(boxData.id)
+    if (!removed) return null
+
+    const box = this.registry.createBox(boxData)
+    parent.addAt(box, removed.index)
+    if (
+      this.selection.primary?.type === 'box'
+      && !this.getBox(this.selection.primary.id)
+    ) {
+      this.selection = createSelectionState([{ type: 'box', id: box.id }])
+    }
+    const data = box.serialize()
+    this.emit({
+      type: 'document-loaded',
+      uiState: this.getUiState(),
+    })
+    return data
+  }
+
   removeSelection() {
     if (this.selection.items.length === 0) return
 
@@ -191,6 +250,15 @@ export class SceneManager {
       return
     }
 
+    const boxIds = this.selection.items
+      .filter((item): item is Extract<SelectableRef, { type: 'box' }> => item.type === 'box')
+      .map(item => item.id)
+
+    if (boxIds.length > 0) {
+      this.removeBoxes(boxIds)
+      return
+    }
+
     this.selection = createSelectionState()
     this.hovered = null
     this.emit({
@@ -198,6 +266,7 @@ export class SceneManager {
       selection: this.selection,
       selectedNode: null,
       selectedEdge: null,
+      selectedBox: null,
     })
   }
 
@@ -268,6 +337,67 @@ export class SceneManager {
       elements: removedElements,
       edges: removedEdges,
       selectionBefore,
+    }
+  }
+
+  removeBoxes(boxIds: BoxId[]): RemovedSceneSnapshot {
+    const selectionBefore = cloneSelectionState(this.selection)
+    const removedElements: RemovedSceneElementSnapshot[] = []
+    const removedNodeIds: NodeId[] = []
+
+    for (const boxId of boxIds) {
+      const removed = this.rootBox.removeWithLocation(boxId)
+      if (!removed || !(removed.element instanceof Box)) continue
+
+      removedElements.push({
+        data: removed.element.serialize(),
+        parentBoxId: removed.parentBoxId,
+        index: removed.index,
+      })
+      removedNodeIds.push(...removed.element.getNodeIdsDeep())
+    }
+
+    const removedEdges = this.edgeLayer.removeByNodes(removedNodeIds)
+    if (removedElements.length > 0) {
+      this.selection = createSelectionState()
+      this.hovered = null
+      this.emit({
+        type: 'boxes-removed',
+        boxIds: removedElements.map(item => item.data.id),
+        removedBoxCount: removedElements.reduce((total, item) => (
+          total + countBoxData(item.data)
+        ), 0),
+        nodeIds: removedNodeIds,
+        removedEdgeCount: removedEdges.length,
+      })
+    }
+
+    return {
+      elements: removedElements,
+      edges: removedEdges,
+      selectionBefore,
+    }
+  }
+
+  reparentNodes(assignments: NodeParentAssignment[]) {
+    const movedNodeIds: NodeId[] = []
+
+    for (const assignment of assignments) {
+      const target = this.rootBox.findBox(assignment.parentBoxId)
+      const parent = this.rootBox.findParentBox(assignment.nodeId)
+      if (!target || !parent || target.id === parent.id) continue
+
+      const removed = parent.removeWithLocation(assignment.nodeId)
+      if (!removed || !(removed.element instanceof BaseNode)) continue
+      target.add(removed.element)
+      movedNodeIds.push(assignment.nodeId)
+    }
+
+    if (movedNodeIds.length > 0) {
+      this.emit({
+        type: 'nodes-reparented',
+        nodeIds: movedNodeIds,
+      })
     }
   }
 
@@ -377,6 +507,14 @@ export class SceneManager {
       }
     }
 
+    const boxes = [...this.getBoxes()].reverse()
+    for (const box of boxes) {
+      const view = this.registry.getBoxView(box.type)
+      if (view.hitTest(box, point)) {
+        return { type: 'box', id: box.id }
+      }
+    }
+
     const edges = [...this.getEdges()].reverse()
     for (const edge of edges) {
       const edgeContext = this.createEdgeDrawContext(edge)
@@ -394,6 +532,29 @@ export class SceneManager {
   getNode(id: NodeId) {
     const found = this.rootBox.find(id)
     return found instanceof BaseNode ? found : null
+  }
+
+  getBox(id: BoxId) {
+    const found = this.rootBox.findBox(id)
+    return found?.type === 'root' ? null : found
+  }
+
+  getBoxData(id: BoxId) {
+    return this.getBox(id)?.serialize() ?? null
+  }
+
+  getParentBoxId(id: string) {
+    return this.rootBox.findParentBox(id)?.id ?? null
+  }
+
+  getDropTargetBoxId(point: Point) {
+    const boxes = [...this.getBoxes()].reverse()
+    for (const box of boxes) {
+      if (box.type !== 'lane') continue
+      const view = this.registry.getBoxView(box.type)
+      if (view.containsContentPoint(box, point)) return box.id
+    }
+    return 'root'
   }
 
   getNodes() {
@@ -597,6 +758,7 @@ export class SceneManager {
       viewport: this.getViewport(),
       selectedNode: this.getSelectedNodeData(),
       selectedEdge: this.getSelectedEdgeData(),
+      selectedBox: this.getSelectedBoxData(),
       summary: this.getCanvasSummary(),
     }
   }
@@ -611,6 +773,11 @@ export class SceneManager {
     return this.getEdgeData(this.selection.primary.id)
   }
 
+  getSelectedBoxData() {
+    if (this.selection.primary?.type !== 'box') return null
+    return this.getBoxData(this.selection.primary.id)
+  }
+
   getNodeData(id: NodeId) {
     return this.getNode(id)?.serialize() ?? null
   }
@@ -619,6 +786,7 @@ export class SceneManager {
     return {
       nodeCount: this.getNodes().length,
       edgeCount: this.getEdges().length,
+      boxCount: this.getBoxes().length,
     }
   }
 
@@ -638,6 +806,7 @@ export class SceneManager {
       selection: this.selection,
       selectedNode: this.getSelectedNodeData(),
       selectedEdge: this.getSelectedEdgeData(),
+      selectedBox: this.getSelectedBoxData(),
     })
   }
 
@@ -678,4 +847,9 @@ function uniqueSelectableRefs(items: SelectableRef[]) {
 
 function isSameSelectableRef(left: SelectableRef, right: SelectableRef) {
   return left.type === right.type && left.id === right.id
+}
+
+function countBoxData(data: SceneElementData): number {
+  if (!('children' in data)) return 0
+  return 1 + data.children.reduce((total, child) => total + countBoxData(child), 0)
 }

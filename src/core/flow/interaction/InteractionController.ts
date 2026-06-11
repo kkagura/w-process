@@ -5,9 +5,13 @@ import { MoveNodesCommand } from '../commands/MoveNodesCommand'
 import { PasteElementsCommand } from '../commands/PasteElementsCommand'
 import { UpdateNodeDataCommand } from '../commands/UpdateNodeDataCommand'
 import { UpdateNodesDataCommand } from '../commands/UpdateNodesDataCommand'
+import { UpdateBoxDataCommand } from '../commands/UpdateBoxDataCommand'
+import { ReparentNodesCommand } from '../commands/ReparentNodesCommand'
+import { CompositeSceneCommand } from '../commands/CompositeSceneCommand'
 import { copySelectionToClipboard, createPastedFlowData } from '../clipboard/FlowClipboard'
 import type { FlowClipboardData } from '../clipboard/FlowClipboard'
 import type { Endpoint, FlowNode, Point, Rect, SnapGuide, ViewportData } from '../types/flow'
+import type { SceneCommand } from '../commands/SceneCommand'
 import { createId } from '../utils/ids'
 import type { InteractionControllerOptions, InteractionMode } from './InteractionTypes'
 import {
@@ -53,6 +57,7 @@ export class InteractionController {
   private snapGuides: SnapGuide[] = []
   private clipboard: FlowClipboardData | null = null
   private pasteCount = 0
+  private dropTargetBoxId: string | null = null
   private options: InteractionControllerOptions
 
   constructor(options: InteractionControllerOptions) {
@@ -70,6 +75,14 @@ export class InteractionController {
 
   getDraggingNodeId() {
     return this.mode.type === 'dragging-node' ? this.mode.nodeId : null
+  }
+
+  getDraggingBoxId() {
+    return this.mode.type === 'dragging-box' ? this.mode.boxId : null
+  }
+
+  getDropTargetBoxId() {
+    return this.dropTargetBoxId
   }
 
   getSelectionRect() {
@@ -308,6 +321,31 @@ export class InteractionController {
       return
     }
 
+    if (hit?.type === 'box' && event.button === 0) {
+      const selection = { type: 'box' as const, id: hit.id }
+      const box = this.options.scene.getBoxData(hit.id)
+      if (!box) return
+
+      this.options.scene.select(selection)
+      this.snapGuides = []
+      if (box.type === 'swimlane') {
+        this.mode = {
+          type: 'dragging-box',
+          boxId: box.id,
+          start: point,
+          before: box,
+        }
+        this.options.canvas.setPointerCapture(event.pointerId)
+        this.setCursor('grabbing')
+      }
+      else {
+        this.mode = { type: 'idle' }
+      }
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
     if (shouldStartSelection(event)) {
       this.mode = {
         type: 'pending-selection',
@@ -424,7 +462,22 @@ export class InteractionController {
 
       this.snapGuides = snapResult.guides
       this.options.scene.moveNodes(getDraggedNodeMoves(this.mode, point, snapResult.delta))
+      const draggedNode = this.options.scene.getNode(this.mode.nodeId)
+      const targetBoxId = draggedNode
+        ? this.options.scene.getDropTargetBoxId(draggedNode.getCenter())
+        : null
+      this.dropTargetBoxId = targetBoxId === 'root' ? null : targetBoxId
       this.options.requestRender()
+      return
+    }
+
+    if (this.mode.type === 'dragging-box') {
+      this.options.scene.moveBox(this.mode.boxId, {
+        x: this.mode.before.position.x + point.x - this.mode.start.x,
+        y: this.mode.before.position.y + point.y - this.mode.start.y,
+      })
+      this.options.requestRender()
+      event.preventDefault()
       return
     }
 
@@ -542,11 +595,29 @@ export class InteractionController {
     }
 
     if (this.mode.type === 'dragging-node') {
-      this.recordNodeDragHistory(this.mode)
+      this.finishNodeDrag(this.mode)
       this.options.canvas.releasePointerCapture(event.pointerId)
       this.mode = { type: 'idle' }
       this.snapGuides = []
+      this.dropTargetBoxId = null
       this.options.requestRender()
+    }
+
+    if (this.mode.type === 'dragging-box') {
+      const after = this.options.scene.getBoxData(this.mode.boxId)
+      if (after && (
+        after.position.x !== this.mode.before.position.x
+        || after.position.y !== this.mode.before.position.y
+      )) {
+        this.options.history.record(new UpdateBoxDataCommand(this.mode.before, after))
+      }
+      this.options.canvas.releasePointerCapture(event.pointerId)
+      this.mode = { type: 'idle' }
+      this.snapGuides = []
+      this.setCursor('')
+      this.options.requestRender()
+      event.preventDefault()
+      return
     }
 
     if (this.mode.type === 'panning') {
@@ -687,9 +758,13 @@ export class InteractionController {
     if (this.mode.type === 'rotating-selection') {
       this.options.scene.updateNodesData(this.mode.before)
     }
+    if (this.mode.type === 'dragging-box') {
+      this.options.scene.updateBoxData(this.mode.before)
+    }
 
     this.mode = { type: 'idle' }
     this.snapGuides = []
+    this.dropTargetBoxId = null
     this.setCursor('')
     this.options.requestRender({ background: true, main: true })
   }
@@ -799,7 +874,7 @@ export class InteractionController {
     })
   }
 
-  private recordNodeDragHistory(mode: Extract<InteractionMode, { type: 'dragging-node' }>) {
+  private finishNodeDrag(mode: Extract<InteractionMode, { type: 'dragging-node' }>) {
     const before = mode.origins.map(item => ({
       nodeId: item.nodeId,
       position: item.origin,
@@ -815,8 +890,30 @@ export class InteractionController {
       })
       .filter((move): move is typeof before[number] => Boolean(move))
 
-    if (!MoveNodesCommand.hasChanges(before, after)) return
-    this.options.history.record(new MoveNodesCommand(before, after))
+    const parentBefore = mode.origins.flatMap((item) => {
+      const parentBoxId = this.options.scene.getParentBoxId(item.nodeId)
+      return parentBoxId ? [{ nodeId: item.nodeId, parentBoxId }] : []
+    })
+    const parentAfter = mode.origins.flatMap((item) => {
+      const node = this.options.scene.getNode(item.nodeId)
+      if (!node) return []
+      return [{
+        nodeId: item.nodeId,
+        parentBoxId: this.options.scene.getDropTargetBoxId(node.getCenter()),
+      }]
+    })
+    const commands: SceneCommand[] = []
+    if (MoveNodesCommand.hasChanges(before, after)) {
+      commands.push(new MoveNodesCommand(before, after))
+    }
+    if (ReparentNodesCommand.hasChanges(parentBefore, parentAfter)) {
+      commands.push(new ReparentNodesCommand(parentBefore, parentAfter))
+    }
+    if (commands.length === 0) return
+
+    this.options.history.execute(commands.length === 1
+      ? commands[0]
+      : new CompositeSceneCommand('Move and reparent nodes', commands))
   }
 
   private recordNodeResizeHistory(mode: Extract<InteractionMode, { type: 'resizing-node' }>) {
