@@ -18,7 +18,6 @@ import type {
   NodeTextStyleData,
   Point,
   Size,
-  SwimlaneOrientation,
 } from '../../../core/flow/types/flow'
 
 export interface FlowEditorCanvasElements {
@@ -132,8 +131,8 @@ export function useFlowEditorCore() {
     core.value?.updateBoxLabel(boxId, label)
   }
 
-  function updateSwimlaneOrientation(boxId: BoxId, orientation: SwimlaneOrientation) {
-    core.value?.updateSwimlaneOrientation(boxId, orientation)
+  function updateSwimlaneSize(boxId: BoxId, size: Size) {
+    core.value?.updateSwimlaneSize(boxId, size)
   }
 
   function addSwimlaneLane(boxId: BoxId) {
@@ -197,7 +196,7 @@ export function useFlowEditorCore() {
     updateEdgeLineStyle,
     updateEdgeRoute,
     updateBoxLabel,
-    updateSwimlaneOrientation,
+    updateSwimlaneSize,
     addSwimlaneLane,
     removeSwimlaneLane,
     exportDocument,

@@ -45,7 +45,7 @@ const {
   updateEdgeLineStyle,
   updateEdgeRoute,
   updateBoxLabel,
-  updateSwimlaneOrientation,
+  updateSwimlaneSize,
   addSwimlaneLane,
   removeSwimlaneLane,
   exportDocument,
@@ -194,7 +194,7 @@ function formatEdgeSuffix(edgeCount: number) {
       @update-edge-line-style="updateEdgeLineStyle"
       @update-edge-route="updateEdgeRoute"
       @update-box-label="updateBoxLabel"
-      @update-swimlane-orientation="updateSwimlaneOrientation"
+      @update-swimlane-size="updateSwimlaneSize"
       @add-swimlane-lane="addSwimlaneLane"
       @remove-swimlane-lane="removeSwimlaneLane"
     />

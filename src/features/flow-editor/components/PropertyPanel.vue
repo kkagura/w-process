@@ -23,7 +23,6 @@ import type {
   NodeTextVerticalAlign,
   Point,
   Size,
-  SwimlaneOrientation,
 } from '../../../core/flow/types/flow'
 
 const props = defineProps<{
@@ -42,14 +41,13 @@ const emit = defineEmits<{
   updateEdgeLineStyle: [edgeId: EdgeId, lineStyle: Partial<EdgeLineStyleData>]
   updateEdgeRoute: [edgeId: EdgeId, route: EdgeRouteData]
   updateBoxLabel: [boxId: BoxId, label: string]
-  updateSwimlaneOrientation: [boxId: BoxId, orientation: SwimlaneOrientation]
+  updateSwimlaneSize: [boxId: BoxId, size: Size]
   addSwimlaneLane: [boxId: BoxId]
   removeSwimlaneLane: [laneId: BoxId]
 }>()
 
 const labelDraft = shallowRef('')
 const boxLabelDraft = shallowRef('')
-const swimlaneOrientationDraft = shallowRef<SwimlaneOrientation>('horizontal')
 const edgeLabelDraft = shallowRef('')
 const edgeRouteTypeDraft = shallowRef<EdgeRouteType>('orthogonal')
 const geometryDraft = reactive({
@@ -58,6 +56,10 @@ const geometryDraft = reactive({
   width: 0,
   height: 0,
   rotation: 0,
+})
+const boxGeometryDraft = reactive({
+  width: 0,
+  height: 0,
 })
 const collapsedGroups = reactive({
   base: false,
@@ -101,11 +103,6 @@ const edgeRouteTypeOptions: Array<{ label: string; value: EdgeRouteType }> = [
   { label: '正交线', value: 'orthogonal' },
   { label: '贝塞尔曲线', value: 'bezier' },
 ]
-const swimlaneOrientationOptions: Array<{ label: string; value: SwimlaneOrientation }> = [
-  { label: '水平泳道', value: 'horizontal' },
-  { label: '垂直泳道', value: 'vertical' },
-]
-
 const selectedNode = computed(() => props.uiState?.selectedNode ?? null)
 const selectedEdge = computed(() => props.uiState?.selectedEdge ?? null)
 const selectedBox = computed(() => props.uiState?.selectedBox ?? null)
@@ -120,6 +117,9 @@ const selectedLaneCount = computed(() => (
   selectedBox.value?.type === 'swimlane'
     ? selectedBox.value.children.filter(child => 'children' in child && child.type === 'lane').length
     : 0
+))
+const selectedSwimlaneOrientationLabel = computed(() => (
+  selectedBox.value?.props?.orientation === 'vertical' ? '垂直泳道' : '水平泳道'
 ))
 const fillOpacityPercent = computed({
   get: () => Math.round(fillStyleDraft.opacity * 100),
@@ -162,9 +162,8 @@ watch(
   selectedBox,
   (box) => {
     boxLabelDraft.value = box?.label ?? ''
-    swimlaneOrientationDraft.value = box?.props?.orientation === 'vertical'
-      ? 'vertical'
-      : 'horizontal'
+    boxGeometryDraft.width = box?.size.width ?? 0
+    boxGeometryDraft.height = box?.size.height ?? 0
   },
   { immediate: true },
 )
@@ -291,10 +290,19 @@ function commitBoxLabel() {
   emit('updateBoxLabel', box.id, nextLabel)
 }
 
-function commitSwimlaneOrientation() {
+function commitSwimlaneSize() {
   const box = selectedBox.value
   if (!box || box.type !== 'swimlane') return
-  emit('updateSwimlaneOrientation', box.id, swimlaneOrientationDraft.value)
+
+  const size = {
+    width: Math.max(1, getFiniteNumber(boxGeometryDraft.width, box.size.width)),
+    height: Math.max(1, getFiniteNumber(boxGeometryDraft.height, box.size.height)),
+  }
+  boxGeometryDraft.width = size.width
+  boxGeometryDraft.height = size.height
+  if (size.width === box.size.width && size.height === box.size.height) return
+
+  emit('updateSwimlaneSize', box.id, size)
 }
 
 function toggleGroup(group: keyof typeof collapsedGroups) {
@@ -711,19 +719,30 @@ function isEdgeRouteType(value: unknown): value is EdgeRouteType {
             <dt>泳道数量</dt>
             <dd>{{ selectedLaneCount }}</dd>
           </div>
+          <div v-if="selectedBox.type === 'swimlane'">
+            <dt>方向</dt>
+            <dd>{{ selectedSwimlaneOrientationLabel }}</dd>
+          </div>
         </dl>
         <PropertyTextField
           v-model="boxLabelDraft"
           label="名称"
           @commit="commitBoxLabel"
         />
-        <PropertySelectField
-          v-if="selectedBox.type === 'swimlane'"
-          v-model="swimlaneOrientationDraft"
-          label="方向"
-          :options="swimlaneOrientationOptions"
-          @commit="commitSwimlaneOrientation"
-        />
+        <div v-if="selectedBox.type === 'swimlane'" class="field-row">
+          <PropertyNumberField
+            v-model="boxGeometryDraft.width"
+            label="宽"
+            :min="1"
+            @commit="commitSwimlaneSize"
+          />
+          <PropertyNumberField
+            v-model="boxGeometryDraft.height"
+            label="高"
+            :min="1"
+            @commit="commitSwimlaneSize"
+          />
+        </div>
         <div class="box-actions">
           <button
             v-if="selectedBox.type === 'swimlane'"

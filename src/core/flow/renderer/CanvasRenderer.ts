@@ -77,6 +77,7 @@ export class CanvasRenderer {
     this.drawNodes(ctx, context)
     this.drawSelectedNodeBounds(ctx, context)
     this.drawResizeHandles(ctx, context)
+    this.drawSwimlaneResizeHandles(ctx, context)
     this.drawRotateHandle(ctx, context)
     this.drawSnapGuides(ctx, context)
     this.drawSelectionRect(ctx, context)
@@ -304,6 +305,35 @@ export class CanvasRenderer {
     ctx.arc(handle.center.x, handle.center.y, radius, 0, Math.PI * 2)
     ctx.fill()
     ctx.stroke()
+    ctx.restore()
+  }
+
+  private drawSwimlaneResizeHandles(ctx: CanvasRenderingContext2D, context: RenderContext) {
+    const selection = context.scene.getSelection()
+    if (selection.items.length !== 1 || selection.primary?.type !== 'box') return
+
+    const box = context.scene.getBoxData(selection.primary.id)
+    if (!box || box.type !== 'swimlane') return
+
+    const viewport = context.scene.getViewport()
+    const theme = context.scene.getTheme()
+    const rect = {
+      ...box.position,
+      ...box.size,
+    }
+
+    ctx.save()
+    ctx.fillStyle = '#ffffff'
+    ctx.strokeStyle = theme.colors.selected
+    ctx.lineWidth = 1.2 / viewport.zoom
+
+    for (const handle of getResizeHandles(rect, viewport, { offset: 0 })) {
+      ctx.beginPath()
+      ctx.rect(handle.rect.x, handle.rect.y, handle.rect.width, handle.rect.height)
+      ctx.fill()
+      ctx.stroke()
+    }
+
     ctx.restore()
   }
 

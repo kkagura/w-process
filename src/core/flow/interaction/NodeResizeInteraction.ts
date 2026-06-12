@@ -211,7 +211,7 @@ export function hasNodesResizeChanges(before: FlowNode[], after: FlowNode[]) {
   })
 }
 
-function getResizedRect(options: {
+export function getResizedRect(options: {
   startRect: Rect
   delta: Point
   handle: ResizeHandle

@@ -14,6 +14,10 @@ export const HORIZONTAL_LANE_SIZE = 140
 export const VERTICAL_LANE_SIZE = 220
 export const DEFAULT_SWIMLANE_CROSS_SIZE = 680
 export const DEFAULT_SWIMLANE_VERTICAL_HEIGHT = 420
+export const MIN_HORIZONTAL_LANE_SIZE = 72
+export const MIN_VERTICAL_LANE_SIZE = 120
+export const MIN_SWIMLANE_CONTENT_SIZE = 160
+export const SWIMLANE_NODE_PADDING = 32
 
 export function createSwimlaneData(options: {
   label: string
@@ -56,7 +60,7 @@ export function createSwimlaneData(options: {
       },
       children: [],
     })),
-  }, options.orientation)
+  })
 }
 
 export function getSwimlaneOrientation(data: BoxData): SwimlaneOrientation {
@@ -93,80 +97,57 @@ export function getLaneContentRect(data: BoxData): Rect {
   }
 }
 
-export function layoutSwimlaneData(
-  source: BoxData,
-  orientation = getSwimlaneOrientation(source),
-): BoxData {
-  const data = structuredClone(source)
-  const lanes = data.children.filter(isLaneData)
-  if (lanes.length === 0) return data
+export function layoutSwimlaneData(source: BoxData): BoxData {
+  const lanes = source.children.filter(isLaneData)
+  return relayoutSwimlaneData(
+    source,
+    getMinimumRect(source, {
+      ...source.position,
+      ...source.size,
+    }),
+    lanes.map(() => 1),
+  )
+}
 
-  const orientationChanged = getSwimlaneOrientation(source) !== orientation
-  data.props = {
-    ...(data.props ?? {}),
-    orientation,
-    headerSize: SWIMLANE_HEADER_SIZE,
-  }
+export function resizeSwimlaneData(source: BoxData, rect: Rect): BoxData {
+  const orientation = getSwimlaneOrientation(source)
+  const lanes = source.children.filter(isLaneData)
+  const weights = lanes.map(lane => (
+    orientation === 'horizontal' ? lane.size.height : lane.size.width
+  ))
 
-  if (orientationChanged) {
-    data.size = orientation === 'horizontal'
-      ? {
-          width: Math.max(DEFAULT_SWIMLANE_CROSS_SIZE, data.size.width),
-          height: SWIMLANE_HEADER_SIZE + lanes.length * HORIZONTAL_LANE_SIZE,
-        }
-      : {
-          width: lanes.length * VERTICAL_LANE_SIZE,
-          height: Math.max(DEFAULT_SWIMLANE_VERTICAL_HEIGHT, data.size.height),
-        }
-  }
-  else if (orientation === 'horizontal') {
-    data.size.height = SWIMLANE_HEADER_SIZE + lanes.length * HORIZONTAL_LANE_SIZE
-  }
-  else {
-    data.size.width = lanes.length * VERTICAL_LANE_SIZE
-  }
+  return relayoutSwimlaneData(source, getMinimumRect(source, rect), weights)
+}
 
-  const contentRect = {
-    x: data.position.x,
-    y: data.position.y + SWIMLANE_HEADER_SIZE,
-    width: data.size.width,
-    height: Math.max(0, data.size.height - SWIMLANE_HEADER_SIZE),
-  }
+export function getSwimlaneMinimumSize(swimlane: BoxData) {
+  const orientation = getSwimlaneOrientation(swimlane)
+  const lanes = swimlane.children.filter(isLaneData)
 
-  lanes.forEach((lane, index) => {
-    const beforeContent = getLaneContentRect(lane)
-    const laneRect = orientation === 'horizontal'
-      ? {
-          x: contentRect.x,
-          y: contentRect.y + contentRect.height * index / lanes.length,
-          width: contentRect.width,
-          height: contentRect.height / lanes.length,
-        }
-      : {
-          x: contentRect.x + contentRect.width * index / lanes.length,
-          y: contentRect.y,
-          width: contentRect.width / lanes.length,
-          height: contentRect.height,
-        }
-
-    lane.position = { x: laneRect.x, y: laneRect.y }
-    lane.size = { width: laneRect.width, height: laneRect.height }
-    lane.props = {
-      ...(lane.props ?? {}),
-      orientation,
-      labelSize: orientation === 'horizontal'
-        ? HORIZONTAL_LANE_LABEL_SIZE
-        : VERTICAL_LANE_LABEL_SIZE,
+  if (orientation === 'horizontal') {
+    const contentWidth = Math.max(
+      MIN_SWIMLANE_CONTENT_SIZE,
+      ...lanes.flatMap(lane => lane.children.map(child => child.size.width + SWIMLANE_NODE_PADDING)),
+    )
+    return {
+      width: HORIZONTAL_LANE_LABEL_SIZE + contentWidth,
+      height: SWIMLANE_HEADER_SIZE + lanes.reduce(
+        (total, lane) => total + getLaneMinimumAxisSize(lane, orientation),
+        0,
+      ),
     }
-    const afterContent = getLaneContentRect(lane)
-    lane.children = lane.children.map(child => mapElementToRect(child, beforeContent, afterContent))
-  })
+  }
 
-  data.children = data.children.map((child) => {
-    if (!isLaneData(child)) return child
-    return lanes.find(lane => lane.id === child.id) ?? child
-  })
-  return data
+  const contentHeight = Math.max(
+    MIN_SWIMLANE_CONTENT_SIZE,
+    ...lanes.flatMap(lane => lane.children.map(child => child.size.height + SWIMLANE_NODE_PADDING)),
+  )
+  return {
+    width: lanes.reduce(
+      (total, lane) => total + getLaneMinimumAxisSize(lane, orientation),
+      0,
+    ),
+    height: SWIMLANE_HEADER_SIZE + VERTICAL_LANE_LABEL_SIZE + contentHeight,
+  }
 }
 
 export function addLaneData(swimlane: BoxData): BoxData {
@@ -187,7 +168,22 @@ export function addLaneData(swimlane: BoxData): BoxData {
     },
     children: [],
   })
-  return layoutSwimlaneData(next, orientation)
+  const lanes = next.children.filter(isLaneData)
+  const existingSizes = lanes.slice(0, -1).map(lane => (
+    orientation === 'horizontal' ? lane.size.height : lane.size.width
+  ))
+  const newLaneWeight = existingSizes.length > 0
+    ? existingSizes.reduce((total, size) => total + size, 0) / existingSizes.length
+    : 1
+
+  return relayoutSwimlaneData(
+    next,
+    getMinimumRect(next, {
+      ...next.position,
+      ...next.size,
+    }),
+    [...existingSizes, newLaneWeight],
+  )
 }
 
 export function removeLaneData(swimlane: BoxData, laneId: string): BoxData | null {
@@ -201,8 +197,17 @@ export function removeLaneData(swimlane: BoxData, laneId: string): BoxData | nul
   const removed = lanes[laneIndex]
   const target = lanes[laneIndex > 0 ? laneIndex - 1 : 1]
   target.children.push(...removed.children)
+  if (getSwimlaneOrientation(next) === 'horizontal') {
+    target.size.height += removed.size.height
+  }
+  else {
+    target.size.width += removed.size.width
+  }
   next.children = next.children.filter(child => child.id !== laneId)
-  return layoutSwimlaneData(next, getSwimlaneOrientation(next))
+  return resizeSwimlaneData(next, {
+    ...next.position,
+    ...next.size,
+  })
 }
 
 export function findParentSwimlaneData(root: BoxData, laneId: string): BoxData | null {
@@ -238,6 +243,141 @@ function mapElementToRect(element: SceneElementData, before: Rect, after: Rect):
     next.children = next.children.map(child => translateElement(child, delta))
   }
   return next
+}
+
+function relayoutSwimlaneData(
+  source: BoxData,
+  rect: Rect,
+  laneWeights: number[],
+): BoxData {
+  const data = structuredClone(source)
+  const orientation = getSwimlaneOrientation(source)
+  const sourceLanes = source.children.filter(isLaneData)
+  const lanes = data.children.filter(isLaneData)
+  if (lanes.length === 0) {
+    data.position = { x: rect.x, y: rect.y }
+    data.size = { width: rect.width, height: rect.height }
+    return data
+  }
+
+  data.position = { x: rect.x, y: rect.y }
+  data.size = { width: rect.width, height: rect.height }
+  data.props = {
+    ...(data.props ?? {}),
+    orientation,
+    headerSize: SWIMLANE_HEADER_SIZE,
+  }
+
+  const contentRect = {
+    x: rect.x,
+    y: rect.y + SWIMLANE_HEADER_SIZE,
+    width: rect.width,
+    height: Math.max(0, rect.height - SWIMLANE_HEADER_SIZE),
+  }
+  const totalAxisSize = orientation === 'horizontal'
+    ? contentRect.height
+    : contentRect.width
+  const minimumSizes = lanes.map(lane => getLaneMinimumAxisSize(lane, orientation))
+  const laneSizes = distributeLaneSizes(totalAxisSize, minimumSizes, laneWeights)
+  let axisOffset = 0
+
+  lanes.forEach((lane, index) => {
+    const sourceLane = sourceLanes.find(item => item.id === lane.id) ?? lane
+    const beforeContent = getLaneContentRect(sourceLane)
+    const laneRect = orientation === 'horizontal'
+      ? {
+          x: contentRect.x,
+          y: contentRect.y + axisOffset,
+          width: contentRect.width,
+          height: laneSizes[index],
+        }
+      : {
+          x: contentRect.x + axisOffset,
+          y: contentRect.y,
+          width: laneSizes[index],
+          height: contentRect.height,
+        }
+    axisOffset += laneSizes[index]
+
+    lane.position = { x: laneRect.x, y: laneRect.y }
+    lane.size = { width: laneRect.width, height: laneRect.height }
+    lane.props = {
+      ...(lane.props ?? {}),
+      orientation,
+      labelSize: orientation === 'horizontal'
+        ? HORIZONTAL_LANE_LABEL_SIZE
+        : VERTICAL_LANE_LABEL_SIZE,
+    }
+    const afterContent = getLaneContentRect(lane)
+    lane.children = lane.children.map(child => mapElementToRect(child, beforeContent, afterContent))
+  })
+
+  data.children = data.children.map((child) => {
+    if (!isLaneData(child)) return child
+    return lanes.find(lane => lane.id === child.id) ?? child
+  })
+  return data
+}
+
+function getMinimumRect(swimlane: BoxData, rect: Rect): Rect {
+  const minimum = getSwimlaneMinimumSize(swimlane)
+  return {
+    x: rect.x,
+    y: rect.y,
+    width: Math.max(minimum.width, rect.width),
+    height: Math.max(minimum.height, rect.height),
+  }
+}
+
+function getLaneMinimumAxisSize(lane: BoxData, orientation: SwimlaneOrientation) {
+  if (orientation === 'horizontal') {
+    return Math.max(
+      MIN_HORIZONTAL_LANE_SIZE,
+      ...lane.children.map(child => child.size.height + SWIMLANE_NODE_PADDING),
+    )
+  }
+
+  return Math.max(
+    MIN_VERTICAL_LANE_SIZE,
+    ...lane.children.map(child => child.size.width + SWIMLANE_NODE_PADDING),
+  )
+}
+
+function distributeLaneSizes(total: number, minimumSizes: number[], weights: number[]) {
+  const normalizedWeights = weights.map(weight => (
+    Number.isFinite(weight) && weight > 0 ? weight : 1
+  ))
+  const sizes = minimumSizes.map(() => 0)
+  let remaining = total
+  let activeIndexes = minimumSizes.map((_, index) => index)
+
+  while (activeIndexes.length > 0) {
+    const weightTotal = activeIndexes.reduce(
+      (sum, index) => sum + normalizedWeights[index],
+      0,
+    )
+    const constrainedIndexes = activeIndexes.filter(index => (
+      remaining * normalizedWeights[index] / weightTotal < minimumSizes[index]
+    ))
+
+    if (constrainedIndexes.length === 0) {
+      for (const index of activeIndexes) {
+        sizes[index] = remaining * normalizedWeights[index] / weightTotal
+      }
+      break
+    }
+
+    for (const index of constrainedIndexes) {
+      sizes[index] = minimumSizes[index]
+      remaining -= minimumSizes[index]
+    }
+    const constrainedSet = new Set(constrainedIndexes)
+    activeIndexes = activeIndexes.filter(index => !constrainedSet.has(index))
+  }
+
+  const distributedTotal = sizes.reduce((sum, size) => sum + size, 0)
+  sizes[sizes.length - 1] += total - distributedTotal
+  return sizes
 }
 
 function translateElement(element: SceneElementData, delta: Point): SceneElementData {

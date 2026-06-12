@@ -47,6 +47,10 @@ import {
   hitTestRotateHandle,
 } from './NodeRotateInteraction'
 import {
+  getResizedSwimlaneData,
+  hasSwimlaneResizeChanges,
+} from './SwimlaneResizeInteraction'
+import {
   getPannedViewport,
   getZoomedViewport,
   shouldStartPanning,
@@ -239,6 +243,28 @@ export class InteractionController {
       return
     }
 
+    const boxResizeHit = this.getSelectedSwimlaneResizeHandle(point)
+    if (boxResizeHit && event.button === 0) {
+      this.mode = {
+        type: 'resizing-box',
+        boxId: boxResizeHit.box.id,
+        handle: boxResizeHit.handle.handle,
+        start: point,
+        before: boxResizeHit.box,
+        startRect: {
+          ...boxResizeHit.box.position,
+          ...boxResizeHit.box.size,
+        },
+      }
+      this.options.scene.setHovered({ type: 'box', id: boxResizeHit.box.id })
+      this.snapGuides = []
+      this.options.canvas.setPointerCapture(event.pointerId)
+      this.setCursor(boxResizeHit.handle.cursor)
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
     const hit = this.options.scene.hitTest(point)
 
     if (hit?.type === 'edge' && event.button === 0) {
@@ -421,6 +447,16 @@ export class InteractionController {
       return
     }
 
+    if (this.mode.type === 'resizing-box') {
+      this.options.scene.updateBoxData(getResizedSwimlaneData({
+        mode: this.mode,
+        current: point,
+      }))
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
     if (this.mode.type === 'rotating-node') {
       const nextNode = getRotatedNodeData({
         mode: this.mode,
@@ -533,6 +569,13 @@ export class InteractionController {
       this.options.scene.setHovered({ type: 'node', id: resizeHit.node.id })
       return
     }
+
+    const boxResizeHit = this.getSelectedSwimlaneResizeHandle(point)
+    if (boxResizeHit) {
+      this.setCursor(boxResizeHit.handle.cursor)
+      this.options.scene.setHovered({ type: 'box', id: boxResizeHit.box.id })
+      return
+    }
     this.setCursor('')
 
     const hit = this.options.scene.hitTest(point)
@@ -563,6 +606,17 @@ export class InteractionController {
 
     if (this.mode.type === 'resizing-selection') {
       this.recordSelectionResizeHistory(this.mode)
+      this.options.canvas.releasePointerCapture(event.pointerId)
+      this.mode = { type: 'idle' }
+      this.snapGuides = []
+      this.setCursor('')
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
+    if (this.mode.type === 'resizing-box') {
+      this.recordSwimlaneResizeHistory(this.mode)
       this.options.canvas.releasePointerCapture(event.pointerId)
       this.mode = { type: 'idle' }
       this.snapGuides = []
@@ -752,6 +806,9 @@ export class InteractionController {
     if (this.mode.type === 'resizing-selection') {
       this.options.scene.updateNodesData(this.mode.before)
     }
+    if (this.mode.type === 'resizing-box') {
+      this.options.scene.updateBoxData(this.mode.before)
+    }
     if (this.mode.type === 'rotating-node') {
       this.options.scene.updateNodeData(this.mode.before)
     }
@@ -932,6 +989,13 @@ export class InteractionController {
     this.options.history.record(new UpdateNodesDataCommand(mode.before, after))
   }
 
+  private recordSwimlaneResizeHistory(mode: Extract<InteractionMode, { type: 'resizing-box' }>) {
+    const after = this.options.scene.getBoxData(mode.boxId)
+    if (!after || !hasSwimlaneResizeChanges(mode.before, after)) return
+
+    this.options.history.record(new UpdateBoxDataCommand(mode.before, after))
+  }
+
   private recordNodeRotateHistory(mode: Extract<InteractionMode, { type: 'rotating-node' }>) {
     const after = this.options.scene.getNodeData(mode.nodeId)
     if (!after || !hasNodeRotationChanges(mode.before, after)) return
@@ -1015,6 +1079,25 @@ export class InteractionController {
 
     const handle = hitTestResizeHandle(point, rect, this.options.scene.getViewport())
     return handle ? { node, handle } : null
+  }
+
+  private getSelectedSwimlaneResizeHandle(point: Point) {
+    const selection = this.options.scene.getSelection()
+    if (selection.items.length !== 1 || selection.primary?.type !== 'box') return null
+
+    const box = this.options.scene.getBoxData(selection.primary.id)
+    if (!box || box.type !== 'swimlane') return null
+
+    const handle = hitTestResizeHandle(
+      point,
+      {
+        ...box.position,
+        ...box.size,
+      },
+      this.options.scene.getViewport(),
+      { offset: 0 },
+    )
+    return handle ? { box, handle } : null
   }
 
   private getSelectedSelectionResizeHandle(point: Point) {

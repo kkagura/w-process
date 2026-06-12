@@ -33,7 +33,6 @@ import type {
   Point,
   SelectionArrangeAction,
   Size,
-  SwimlaneOrientation,
 } from './types/flow'
 import { findElementTemplate } from './constants/elementTemplates'
 import { createId } from './utils/ids'
@@ -45,8 +44,8 @@ import {
   DEFAULT_SWIMLANE_CROSS_SIZE,
   DEFAULT_SWIMLANE_VERTICAL_HEIGHT,
   HORIZONTAL_LANE_SIZE,
-  layoutSwimlaneData,
   removeLaneData,
+  resizeSwimlaneData,
   SWIMLANE_HEADER_SIZE,
   VERTICAL_LANE_SIZE,
 } from './scene/swimlane'
@@ -321,14 +320,17 @@ export class FlowEditorCore {
     }))
   }
 
-  updateSwimlaneOrientation(boxId: BoxId, orientation: SwimlaneOrientation) {
+  updateSwimlaneSize(boxId: BoxId, size: Size) {
     const box = this.scene.getBoxData(boxId)
-    if (!box || box.type !== 'swimlane' || box.props?.orientation === orientation) return
+    if (!box || box.type !== 'swimlane') return
 
-    this.history.execute(new UpdateBoxDataCommand(
-      box,
-      layoutSwimlaneData(box, orientation),
-    ))
+    const next = resizeSwimlaneData(box, {
+      ...box.position,
+      ...size,
+    })
+    if (sizesEqual(box.size, next.size)) return
+
+    this.history.execute(new UpdateBoxDataCommand(box, next))
   }
 
   addSwimlaneLane(boxId: BoxId) {
