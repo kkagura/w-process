@@ -13,6 +13,8 @@ import type { FlowClipboardData } from '../clipboard/FlowClipboard'
 import type { Endpoint, FlowNode, Point, Rect, SnapGuide, ViewportData } from '../types/flow'
 import type { SceneCommand } from '../commands/SceneCommand'
 import { createId } from '../utils/ids'
+import { getSwimlaneDividers, hitTestSwimlaneDivider } from '../scene/swimlane'
+import type { SwimlaneDividerHit } from '../scene/swimlane'
 import type { InteractionControllerOptions, InteractionMode } from './InteractionTypes'
 import {
   createNodeDragMode,
@@ -47,7 +49,9 @@ import {
   hitTestRotateHandle,
 } from './NodeRotateInteraction'
 import {
+  getResizedSwimlaneDividerData,
   getResizedSwimlaneData,
+  hasSwimlaneDataChanges,
   hasSwimlaneResizeChanges,
 } from './SwimlaneResizeInteraction'
 import {
@@ -62,6 +66,7 @@ export class InteractionController {
   private clipboard: FlowClipboardData | null = null
   private pasteCount = 0
   private dropTargetBoxId: string | null = null
+  private hoveredSwimlaneDivider: SwimlaneDividerHit | null = null
   private options: InteractionControllerOptions
 
   constructor(options: InteractionControllerOptions) {
@@ -87,6 +92,17 @@ export class InteractionController {
 
   getDropTargetBoxId() {
     return this.dropTargetBoxId
+  }
+
+  getActiveSwimlaneDivider() {
+    if (this.mode.type !== 'resizing-swimlane-divider') {
+      return this.hoveredSwimlaneDivider
+    }
+
+    const box = this.options.scene.getBoxData(this.mode.swimlaneId)
+    return box
+      ? getSwimlaneDividers(box, 0)[this.mode.divider.index] ?? this.mode.divider
+      : this.mode.divider
   }
 
   getSelectionRect() {
@@ -266,6 +282,29 @@ export class InteractionController {
     }
 
     const hit = this.options.scene.hitTest(point)
+    const dividerHit = hit?.type === 'port' || hit?.type === 'node'
+      ? null
+      : this.getSwimlaneDividerHit(point)
+    if (dividerHit && event.button === 0) {
+      const box = this.options.scene.getBoxData(dividerHit.swimlaneId)
+      if (!box) return
+
+      this.options.scene.select({ type: 'box', id: box.id })
+      this.mode = {
+        type: 'resizing-swimlane-divider',
+        swimlaneId: box.id,
+        divider: dividerHit,
+        start: point,
+        before: box,
+      }
+      this.setHoveredSwimlaneDivider(dividerHit)
+      this.snapGuides = []
+      this.options.canvas.setPointerCapture(event.pointerId)
+      this.setCursor(dividerHit.orientation === 'horizontal' ? 'ns-resize' : 'ew-resize')
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
 
     if (hit?.type === 'edge' && event.button === 0) {
       const selection = { type: 'edge' as const, id: hit.id }
@@ -457,6 +496,19 @@ export class InteractionController {
       return
     }
 
+    if (this.mode.type === 'resizing-swimlane-divider') {
+      const next = getResizedSwimlaneDividerData({
+        mode: this.mode,
+        current: point,
+      })
+      if (next) {
+        this.options.scene.updateBoxData(next)
+      }
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
     if (this.mode.type === 'rotating-node') {
       const nextNode = getRotatedNodeData({
         mode: this.mode,
@@ -572,13 +624,25 @@ export class InteractionController {
 
     const boxResizeHit = this.getSelectedSwimlaneResizeHandle(point)
     if (boxResizeHit) {
+      this.setHoveredSwimlaneDivider(null)
       this.setCursor(boxResizeHit.handle.cursor)
       this.options.scene.setHovered({ type: 'box', id: boxResizeHit.box.id })
       return
     }
-    this.setCursor('')
 
     const hit = this.options.scene.hitTest(point)
+    const dividerHit = hit?.type === 'port' || hit?.type === 'node'
+      ? null
+      : this.getSwimlaneDividerHit(point)
+    if (dividerHit) {
+      this.setHoveredSwimlaneDivider(dividerHit)
+      this.setCursor(dividerHit.orientation === 'horizontal' ? 'ns-resize' : 'ew-resize')
+      this.options.scene.setHovered({ type: 'box', id: dividerHit.swimlaneId })
+      return
+    }
+
+    this.setHoveredSwimlaneDivider(null)
+    this.setCursor('')
     this.options.scene.setHovered(getHoveredSelection(hit))
   }
 
@@ -620,6 +684,18 @@ export class InteractionController {
       this.options.canvas.releasePointerCapture(event.pointerId)
       this.mode = { type: 'idle' }
       this.snapGuides = []
+      this.setCursor('')
+      this.options.requestRender()
+      event.preventDefault()
+      return
+    }
+
+    if (this.mode.type === 'resizing-swimlane-divider') {
+      this.recordSwimlaneDividerResizeHistory(this.mode)
+      this.options.canvas.releasePointerCapture(event.pointerId)
+      this.mode = { type: 'idle' }
+      this.snapGuides = []
+      this.setHoveredSwimlaneDivider(null)
       this.setCursor('')
       this.options.requestRender()
       event.preventDefault()
@@ -711,6 +787,7 @@ export class InteractionController {
 
   private handlePointerLeave = () => {
     if (this.mode.type === 'idle') {
+      this.setHoveredSwimlaneDivider(null)
       this.options.scene.setHovered(null)
     }
   }
@@ -809,6 +886,9 @@ export class InteractionController {
     if (this.mode.type === 'resizing-box') {
       this.options.scene.updateBoxData(this.mode.before)
     }
+    if (this.mode.type === 'resizing-swimlane-divider') {
+      this.options.scene.updateBoxData(this.mode.before)
+    }
     if (this.mode.type === 'rotating-node') {
       this.options.scene.updateNodeData(this.mode.before)
     }
@@ -822,6 +902,7 @@ export class InteractionController {
     this.mode = { type: 'idle' }
     this.snapGuides = []
     this.dropTargetBoxId = null
+    this.setHoveredSwimlaneDivider(null)
     this.setCursor('')
     this.options.requestRender({ background: true, main: true })
   }
@@ -996,6 +1077,13 @@ export class InteractionController {
     this.options.history.record(new UpdateBoxDataCommand(mode.before, after))
   }
 
+  private recordSwimlaneDividerResizeHistory(mode: Extract<InteractionMode, { type: 'resizing-swimlane-divider' }>) {
+    const after = this.options.scene.getBoxData(mode.swimlaneId)
+    if (!after || !hasSwimlaneDataChanges(mode.before, after)) return
+
+    this.options.history.record(new UpdateBoxDataCommand(mode.before, after))
+  }
+
   private recordNodeRotateHistory(mode: Extract<InteractionMode, { type: 'rotating-node' }>) {
     const after = this.options.scene.getNodeData(mode.nodeId)
     if (!after || !hasNodeRotationChanges(mode.before, after)) return
@@ -1100,6 +1188,25 @@ export class InteractionController {
     return handle ? { box, handle } : null
   }
 
+  private getSwimlaneDividerHit(point: Point) {
+    const tolerance = 6 / this.options.scene.getViewport().zoom
+    const boxes = [...this.options.scene.getBoxes()].reverse()
+    for (const box of boxes) {
+      if (box.type !== 'swimlane') continue
+
+      const hit = hitTestSwimlaneDivider(box.serialize(), point, tolerance)
+      if (hit) return hit
+    }
+    return null
+  }
+
+  private setHoveredSwimlaneDivider(divider: SwimlaneDividerHit | null) {
+    if (isSameSwimlaneDivider(this.hoveredSwimlaneDivider, divider)) return
+
+    this.hoveredSwimlaneDivider = divider
+    this.options.requestRender()
+  }
+
   private getSelectedSelectionResizeHandle(point: Point) {
     const nodeIds = this.options.scene.getSelectedNodeIds()
     if (nodeIds.length < 2) return null
@@ -1168,4 +1275,10 @@ function getSelectionResizeRect(rect: Rect, viewport: ViewportData): Rect {
     width: rect.width + padding * 2,
     height: rect.height + padding * 2,
   }
+}
+
+function isSameSwimlaneDivider(left: SwimlaneDividerHit | null, right: SwimlaneDividerHit | null) {
+  if (!left || !right) return left === right
+
+  return left.swimlaneId === right.swimlaneId && left.index === right.index
 }

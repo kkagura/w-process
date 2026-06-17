@@ -2,6 +2,7 @@ import type { ElementRegistry } from '../elements/ElementRegistry'
 import type { BaseNode } from '../elements/BaseNode'
 import type { SceneManager } from '../scene/SceneManager'
 import type { FlowTheme, NodeDrawContext, Point, Rect, SnapGuide, ViewportData } from '../types/flow'
+import type { SwimlaneDividerHit } from '../scene/swimlane'
 import type { CanvasLayerManager } from './CanvasLayerManager'
 import { routeOrthogonalEdge } from '../routing/orthogonal'
 import { getResizeHandles } from '../interaction/NodeResizeInteraction'
@@ -25,6 +26,7 @@ export interface CanvasInteractionState {
     rotation: number
   } | null
   snapGuides: SnapGuide[]
+  activeSwimlaneDivider: SwimlaneDividerHit | null
   pendingEdge: {
     sourcePoint: { x: number; y: number }
     currentPoint: { x: number; y: number }
@@ -79,6 +81,7 @@ export class CanvasRenderer {
     this.drawResizeHandles(ctx, context)
     this.drawSwimlaneResizeHandles(ctx, context)
     this.drawRotateHandle(ctx, context)
+    this.drawActiveSwimlaneDivider(ctx, context)
     this.drawSnapGuides(ctx, context)
     this.drawSelectionRect(ctx, context)
 
@@ -334,6 +337,30 @@ export class CanvasRenderer {
       ctx.stroke()
     }
 
+    ctx.restore()
+  }
+
+  private drawActiveSwimlaneDivider(ctx: CanvasRenderingContext2D, context: RenderContext) {
+    const divider = context.interaction.activeSwimlaneDivider
+    if (!divider) return
+
+    const viewport = context.scene.getViewport()
+    const theme = context.scene.getTheme()
+
+    ctx.save()
+    ctx.strokeStyle = theme.colors.selected
+    ctx.lineWidth = 4 / viewport.zoom
+    ctx.lineCap = 'round'
+    ctx.beginPath()
+    if (divider.orientation === 'horizontal') {
+      ctx.moveTo(divider.from, divider.position)
+      ctx.lineTo(divider.to, divider.position)
+    }
+    else {
+      ctx.moveTo(divider.position, divider.from)
+      ctx.lineTo(divider.position, divider.to)
+    }
+    ctx.stroke()
     ctx.restore()
   }
 

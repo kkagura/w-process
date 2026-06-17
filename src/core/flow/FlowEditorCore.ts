@@ -420,6 +420,7 @@ export class FlowEditorCore {
         selectionRect: this.interaction.getSelectionRect(),
         selectionBoundsOverlay: this.interaction.getSelectionBoundsOverlay(),
         snapGuides: this.interaction.getSnapGuides(),
+        activeSwimlaneDivider: this.interaction.getActiveSwimlaneDivider(),
         pendingEdge: this.interaction.getPendingEdge(),
       },
     })
@@ -436,6 +437,7 @@ export class FlowEditorCore {
         selectionRect: this.interaction.getSelectionRect(),
         selectionBoundsOverlay: this.interaction.getSelectionBoundsOverlay(),
         snapGuides: this.interaction.getSnapGuides(),
+        activeSwimlaneDivider: this.interaction.getActiveSwimlaneDivider(),
         pendingEdge: this.interaction.getPendingEdge(),
       },
     })

@@ -1,5 +1,6 @@
 import type {
   BoxData,
+  BoxId,
   Point,
   Rect,
   SceneElementData,
@@ -18,6 +19,18 @@ export const MIN_HORIZONTAL_LANE_SIZE = 72
 export const MIN_VERTICAL_LANE_SIZE = 120
 export const MIN_SWIMLANE_CONTENT_SIZE = 160
 export const SWIMLANE_NODE_PADDING = 32
+
+export interface SwimlaneDividerHit {
+  swimlaneId: BoxId
+  beforeLaneId: BoxId
+  afterLaneId: BoxId
+  index: number
+  orientation: SwimlaneOrientation
+  position: number
+  from: number
+  to: number
+  hitRect: Rect
+}
 
 export function createSwimlaneData(options: {
   label: string
@@ -117,6 +130,111 @@ export function resizeSwimlaneData(source: BoxData, rect: Rect): BoxData {
   ))
 
   return relayoutSwimlaneData(source, getMinimumRect(source, rect), weights)
+}
+
+export function hitTestSwimlaneDivider(
+  swimlane: BoxData,
+  point: Point,
+  tolerance: number,
+): SwimlaneDividerHit | null {
+  return getSwimlaneDividers(swimlane, tolerance)
+    .find(divider => point.x >= divider.hitRect.x
+      && point.x <= divider.hitRect.x + divider.hitRect.width
+      && point.y >= divider.hitRect.y
+      && point.y <= divider.hitRect.y + divider.hitRect.height) ?? null
+}
+
+export function getSwimlaneDividers(
+  swimlane: BoxData,
+  tolerance: number,
+): SwimlaneDividerHit[] {
+  if (swimlane.type !== 'swimlane') return []
+
+  const orientation = getSwimlaneOrientation(swimlane)
+  const lanes = swimlane.children.filter(isLaneData)
+  if (lanes.length < 2) return []
+
+  return lanes.slice(0, -1).map((lane, index) => {
+    const nextLane = lanes[index + 1]
+    if (orientation === 'horizontal') {
+      const position = lane.position.y + lane.size.height
+      return {
+        swimlaneId: swimlane.id,
+        beforeLaneId: lane.id,
+        afterLaneId: nextLane.id,
+        index,
+        orientation,
+        position,
+        from: swimlane.position.x,
+        to: swimlane.position.x + swimlane.size.width,
+        hitRect: {
+          x: swimlane.position.x,
+          y: position - tolerance,
+          width: swimlane.size.width,
+          height: tolerance * 2,
+        },
+      }
+    }
+
+    const position = lane.position.x + lane.size.width
+    return {
+      swimlaneId: swimlane.id,
+      beforeLaneId: lane.id,
+      afterLaneId: nextLane.id,
+      index,
+      orientation,
+      position,
+      from: swimlane.position.y + SWIMLANE_HEADER_SIZE,
+      to: swimlane.position.y + swimlane.size.height,
+      hitRect: {
+        x: position - tolerance,
+        y: swimlane.position.y + SWIMLANE_HEADER_SIZE,
+        width: tolerance * 2,
+        height: Math.max(0, swimlane.size.height - SWIMLANE_HEADER_SIZE),
+      },
+    }
+  })
+}
+
+export function resizeSwimlaneDividerData(
+  source: BoxData,
+  dividerIndex: number,
+  delta: number,
+): BoxData | null {
+  if (source.type !== 'swimlane') return null
+
+  const orientation = getSwimlaneOrientation(source)
+  const lanes = source.children.filter(isLaneData)
+  if (dividerIndex < 0 || dividerIndex >= lanes.length - 1) return null
+
+  const beforeLane = lanes[dividerIndex]
+  const afterLane = lanes[dividerIndex + 1]
+  const sizes = lanes.map(lane => (
+    orientation === 'horizontal' ? lane.size.height : lane.size.width
+  ))
+  const minimumBefore = getLaneMinimumAxisSize(beforeLane, orientation)
+  const minimumAfter = getLaneMinimumAxisSize(afterLane, orientation)
+  const clampedDelta = clamp(
+    delta,
+    minimumBefore - sizes[dividerIndex],
+    sizes[dividerIndex + 1] - minimumAfter,
+  )
+  if (clampedDelta === 0) return resizeSwimlaneData(source, {
+    ...source.position,
+    ...source.size,
+  })
+
+  sizes[dividerIndex] += clampedDelta
+  sizes[dividerIndex + 1] -= clampedDelta
+
+  return relayoutSwimlaneData(
+    source,
+    {
+      ...source.position,
+      ...source.size,
+    },
+    sizes,
+  )
 }
 
 export function getSwimlaneMinimumSize(swimlane: BoxData) {
