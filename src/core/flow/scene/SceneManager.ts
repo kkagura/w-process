@@ -42,6 +42,12 @@ export interface RemovedSceneSnapshot {
   selectionBefore: SelectionState
 }
 
+export interface SceneElementLocation {
+  elementId: string
+  parentBoxId: BoxId
+  index: number
+}
+
 export class SceneManager {
   private rootBox = new RootBox()
   private edgeLayer = new EdgeLayer()
@@ -401,6 +407,75 @@ export class SceneManager {
     }
   }
 
+  wrapNodesInGroup(options: {
+    groupData: import('../types/flow').BoxData
+    groupLocation: SceneElementLocation
+    nodeLocations: SceneElementLocation[]
+    selection: SelectionState
+  }) {
+    const parent = this.rootBox.findBox(options.groupLocation.parentBoxId)
+    if (!parent || options.nodeLocations.length === 0) return false
+    if (options.nodeLocations.some(item => item.parentBoxId !== parent.id)) return false
+
+    const nodes = options.nodeLocations.flatMap((item) => {
+      const node = this.getNode(item.elementId)
+      return node && this.rootBox.findParentBox(node.id)?.id === parent.id ? [node] : []
+    })
+    if (nodes.length !== options.nodeLocations.length) return false
+
+    for (const item of [...options.nodeLocations].sort((left, right) => right.index - left.index)) {
+      parent.removeWithLocation(item.elementId)
+    }
+
+    const group = this.registry.createBox({
+      ...structuredClone(options.groupData),
+      children: [],
+    })
+    const nodeMap = new Map(nodes.map(node => [node.id, node]))
+    for (const item of [...options.nodeLocations].sort((left, right) => left.index - right.index)) {
+      const node = nodeMap.get(item.elementId)
+      if (node) group.add(node)
+    }
+    parent.addAt(group, options.groupLocation.index)
+    this.selection = cloneSelectionState(options.selection)
+    this.hovered = null
+    this.emit({ type: 'document-loaded', uiState: this.getUiState() })
+    return true
+  }
+
+  unwrapGroup(options: {
+    groupId: BoxId
+    nodeLocations: SceneElementLocation[]
+    selection: SelectionState
+  }) {
+    const group = this.getBox(options.groupId)
+    const parent = this.rootBox.findParentBox(options.groupId)
+    if (!group || group.type !== 'group' || !parent) return false
+
+    const children = group.getChildren()
+    if (children.some(child => !(child instanceof BaseNode))) return false
+    const nodeMap = new Map(children.map(node => [node.id, node as BaseNode]))
+    if (
+      options.nodeLocations.length !== children.length
+      || options.nodeLocations.some(item => !nodeMap.has(item.elementId))
+    ) return false
+
+    parent.removeWithLocation(group.id)
+    for (const item of [...options.nodeLocations].sort((left, right) => {
+      if (left.parentBoxId === right.parentBoxId) return left.index - right.index
+      return left.parentBoxId.localeCompare(right.parentBoxId)
+    })) {
+      const target = this.rootBox.findBox(item.parentBoxId)
+      const node = nodeMap.get(item.elementId)
+      if (target && node) target.addAt(node, item.index)
+    }
+
+    this.selection = cloneSelectionState(options.selection)
+    this.hovered = null
+    this.emit({ type: 'document-loaded', uiState: this.getUiState() })
+    return true
+  }
+
   restoreRemovedSnapshot(snapshot: RemovedSceneSnapshot) {
     const orderedElements = [...snapshot.elements].sort((left, right) => {
       if (left.parentBoxId === right.parentBoxId) return left.index - right.index
@@ -547,10 +622,19 @@ export class SceneManager {
     return this.rootBox.findParentBox(id)?.id ?? null
   }
 
+  getElementLocation(id: string): SceneElementLocation | null {
+    const parent = this.rootBox.findParentBox(id)
+    if (!parent) return null
+    const index = parent.getChildren().findIndex(child => child.id === id)
+    return index >= 0
+      ? { elementId: id, parentBoxId: parent.id, index }
+      : null
+  }
+
   getDropTargetBoxId(point: Point) {
     const boxes = [...this.getBoxes()].reverse()
     for (const box of boxes) {
-      if (box.type !== 'lane') continue
+      if (box.type !== 'lane' && box.type !== 'group') continue
       const view = this.registry.getBoxView(box.type)
       if (view.containsContentPoint(box, point)) return box.id
     }

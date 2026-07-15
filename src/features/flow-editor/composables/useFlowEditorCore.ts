@@ -1,4 +1,4 @@
-import { onBeforeUnmount, shallowRef } from 'vue'
+import { computed, onBeforeUnmount, shallowRef } from 'vue'
 import { FlowEditorCore } from '../../../core/flow/FlowEditorCore'
 import type { HistoryState } from '../../../core/flow/commands/SceneCommand'
 import type {
@@ -9,6 +9,8 @@ import type {
   EditorFeedbackEvent,
   EditorUiState,
   FlowDocument,
+  GroupLayoutData,
+  GroupTitleStyleData,
   NodeBorderStyleData,
   NodeFillStyleData,
   SceneEvent,
@@ -17,6 +19,7 @@ import type {
   NodeId,
   NodeTextStyleData,
   Point,
+  Rect,
   Size,
 } from '../../../core/flow/types/flow'
 
@@ -30,6 +33,14 @@ export function useFlowEditorCore() {
   const uiState = shallowRef<EditorUiState | null>(null)
   const historyState = shallowRef<HistoryState>(createEmptyHistoryState())
   const latestFeedback = shallowRef<EditorFeedbackEvent | null>(null)
+  const canGroupSelection = computed(() => {
+    uiState.value
+    return core.value?.canGroupSelection() ?? false
+  })
+  const canUngroupSelection = computed(() => {
+    uiState.value
+    return core.value?.canUngroupSelection() ?? false
+  })
   let unsubscribe: (() => void) | null = null
   let unsubscribeHistory: (() => void) | null = null
   let unsubscribeFeedback: (() => void) | null = null
@@ -61,6 +72,14 @@ export function useFlowEditorCore() {
 
   function redo() {
     core.value?.redo()
+  }
+
+  function groupSelection() {
+    core.value?.groupSelection()
+  }
+
+  function ungroupSelection() {
+    core.value?.ungroupSelection()
   }
 
   function arrangeSelection(action: SelectionArrangeAction) {
@@ -131,6 +150,26 @@ export function useFlowEditorCore() {
     core.value?.updateBoxLabel(boxId, label)
   }
 
+  function updateGroupGeometry(boxId: BoxId, rect: Rect) {
+    core.value?.updateGroupGeometry(boxId, rect)
+  }
+
+  function updateGroupFillStyle(boxId: BoxId, fillStyle: Partial<NodeFillStyleData>) {
+    core.value?.updateGroupFillStyle(boxId, fillStyle)
+  }
+
+  function updateGroupBorderStyle(boxId: BoxId, borderStyle: Partial<NodeBorderStyleData>) {
+    core.value?.updateGroupBorderStyle(boxId, borderStyle)
+  }
+
+  function updateGroupTitleStyle(boxId: BoxId, titleStyle: Partial<GroupTitleStyleData>) {
+    core.value?.updateGroupTitleStyle(boxId, titleStyle)
+  }
+
+  function updateGroupLayout(boxId: BoxId, layout: Partial<GroupLayoutData>) {
+    core.value?.updateGroupLayout(boxId, layout)
+  }
+
   function updateSwimlaneSize(boxId: BoxId, size: Size) {
     core.value?.updateSwimlaneSize(boxId, size)
   }
@@ -176,9 +215,13 @@ export function useFlowEditorCore() {
     uiState,
     historyState,
     latestFeedback,
+    canGroupSelection,
+    canUngroupSelection,
     mount,
     undo,
     redo,
+    groupSelection,
+    ungroupSelection,
     arrangeSelection,
     autoLayout,
     zoomIn,
@@ -196,6 +239,11 @@ export function useFlowEditorCore() {
     updateEdgeLineStyle,
     updateEdgeRoute,
     updateBoxLabel,
+    updateGroupGeometry,
+    updateGroupFillStyle,
+    updateGroupBorderStyle,
+    updateGroupTitleStyle,
+    updateGroupLayout,
     updateSwimlaneSize,
     addSwimlaneLane,
     removeSwimlaneLane,

@@ -13,6 +13,8 @@ import { UpdateEdgeDataCommand } from './commands/UpdateEdgeDataCommand'
 import { UpdateNodeDataCommand } from './commands/UpdateNodeDataCommand'
 import { UpdateNodeLabelCommand } from './commands/UpdateNodeLabelCommand'
 import { UpdateBoxDataCommand } from './commands/UpdateBoxDataCommand'
+import { GroupSelectionCommand } from './commands/GroupSelectionCommand'
+import { UngroupCommand } from './commands/UngroupCommand'
 import { clampZoom, getZoomedViewportAtCanvasPoint } from './interaction/ViewportInteraction'
 import type { HistoryState } from './commands/SceneCommand'
 import type {
@@ -31,8 +33,11 @@ import type {
   NodeId,
   NodeTextStyleData,
   Point,
+  Rect,
   SelectionArrangeAction,
   Size,
+  GroupLayoutData,
+  GroupTitleStyleData,
 } from './types/flow'
 import { findElementTemplate } from './constants/elementTemplates'
 import { createId } from './utils/ids'
@@ -49,6 +54,12 @@ import {
   SWIMLANE_HEADER_SIZE,
   VERTICAL_LANE_SIZE,
 } from './scene/swimlane'
+import {
+  createGroupData,
+  MIN_GROUP_HEIGHT,
+  MIN_GROUP_WIDTH,
+  translateBoxData,
+} from './scene/group'
 
 const TOOLBAR_ZOOM_FACTOR = 1.2
 const DEFAULT_VIEWPORT = { x: 0, y: 0, zoom: 1 }
@@ -82,6 +93,8 @@ export class FlowEditorCore {
       history: this.history,
       requestRender: options => this.requestRender(options),
       emitFeedback: event => this.emitFeedback(event),
+      groupSelection: () => this.groupSelection(),
+      ungroupSelection: () => this.ungroupSelection(),
     })
 
     options.mainCanvas.addEventListener('dragover', this.handleDragOver)
@@ -134,6 +147,54 @@ export class FlowEditorCore {
 
   redo() {
     this.history.redo()
+  }
+
+  canGroupSelection() {
+    return this.getGroupSelectionContext() !== null
+  }
+
+  canUngroupSelection() {
+    const selection = this.scene.getSelection()
+    if (selection.items.length !== 1 || selection.primary?.type !== 'box') return false
+    const box = this.scene.getBoxData(selection.primary.id)
+    return box?.type === 'group' && box.children.every(child => !('children' in child))
+  }
+
+  groupSelection() {
+    const context = this.getGroupSelectionContext()
+    if (!context) return
+
+    const groupData = createGroupData(context.nodes)
+    this.history.execute(new GroupSelectionCommand({
+      groupData,
+      groupLocation: {
+        elementId: groupData.id,
+        parentBoxId: context.parentBoxId,
+        index: Math.min(...context.locations.map(item => item.index)),
+      },
+      nodeLocations: context.locations,
+      selectionBefore: this.scene.getSelection(),
+    }))
+  }
+
+  ungroupSelection() {
+    const selection = this.scene.getSelection()
+    if (selection.items.length !== 1 || selection.primary?.type !== 'box') return
+    const groupData = this.scene.getBoxData(selection.primary.id)
+    const groupLocation = this.scene.getElementLocation(selection.primary.id)
+    if (!groupData || groupData.type !== 'group' || !groupLocation) return
+    if (groupData.children.some(child => 'children' in child)) return
+
+    this.history.execute(new UngroupCommand({
+      groupData,
+      groupLocation,
+      nodeLocations: groupData.children.map((node, index) => ({
+        elementId: node.id,
+        parentBoxId: groupLocation.parentBoxId,
+        index: groupLocation.index + index,
+      })),
+      selectionBefore: selection,
+    }))
   }
 
   arrangeSelection(action: SelectionArrangeAction) {
@@ -318,6 +379,51 @@ export class FlowEditorCore {
       ...box,
       label: nextLabel,
     }))
+  }
+
+  updateGroupGeometry(boxId: BoxId, rect: Rect) {
+    const box = this.scene.getBoxData(boxId)
+    if (!box || box.type !== 'group') return
+
+    const position = {
+      x: Number.isFinite(rect.x) ? rect.x : box.position.x,
+      y: Number.isFinite(rect.y) ? rect.y : box.position.y,
+    }
+    const moved = translateBoxData(box, {
+      x: position.x - box.position.x,
+      y: position.y - box.position.y,
+    })
+    const next = {
+      ...moved,
+      size: {
+        width: Math.max(MIN_GROUP_WIDTH, Number.isFinite(rect.width) ? rect.width : box.size.width),
+        height: Math.max(MIN_GROUP_HEIGHT, Number.isFinite(rect.height) ? rect.height : box.size.height),
+      },
+    }
+    if (
+      next.position.x === box.position.x
+      && next.position.y === box.position.y
+      && next.size.width === box.size.width
+      && next.size.height === box.size.height
+    ) return
+
+    this.history.execute(new UpdateBoxDataCommand(box, next))
+  }
+
+  updateGroupFillStyle(boxId: BoxId, fillStyle: Partial<NodeFillStyleData>) {
+    this.updateBoxProps(boxId, 'fillStyle', fillStyle)
+  }
+
+  updateGroupBorderStyle(boxId: BoxId, borderStyle: Partial<NodeBorderStyleData>) {
+    this.updateBoxProps(boxId, 'borderStyle', borderStyle)
+  }
+
+  updateGroupTitleStyle(boxId: BoxId, titleStyle: Partial<GroupTitleStyleData>) {
+    this.updateBoxProps(boxId, 'titleStyle', titleStyle)
+  }
+
+  updateGroupLayout(boxId: BoxId, layout: Partial<GroupLayoutData>) {
+    this.updateBoxProps(boxId, 'layout', layout)
   }
 
   updateSwimlaneSize(boxId: BoxId, size: Size) {
@@ -548,6 +654,50 @@ export class FlowEditorCore {
       },
     }
     this.history.execute(new UpdateNodeDataCommand(node, nextNode))
+  }
+
+  private updateBoxProps(boxId: BoxId, propKey: string, propValue: Record<string, unknown>) {
+    const box = this.scene.getBoxData(boxId)
+    if (!box || box.type !== 'group') return
+
+    const currentValue = isRecord(box.props?.[propKey]) ? box.props[propKey] : {}
+    const nextValue = {
+      ...currentValue,
+      ...propValue,
+    }
+    if (recordsEqual(currentValue, nextValue)) return
+
+    this.history.execute(new UpdateBoxDataCommand(box, {
+      ...box,
+      props: {
+        ...(box.props ?? {}),
+        [propKey]: nextValue,
+      },
+    }))
+  }
+
+  private getGroupSelectionContext() {
+    const selection = this.scene.getSelection()
+    if (
+      selection.items.length < 2
+      || selection.items.some(item => item.type !== 'node')
+    ) return null
+
+    const nodeIds = selection.items.map(item => item.id)
+    const nodes = nodeIds.flatMap((id) => {
+      const node = this.scene.getNodeData(id)
+      return node ? [node] : []
+    })
+    const locations = nodeIds.flatMap((id) => {
+      const location = this.scene.getElementLocation(id)
+      return location ? [location] : []
+    })
+    if (nodes.length !== nodeIds.length || locations.length !== nodeIds.length) return null
+    const parentBoxId = locations[0]?.parentBoxId
+    if (!parentBoxId || locations.some(item => item.parentBoxId !== parentBoxId)) return null
+    if (this.scene.getBoxData(parentBoxId)?.type === 'group') return null
+
+    return { nodes, locations, parentBoxId }
   }
 
   private updateEdgeProps(edgeId: EdgeId, propKey: string, propValue: Record<string, unknown>) {

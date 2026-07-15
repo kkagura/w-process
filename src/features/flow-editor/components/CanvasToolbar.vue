@@ -5,6 +5,8 @@ import type { SelectionArrangeAction } from '../../../core/flow/types/flow'
 interface Props {
   canUndo: boolean
   canRedo: boolean
+  canGroupSelection: boolean
+  canUngroupSelection: boolean
   canArrangeSelection: boolean
   canAutoLayout: boolean
   canZoomIn: boolean
@@ -18,6 +20,8 @@ interface Props {
 interface Emits {
   undo: []
   redo: []
+  groupSelection: []
+  ungroupSelection: []
   arrangeSelection: [action: SelectionArrangeAction]
   autoLayout: []
   zoomIn: []
@@ -96,6 +100,24 @@ function handleArrangeAction(item: ArrangeActionItem) {
       @click="emit('redo')"
     >
       Redo
+    </button>
+    <button
+      class="toolbar-button"
+      type="button"
+      :disabled="!canGroupSelection"
+      title="创建分组 (Ctrl/Cmd+G)"
+      @click="emit('groupSelection')"
+    >
+      分组
+    </button>
+    <button
+      class="toolbar-button"
+      type="button"
+      :disabled="!canUngroupSelection"
+      title="取消分组 (Ctrl/Cmd+Shift+G)"
+      @click="emit('ungroupSelection')"
+    >
+      取消分组
     </button>
     <button
       class="toolbar-button"

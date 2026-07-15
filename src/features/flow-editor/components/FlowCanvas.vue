@@ -9,6 +9,8 @@ import CanvasStatusBar from './CanvasStatusBar.vue'
 interface Props {
   uiState: EditorUiState | null
   historyState: HistoryState
+  canGroupSelection: boolean
+  canUngroupSelection: boolean
 }
 
 interface Emits {
@@ -18,6 +20,8 @@ interface Emits {
   }]
   undo: []
   redo: []
+  groupSelection: []
+  ungroupSelection: []
   arrangeSelection: [action: SelectionArrangeAction]
   autoLayout: []
   zoomIn: []
@@ -99,6 +103,8 @@ function updateCanvasSize() {
       <CanvasToolbar
         :can-undo="canUndo"
         :can-redo="canRedo"
+        :can-group-selection="canGroupSelection"
+        :can-ungroup-selection="canUngroupSelection"
         :can-arrange-selection="canArrangeSelection"
         :can-auto-layout="canAutoLayout"
         :can-zoom-in="canZoomIn"
@@ -109,6 +115,8 @@ function updateCanvasSize() {
         :dirty="dirty"
         @undo="emit('undo')"
         @redo="emit('redo')"
+        @group-selection="emit('groupSelection')"
+        @ungroup-selection="emit('ungroupSelection')"
         @arrange-selection="emit('arrangeSelection', $event)"
         @auto-layout="emit('autoLayout')"
         @zoom-in="emit('zoomIn')"

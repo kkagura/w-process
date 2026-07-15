@@ -393,7 +393,7 @@ export class InteractionController {
 
       this.options.scene.select(selection)
       this.snapGuides = []
-      if (box.type === 'swimlane') {
+      if (box.type === 'swimlane' || box.type === 'group') {
         this.mode = {
           type: 'dragging-box',
           boxId: box.id,
@@ -793,6 +793,15 @@ export class InteractionController {
   }
 
   private handleKeyDown = (event: KeyboardEvent) => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'g') {
+      if (this.mode.type === 'idle') {
+        if (event.shiftKey) this.options.ungroupSelection?.()
+        else this.options.groupSelection?.()
+      }
+      event.preventDefault()
+      return
+    }
+
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c') {
       if (this.mode.type === 'idle') {
         this.copySelection()

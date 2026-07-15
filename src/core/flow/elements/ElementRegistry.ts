@@ -16,10 +16,12 @@ import { EdgeLayer } from '../scene/EdgeLayer'
 import { RootBox } from '../scene/RootBox'
 import { SwimlaneBox } from '../scene/SwimlaneBox'
 import { LaneBox } from '../scene/LaneBox'
+import { GroupBox } from '../scene/GroupBox'
 import type { BoxData, FlowEdge, FlowNode } from '../types/flow'
 import { BaseBoxView } from '../views/BaseBoxView'
 import { SwimlaneBoxView } from '../views/SwimlaneBoxView'
 import { LaneBoxView } from '../views/LaneBoxView'
+import { GroupBoxView } from '../views/GroupBoxView'
 import { BaseEdgeView } from '../views/BaseEdgeView'
 import { BaseNodeView } from '../views/BaseNodeView'
 import { CircleNodeView } from '../views/CircleNodeView'
@@ -105,6 +107,10 @@ export class ElementRegistry {
     registry.registerBox('lane', {
       box: LaneBox,
       view: LaneBoxView,
+    })
+    registry.registerBox('group', {
+      box: GroupBox,
+      view: GroupBoxView,
     })
     return registry
   }

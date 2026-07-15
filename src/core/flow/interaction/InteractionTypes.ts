@@ -26,4 +26,6 @@ export interface InteractionControllerOptions {
   history: HistoryManager
   requestRender: (options?: { background?: boolean; main?: boolean }) => void
   emitFeedback?: (event: EditorFeedbackEvent) => void
+  groupSelection?: () => void
+  ungroupSelection?: () => void
 }

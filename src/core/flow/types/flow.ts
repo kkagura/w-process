@@ -100,6 +100,17 @@ export interface NodeFillStyleData {
   opacity: number
 }
 
+export interface GroupTitleStyleData {
+  backgroundColor: string
+  color: string
+  fontSize: number
+}
+
+export interface GroupLayoutData {
+  padding: number
+  headerHeight: number
+}
+
 export interface Endpoint {
   nodeId: NodeId
   portId: PortId

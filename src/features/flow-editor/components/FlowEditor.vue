@@ -25,9 +25,13 @@ const {
   uiState,
   historyState,
   latestFeedback,
+  canGroupSelection,
+  canUngroupSelection,
   mount,
   undo,
   redo,
+  groupSelection,
+  ungroupSelection,
   arrangeSelection,
   autoLayout,
   zoomIn,
@@ -45,6 +49,11 @@ const {
   updateEdgeLineStyle,
   updateEdgeRoute,
   updateBoxLabel,
+  updateGroupGeometry,
+  updateGroupFillStyle,
+  updateGroupBorderStyle,
+  updateGroupTitleStyle,
+  updateGroupLayout,
   updateSwimlaneSize,
   addSwimlaneLane,
   removeSwimlaneLane,
@@ -170,9 +179,13 @@ function formatEdgeSuffix(edgeCount: number) {
     <FlowCanvas
       :ui-state="uiState"
       :history-state="historyState"
+      :can-group-selection="canGroupSelection"
+      :can-ungroup-selection="canUngroupSelection"
       @canvas-ready="handleCanvasReady"
       @undo="undo"
       @redo="redo"
+      @group-selection="groupSelection"
+      @ungroup-selection="ungroupSelection"
       @arrange-selection="arrangeSelection"
       @auto-layout="autoLayout"
       @zoom-in="zoomIn"
@@ -194,6 +207,11 @@ function formatEdgeSuffix(edgeCount: number) {
       @update-edge-line-style="updateEdgeLineStyle"
       @update-edge-route="updateEdgeRoute"
       @update-box-label="updateBoxLabel"
+      @update-group-geometry="updateGroupGeometry"
+      @update-group-fill-style="updateGroupFillStyle"
+      @update-group-border-style="updateGroupBorderStyle"
+      @update-group-title-style="updateGroupTitleStyle"
+      @update-group-layout="updateGroupLayout"
       @update-swimlane-size="updateSwimlaneSize"
       @add-swimlane-lane="addSwimlaneLane"
       @remove-swimlane-lane="removeSwimlaneLane"

@@ -13,6 +13,8 @@ import type {
   EdgeRouteData,
   EdgeRouteType,
   EditorUiState,
+  GroupLayoutData,
+  GroupTitleStyleData,
   NodeBorderDash,
   NodeBorderStyleData,
   NodeFillStyleData,
@@ -22,8 +24,21 @@ import type {
   NodeTextStyleData,
   NodeTextVerticalAlign,
   Point,
+  Rect,
   Size,
 } from '../../../core/flow/types/flow'
+import {
+  DEFAULT_GROUP_BORDER_STYLE,
+  DEFAULT_GROUP_FILL_STYLE,
+  DEFAULT_GROUP_LAYOUT,
+  DEFAULT_GROUP_TITLE_STYLE,
+  getGroupBorderStyle,
+  getGroupFillStyle,
+  getGroupLayout,
+  getGroupTitleStyle,
+  MIN_GROUP_HEIGHT,
+  MIN_GROUP_WIDTH,
+} from '../../../core/flow/scene/group'
 
 const props = defineProps<{
   uiState: EditorUiState | null
@@ -41,6 +56,11 @@ const emit = defineEmits<{
   updateEdgeLineStyle: [edgeId: EdgeId, lineStyle: Partial<EdgeLineStyleData>]
   updateEdgeRoute: [edgeId: EdgeId, route: EdgeRouteData]
   updateBoxLabel: [boxId: BoxId, label: string]
+  updateGroupGeometry: [boxId: BoxId, rect: Rect]
+  updateGroupFillStyle: [boxId: BoxId, fillStyle: Partial<NodeFillStyleData>]
+  updateGroupBorderStyle: [boxId: BoxId, borderStyle: Partial<NodeBorderStyleData>]
+  updateGroupTitleStyle: [boxId: BoxId, titleStyle: Partial<GroupTitleStyleData>]
+  updateGroupLayout: [boxId: BoxId, layout: Partial<GroupLayoutData>]
   updateSwimlaneSize: [boxId: BoxId, size: Size]
   addSwimlaneLane: [boxId: BoxId]
   removeSwimlaneLane: [laneId: BoxId]
@@ -58,6 +78,8 @@ const geometryDraft = reactive({
   rotation: 0,
 })
 const boxGeometryDraft = reactive({
+  x: 0,
+  y: 0,
   width: 0,
   height: 0,
 })
@@ -71,11 +93,20 @@ const collapsedGroups = reactive({
   edgeRoute: false,
   edgeLine: false,
   boxBase: false,
+  groupGeometry: false,
+  groupFill: false,
+  groupBorder: false,
+  groupTitle: false,
+  groupLayout: false,
 })
 const textStyleDraft = reactive<NodeTextStyleData>(createDefaultTextStyle())
 const fillStyleDraft = reactive<NodeFillStyleData>(createDefaultFillStyle())
 const borderStyleDraft = reactive<NodeBorderStyleData>(createDefaultBorderStyle())
 const edgeLineStyleDraft = reactive<EdgeLineStyleData>(createDefaultEdgeLineStyle())
+const groupFillStyleDraft = reactive<NodeFillStyleData>(structuredClone(DEFAULT_GROUP_FILL_STYLE))
+const groupBorderStyleDraft = reactive<NodeBorderStyleData>(structuredClone(DEFAULT_GROUP_BORDER_STYLE))
+const groupTitleStyleDraft = reactive<GroupTitleStyleData>(structuredClone(DEFAULT_GROUP_TITLE_STYLE))
+const groupLayoutDraft = reactive<GroupLayoutData>(structuredClone(DEFAULT_GROUP_LAYOUT))
 const fontWeightOptions = [
   { label: '常规', value: '400' },
   { label: '半粗', value: '600' },
@@ -111,7 +142,16 @@ const showSingleNode = computed(() => selectedCount.value <= 1 && Boolean(select
 const showSingleEdge = computed(() => selectedCount.value <= 1 && Boolean(selectedEdge.value))
 const showSingleBox = computed(() => selectedCount.value <= 1 && Boolean(selectedBox.value))
 const selectedBoxTypeLabel = computed(() => (
-  selectedBox.value?.type === 'swimlane' ? '泳池' : '泳道'
+  selectedBox.value?.type === 'swimlane'
+    ? '泳池'
+    : selectedBox.value?.type === 'group'
+      ? '分组'
+      : '泳道'
+))
+const selectedGroupNodeCount = computed(() => (
+  selectedBox.value?.type === 'group'
+    ? selectedBox.value.children.filter(child => !('children' in child)).length
+    : 0
 ))
 const selectedLaneCount = computed(() => (
   selectedBox.value?.type === 'swimlane'
@@ -125,6 +165,12 @@ const fillOpacityPercent = computed({
   get: () => Math.round(fillStyleDraft.opacity * 100),
   set: (value: number) => {
     fillStyleDraft.opacity = clamp(getFiniteNumber(value, 100), 0, 100) / 100
+  },
+})
+const groupFillOpacityPercent = computed({
+  get: () => Math.round(groupFillStyleDraft.opacity * 100),
+  set: (value: number) => {
+    groupFillStyleDraft.opacity = clamp(getFiniteNumber(value, 35), 0, 100) / 100
   },
 })
 
@@ -162,8 +208,16 @@ watch(
   selectedBox,
   (box) => {
     boxLabelDraft.value = box?.label ?? ''
+    boxGeometryDraft.x = box?.position.x ?? 0
+    boxGeometryDraft.y = box?.position.y ?? 0
     boxGeometryDraft.width = box?.size.width ?? 0
     boxGeometryDraft.height = box?.size.height ?? 0
+    if (box?.type === 'group') {
+      Object.assign(groupFillStyleDraft, getGroupFillStyle(box))
+      Object.assign(groupBorderStyleDraft, getGroupBorderStyle(box))
+      Object.assign(groupTitleStyleDraft, getGroupTitleStyle(box))
+      Object.assign(groupLayoutDraft, getGroupLayout(box))
+    }
   },
   { immediate: true },
 )
@@ -303,6 +357,49 @@ function commitSwimlaneSize() {
   if (size.width === box.size.width && size.height === box.size.height) return
 
   emit('updateSwimlaneSize', box.id, size)
+}
+
+function commitGroupGeometry() {
+  const box = selectedBox.value
+  if (!box || box.type !== 'group') return
+
+  const rect = {
+    x: getFiniteNumber(boxGeometryDraft.x, box.position.x),
+    y: getFiniteNumber(boxGeometryDraft.y, box.position.y),
+    width: Math.max(MIN_GROUP_WIDTH, getFiniteNumber(boxGeometryDraft.width, box.size.width)),
+    height: Math.max(MIN_GROUP_HEIGHT, getFiniteNumber(boxGeometryDraft.height, box.size.height)),
+  }
+  Object.assign(boxGeometryDraft, rect)
+  emit('updateGroupGeometry', box.id, rect)
+}
+
+function commitGroupFillStyle() {
+  const box = selectedBox.value
+  if (!box || box.type !== 'group') return
+  groupFillStyleDraft.opacity = clamp(groupFillStyleDraft.opacity, 0, 1)
+  emit('updateGroupFillStyle', box.id, { ...groupFillStyleDraft })
+}
+
+function commitGroupBorderStyle() {
+  const box = selectedBox.value
+  if (!box || box.type !== 'group') return
+  groupBorderStyleDraft.width = Math.max(1, getFiniteNumber(groupBorderStyleDraft.width, 1))
+  emit('updateGroupBorderStyle', box.id, { ...groupBorderStyleDraft })
+}
+
+function commitGroupTitleStyle() {
+  const box = selectedBox.value
+  if (!box || box.type !== 'group') return
+  groupTitleStyleDraft.fontSize = Math.max(8, getFiniteNumber(groupTitleStyleDraft.fontSize, 12))
+  emit('updateGroupTitleStyle', box.id, { ...groupTitleStyleDraft })
+}
+
+function commitGroupLayout() {
+  const box = selectedBox.value
+  if (!box || box.type !== 'group') return
+  groupLayoutDraft.padding = Math.max(0, getFiniteNumber(groupLayoutDraft.padding, 16))
+  groupLayoutDraft.headerHeight = Math.max(20, getFiniteNumber(groupLayoutDraft.headerHeight, 28))
+  emit('updateGroupLayout', box.id, { ...groupLayoutDraft })
 }
 
 function toggleGroup(group: keyof typeof collapsedGroups) {
@@ -719,6 +816,10 @@ function isEdgeRouteType(value: unknown): value is EdgeRouteType {
             <dt>泳道数量</dt>
             <dd>{{ selectedLaneCount }}</dd>
           </div>
+          <div v-if="selectedBox.type === 'group'">
+            <dt>直接节点</dt>
+            <dd>{{ selectedGroupNodeCount }}</dd>
+          </div>
           <div v-if="selectedBox.type === 'swimlane'">
             <dt>方向</dt>
             <dd>{{ selectedSwimlaneOrientationLabel }}</dd>
@@ -760,6 +861,72 @@ function isEdgeRouteType(value: unknown): value is EdgeRouteType {
           >
             删除泳道
           </button>
+        </div>
+      </PropertyGroup>
+
+      <PropertyGroup
+        v-if="selectedBox.type === 'group'"
+        title="位置和尺寸"
+        :collapsed="collapsedGroups.groupGeometry"
+        @toggle="toggleGroup('groupGeometry')"
+      >
+        <div class="field-row">
+          <PropertyNumberField v-model="boxGeometryDraft.x" label="X" @commit="commitGroupGeometry" />
+          <PropertyNumberField v-model="boxGeometryDraft.y" label="Y" @commit="commitGroupGeometry" />
+        </div>
+        <div class="field-row">
+          <PropertyNumberField v-model="boxGeometryDraft.width" label="宽" :min="MIN_GROUP_WIDTH" @commit="commitGroupGeometry" />
+          <PropertyNumberField v-model="boxGeometryDraft.height" label="高" :min="MIN_GROUP_HEIGHT" @commit="commitGroupGeometry" />
+        </div>
+      </PropertyGroup>
+
+      <PropertyGroup
+        v-if="selectedBox.type === 'group'"
+        title="填充样式"
+        :collapsed="collapsedGroups.groupFill"
+        @toggle="toggleGroup('groupFill')"
+      >
+        <div class="field-row">
+          <PropertyColorField v-model="groupFillStyleDraft.color" label="填充色" @commit="commitGroupFillStyle" />
+          <PropertyNumberField v-model="groupFillOpacityPercent" label="透明度" :min="0" :max="100" @commit="commitGroupFillStyle" />
+        </div>
+      </PropertyGroup>
+
+      <PropertyGroup
+        v-if="selectedBox.type === 'group'"
+        title="边框样式"
+        :collapsed="collapsedGroups.groupBorder"
+        @toggle="toggleGroup('groupBorder')"
+      >
+        <div class="field-row">
+          <PropertyColorField v-model="groupBorderStyleDraft.color" label="颜色" @commit="commitGroupBorderStyle" />
+          <PropertyNumberField v-model="groupBorderStyleDraft.width" label="线宽" :min="1" :step="0.5" @commit="commitGroupBorderStyle" />
+        </div>
+        <PropertySelectField v-model="groupBorderStyleDraft.dash" label="线型" :options="borderDashOptions" @commit="commitGroupBorderStyle" />
+      </PropertyGroup>
+
+      <PropertyGroup
+        v-if="selectedBox.type === 'group'"
+        title="标题样式"
+        :collapsed="collapsedGroups.groupTitle"
+        @toggle="toggleGroup('groupTitle')"
+      >
+        <div class="field-row">
+          <PropertyColorField v-model="groupTitleStyleDraft.backgroundColor" label="背景色" @commit="commitGroupTitleStyle" />
+          <PropertyColorField v-model="groupTitleStyleDraft.color" label="文字色" @commit="commitGroupTitleStyle" />
+        </div>
+        <PropertyNumberField v-model="groupTitleStyleDraft.fontSize" label="字号" :min="8" @commit="commitGroupTitleStyle" />
+      </PropertyGroup>
+
+      <PropertyGroup
+        v-if="selectedBox.type === 'group'"
+        title="内容布局"
+        :collapsed="collapsedGroups.groupLayout"
+        @toggle="toggleGroup('groupLayout')"
+      >
+        <div class="field-row">
+          <PropertyNumberField v-model="groupLayoutDraft.padding" label="内边距" :min="0" @commit="commitGroupLayout" />
+          <PropertyNumberField v-model="groupLayoutDraft.headerHeight" label="标题高度" :min="20" @commit="commitGroupLayout" />
         </div>
       </PropertyGroup>
     </div>
