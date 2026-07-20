@@ -27,6 +27,7 @@ const {
   latestFeedback,
   canGroupSelection,
   canUngroupSelection,
+  canAutoLayout,
   mount,
   undo,
   redo,
@@ -163,7 +164,7 @@ function handleFeedback(event: EditorFeedbackEvent) {
   if (event.type === 'auto-layout-applied') {
     showToast({
       type: 'success',
-      message: `已自动布局 ${event.nodeCount} 个节点`,
+      message: `已自动布局 ${event.nodeCount} 个节点（${event.groupCount} 个布局分组）`,
     })
     return
   }
@@ -171,8 +172,8 @@ function handleFeedback(event: EditorFeedbackEvent) {
   if (event.type === 'auto-layout-skipped') {
     showToast({
       type: 'warning',
-      message: event.reason === 'insufficient-nodes'
-        ? '至少需要两个节点才能自动布局'
+      message: event.reason === 'insufficient-sibling-nodes'
+        ? '同一层级内至少需要两个节点才能自动布局'
         : '当前节点已经符合自动布局结果',
     })
   }
@@ -206,6 +207,7 @@ function formatEdgeSuffix(edgeCount: number) {
       :history-state="historyState"
       :can-group-selection="canGroupSelection"
       :can-ungroup-selection="canUngroupSelection"
+      :can-auto-layout="canAutoLayout"
       @canvas-ready="handleCanvasReady"
       @undo="undo"
       @redo="redo"

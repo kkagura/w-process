@@ -4,6 +4,7 @@ import { CanvasLayerManager } from './renderer/CanvasLayerManager'
 import { CanvasRenderer } from './renderer/CanvasRenderer'
 import { SceneManager } from './scene/SceneManager'
 import { getArrangedNodeMoves } from './alignment/arrangeSelection'
+import { createAutoLayoutPlan } from './layout/autoLayoutPlan'
 import { getAutoLayoutMoves } from './layout/layeredLayout'
 import { CreateNodeCommand } from './commands/CreateNodeCommand'
 import { CreateBoxCommand } from './commands/CreateBoxCommand'
@@ -220,31 +221,25 @@ export class FlowEditorCore {
     this.history.execute(new MoveNodesCommand(before, after))
   }
 
+  canAutoLayout() {
+    return this.getAutoLayoutPlan().eligibleNodeCount >= 2
+  }
+
   autoLayout() {
-    const nodes = this.scene.getRootNodes()
-    if (nodes.length < 2) {
+    const plan = this.getAutoLayoutPlan()
+    if (plan.groups.length === 0) {
       this.emitFeedback({
         type: 'auto-layout-skipped',
-        reason: 'insufficient-nodes',
+        reason: 'insufficient-sibling-nodes',
       })
       return
     }
 
-    const nodeIds = new Set(nodes.map(node => node.id))
-    const after = getAutoLayoutMoves({
-      nodes: nodes.map(node => ({
-        nodeId: node.id,
-        position: node.getPosition(),
-        bounds: node.getBounds(),
-      })),
-      edges: this.scene.getEdges()
-        .filter(edge => nodeIds.has(edge.source.nodeId) && nodeIds.has(edge.target.nodeId))
-        .map(edge => ({
-          sourceNodeId: edge.source.nodeId,
-          targetNodeId: edge.target.nodeId,
-        })),
-    })
-    const nodeMap = new Map(nodes.map(node => [node.id, node]))
+    const after = plan.groups.flatMap(group => getAutoLayoutMoves({
+      nodes: group.nodes,
+      edges: group.edges,
+    }))
+    const nodeMap = new Map(this.scene.getNodes().map(node => [node.id, node]))
     const before = after.flatMap((move) => {
       const node = nodeMap.get(move.nodeId)
       return node
@@ -267,6 +262,7 @@ export class FlowEditorCore {
     this.emitFeedback({
       type: 'auto-layout-applied',
       nodeCount: after.length,
+      groupCount: plan.groups.length,
     })
   }
 
@@ -504,6 +500,26 @@ export class FlowEditorCore {
 
   private emitFeedback(event: EditorFeedbackEvent) {
     for (const listener of this.feedbackListeners) listener(event)
+  }
+
+  private getAutoLayoutPlan() {
+    return createAutoLayoutPlan({
+      nodes: this.scene.getNodes().flatMap((node) => {
+        const parentBoxId = this.scene.getParentBoxId(node.id)
+        return parentBoxId
+          ? [{
+              parentBoxId,
+              nodeId: node.id,
+              position: node.getPosition(),
+              bounds: node.getBounds(),
+            }]
+          : []
+      }),
+      edges: this.scene.getEdges().map(edge => ({
+        sourceNodeId: edge.source.nodeId,
+        targetNodeId: edge.target.nodeId,
+      })),
+    })
   }
 
   private zoomBy(factor: number) {

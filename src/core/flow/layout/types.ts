@@ -1,4 +1,4 @@
-import type { NodeId, Point, Rect } from '../types/flow'
+import type { BoxId, NodeId, Point, Rect } from '../types/flow'
 
 export interface AutoLayoutNode {
   nodeId: NodeId
@@ -9,6 +9,21 @@ export interface AutoLayoutNode {
 export interface AutoLayoutEdge {
   sourceNodeId: NodeId
   targetNodeId: NodeId
+}
+
+export interface AutoLayoutPlanNode extends AutoLayoutNode {
+  parentBoxId: BoxId
+}
+
+export interface AutoLayoutGroup {
+  parentBoxId: BoxId
+  nodes: AutoLayoutNode[]
+  edges: AutoLayoutEdge[]
+}
+
+export interface AutoLayoutPlan {
+  groups: AutoLayoutGroup[]
+  eligibleNodeCount: number
 }
 
 export interface AutoLayoutOptions {

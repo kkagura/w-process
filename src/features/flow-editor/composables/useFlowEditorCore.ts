@@ -33,6 +33,7 @@ export function useFlowEditorCore() {
   const uiState = shallowRef<EditorUiState | null>(null)
   const historyState = shallowRef<HistoryState>(createEmptyHistoryState())
   const latestFeedback = shallowRef<EditorFeedbackEvent | null>(null)
+  const autoLayoutStructureRevision = shallowRef(0)
   const canGroupSelection = computed(() => {
     uiState.value
     return core.value?.canGroupSelection() ?? false
@@ -40,6 +41,10 @@ export function useFlowEditorCore() {
   const canUngroupSelection = computed(() => {
     uiState.value
     return core.value?.canUngroupSelection() ?? false
+  })
+  const canAutoLayout = computed(() => {
+    autoLayoutStructureRevision.value
+    return core.value?.canAutoLayout() ?? false
   })
   let unsubscribe: (() => void) | null = null
   let unsubscribeHistory: (() => void) | null = null
@@ -57,6 +62,9 @@ export function useFlowEditorCore() {
     historyState.value = nextCore.getHistoryState()
     unsubscribe = nextCore.scene.subscribe((event) => {
       uiState.value = applySceneEvent(uiState.value, event)
+      if (affectsAutoLayoutEligibility(event)) {
+        autoLayoutStructureRevision.value += 1
+      }
     })
     unsubscribeHistory = nextCore.subscribeHistory((state) => {
       historyState.value = state
@@ -217,6 +225,7 @@ export function useFlowEditorCore() {
     latestFeedback,
     canGroupSelection,
     canUngroupSelection,
+    canAutoLayout,
     mount,
     undo,
     redo,
@@ -309,6 +318,10 @@ function applySceneEvent(current: EditorUiState | null, event: SceneEvent): Edit
         position: selectedNodeMove.position,
       },
     }
+  }
+
+  if (event.type === 'nodes-reparented') {
+    return { ...state }
   }
 
   if (event.type === 'nodes-removed') {
@@ -446,6 +459,15 @@ function createEmptyUiState(): EditorUiState {
       boxCount: 0,
     },
   }
+}
+
+function affectsAutoLayoutEligibility(event: SceneEvent) {
+  return event.type === 'node-added'
+    || event.type === 'nodes-reparented'
+    || event.type === 'nodes-removed'
+    || event.type === 'box-added'
+    || event.type === 'boxes-removed'
+    || event.type === 'document-loaded'
 }
 
 function createEmptySelectionState(): SelectionState {

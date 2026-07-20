@@ -11,6 +11,7 @@ interface Props {
   historyState: HistoryState
   canGroupSelection: boolean
   canUngroupSelection: boolean
+  canAutoLayout: boolean
 }
 
 interface Emits {
@@ -56,7 +57,6 @@ const canResetView = computed(() =>
   || viewport.value.zoom !== defaultViewport.zoom,
 )
 const canFitContent = computed(() => nodeCount.value > 0 || boxCount.value > 0)
-const canAutoLayout = computed(() => nodeCount.value > 1)
 const selectedNodeCount = computed(() =>
   props.uiState?.selection.items.filter(item => item.type === 'node').length ?? 0,
 )

@@ -200,7 +200,7 @@ function handleArrangeAction(item: ArrangeActionItem) {
       class="toolbar-button"
       type="button"
       :disabled="!canAutoLayout"
-      title="从左到右自动布局全部节点"
+      title="按父容器从左到右自动布局节点"
       @click="emit('autoLayout')"
     >
       自动布局
