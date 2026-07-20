@@ -28,6 +28,7 @@ interface Emits {
   zoomOut: []
   resetView: []
   fitContent: []
+  copySceneJson: []
   save: []
 }
 
@@ -123,6 +124,7 @@ function updateCanvasSize() {
         @zoom-out="emit('zoomOut')"
         @reset-view="emit('resetView')"
         @fit-content="emit('fitContent')"
+        @copy-scene-json="emit('copySceneJson')"
         @save="emit('save')"
       />
       <CanvasStatusBar

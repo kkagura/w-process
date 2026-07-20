@@ -86,6 +86,31 @@ function handleCanvasReady(elements: FlowEditorCanvasElements) {
   })
 }
 
+async function copySceneJson() {
+  const sceneDocument = exportDocument()
+  if (!sceneDocument) {
+    showToast({
+      type: 'error',
+      message: '场景尚未准备好，无法复制 JSON',
+    })
+    return
+  }
+
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(sceneDocument, null, 2))
+    showToast({
+      type: 'success',
+      message: '场景 JSON 已复制到剪贴板',
+    })
+  }
+  catch {
+    showToast({
+      type: 'error',
+      message: '复制失败，请检查浏览器剪贴板权限',
+    })
+  }
+}
+
 function handleFeedback(event: EditorFeedbackEvent) {
   if (event.type === 'clipboard-copied') {
     showToast({
@@ -192,6 +217,7 @@ function formatEdgeSuffix(edgeCount: number) {
       @zoom-out="zoomOut"
       @reset-view="resetView"
       @fit-content="fitContent"
+      @copy-scene-json="copySceneJson"
       @save="emit('saveRequested')"
     />
     <PropertyPanel

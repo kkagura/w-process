@@ -28,6 +28,7 @@ interface Emits {
   zoomOut: []
   resetView: []
   fitContent: []
+  copySceneJson: []
   save: []
 }
 
@@ -203,6 +204,14 @@ function handleArrangeAction(item: ArrangeActionItem) {
       @click="emit('autoLayout')"
     >
       自动布局
+    </button>
+    <button
+      class="toolbar-button"
+      type="button"
+      title="复制场景 JSON 到剪贴板"
+      @click="emit('copySceneJson')"
+    >
+      复制 JSON
     </button>
     <button
       class="toolbar-button"
