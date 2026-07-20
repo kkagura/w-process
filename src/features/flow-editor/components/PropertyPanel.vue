@@ -39,6 +39,14 @@ import {
   MIN_GROUP_HEIGHT,
   MIN_GROUP_WIDTH,
 } from '../../../core/flow/scene/group'
+import {
+  getArchitectureLayerBorderStyle,
+  getArchitectureLayerFillStyle,
+  getArchitectureLayerLayout,
+  getArchitectureLayerTitleStyle,
+  MIN_ARCHITECTURE_LAYER_HEIGHT,
+  MIN_ARCHITECTURE_LAYER_WIDTH,
+} from '../../../core/flow/scene/architectureLayer'
 
 const props = defineProps<{
   uiState: EditorUiState | null
@@ -141,17 +149,28 @@ const selectedCount = computed(() => props.uiState?.selection.items.length ?? 0)
 const showSingleNode = computed(() => selectedCount.value <= 1 && Boolean(selectedNode.value))
 const showSingleEdge = computed(() => selectedCount.value <= 1 && Boolean(selectedEdge.value))
 const showSingleBox = computed(() => selectedCount.value <= 1 && Boolean(selectedBox.value))
+const showStyledBoxProperties = computed(() => (
+  selectedBox.value?.type === 'group' || selectedBox.value?.type === 'layer'
+))
 const selectedBoxTypeLabel = computed(() => (
   selectedBox.value?.type === 'swimlane'
     ? '泳池'
     : selectedBox.value?.type === 'group'
       ? '分组'
-      : '泳道'
+      : selectedBox.value?.type === 'layer'
+        ? '架构层'
+        : '泳道'
 ))
 const selectedGroupNodeCount = computed(() => (
-  selectedBox.value?.type === 'group'
+  showStyledBoxProperties.value && selectedBox.value
     ? selectedBox.value.children.filter(child => !('children' in child)).length
     : 0
+))
+const selectedStyledBoxMinWidth = computed(() => (
+  selectedBox.value?.type === 'layer' ? MIN_ARCHITECTURE_LAYER_WIDTH : MIN_GROUP_WIDTH
+))
+const selectedStyledBoxMinHeight = computed(() => (
+  selectedBox.value?.type === 'layer' ? MIN_ARCHITECTURE_LAYER_HEIGHT : MIN_GROUP_HEIGHT
 ))
 const selectedLaneCount = computed(() => (
   selectedBox.value?.type === 'swimlane'
@@ -212,11 +231,23 @@ watch(
     boxGeometryDraft.y = box?.position.y ?? 0
     boxGeometryDraft.width = box?.size.width ?? 0
     boxGeometryDraft.height = box?.size.height ?? 0
-    if (box?.type === 'group') {
-      Object.assign(groupFillStyleDraft, getGroupFillStyle(box))
-      Object.assign(groupBorderStyleDraft, getGroupBorderStyle(box))
-      Object.assign(groupTitleStyleDraft, getGroupTitleStyle(box))
-      Object.assign(groupLayoutDraft, getGroupLayout(box))
+    if (box?.type === 'group' || box?.type === 'layer') {
+      Object.assign(
+        groupFillStyleDraft,
+        box.type === 'layer' ? getArchitectureLayerFillStyle(box) : getGroupFillStyle(box),
+      )
+      Object.assign(
+        groupBorderStyleDraft,
+        box.type === 'layer' ? getArchitectureLayerBorderStyle(box) : getGroupBorderStyle(box),
+      )
+      Object.assign(
+        groupTitleStyleDraft,
+        box.type === 'layer' ? getArchitectureLayerTitleStyle(box) : getGroupTitleStyle(box),
+      )
+      Object.assign(
+        groupLayoutDraft,
+        box.type === 'layer' ? getArchitectureLayerLayout(box) : getGroupLayout(box),
+      )
     }
   },
   { immediate: true },
@@ -361,13 +392,13 @@ function commitSwimlaneSize() {
 
 function commitGroupGeometry() {
   const box = selectedBox.value
-  if (!box || box.type !== 'group') return
+  if (!box || (box.type !== 'group' && box.type !== 'layer')) return
 
   const rect = {
     x: getFiniteNumber(boxGeometryDraft.x, box.position.x),
     y: getFiniteNumber(boxGeometryDraft.y, box.position.y),
-    width: Math.max(MIN_GROUP_WIDTH, getFiniteNumber(boxGeometryDraft.width, box.size.width)),
-    height: Math.max(MIN_GROUP_HEIGHT, getFiniteNumber(boxGeometryDraft.height, box.size.height)),
+    width: Math.max(selectedStyledBoxMinWidth.value, getFiniteNumber(boxGeometryDraft.width, box.size.width)),
+    height: Math.max(selectedStyledBoxMinHeight.value, getFiniteNumber(boxGeometryDraft.height, box.size.height)),
   }
   Object.assign(boxGeometryDraft, rect)
   emit('updateGroupGeometry', box.id, rect)
@@ -375,28 +406,28 @@ function commitGroupGeometry() {
 
 function commitGroupFillStyle() {
   const box = selectedBox.value
-  if (!box || box.type !== 'group') return
+  if (!box || (box.type !== 'group' && box.type !== 'layer')) return
   groupFillStyleDraft.opacity = clamp(groupFillStyleDraft.opacity, 0, 1)
   emit('updateGroupFillStyle', box.id, { ...groupFillStyleDraft })
 }
 
 function commitGroupBorderStyle() {
   const box = selectedBox.value
-  if (!box || box.type !== 'group') return
+  if (!box || (box.type !== 'group' && box.type !== 'layer')) return
   groupBorderStyleDraft.width = Math.max(1, getFiniteNumber(groupBorderStyleDraft.width, 1))
   emit('updateGroupBorderStyle', box.id, { ...groupBorderStyleDraft })
 }
 
 function commitGroupTitleStyle() {
   const box = selectedBox.value
-  if (!box || box.type !== 'group') return
+  if (!box || (box.type !== 'group' && box.type !== 'layer')) return
   groupTitleStyleDraft.fontSize = Math.max(8, getFiniteNumber(groupTitleStyleDraft.fontSize, 12))
   emit('updateGroupTitleStyle', box.id, { ...groupTitleStyleDraft })
 }
 
 function commitGroupLayout() {
   const box = selectedBox.value
-  if (!box || box.type !== 'group') return
+  if (!box || (box.type !== 'group' && box.type !== 'layer')) return
   groupLayoutDraft.padding = Math.max(0, getFiniteNumber(groupLayoutDraft.padding, 16))
   groupLayoutDraft.headerHeight = Math.max(20, getFiniteNumber(groupLayoutDraft.headerHeight, 28))
   emit('updateGroupLayout', box.id, { ...groupLayoutDraft })
@@ -816,7 +847,7 @@ function isEdgeRouteType(value: unknown): value is EdgeRouteType {
             <dt>泳道数量</dt>
             <dd>{{ selectedLaneCount }}</dd>
           </div>
-          <div v-if="selectedBox.type === 'group'">
+          <div v-if="showStyledBoxProperties">
             <dt>直接节点</dt>
             <dd>{{ selectedGroupNodeCount }}</dd>
           </div>
@@ -865,7 +896,7 @@ function isEdgeRouteType(value: unknown): value is EdgeRouteType {
       </PropertyGroup>
 
       <PropertyGroup
-        v-if="selectedBox.type === 'group'"
+        v-if="showStyledBoxProperties"
         title="位置和尺寸"
         :collapsed="collapsedGroups.groupGeometry"
         @toggle="toggleGroup('groupGeometry')"
@@ -875,13 +906,13 @@ function isEdgeRouteType(value: unknown): value is EdgeRouteType {
           <PropertyNumberField v-model="boxGeometryDraft.y" label="Y" @commit="commitGroupGeometry" />
         </div>
         <div class="field-row">
-          <PropertyNumberField v-model="boxGeometryDraft.width" label="宽" :min="MIN_GROUP_WIDTH" @commit="commitGroupGeometry" />
-          <PropertyNumberField v-model="boxGeometryDraft.height" label="高" :min="MIN_GROUP_HEIGHT" @commit="commitGroupGeometry" />
+          <PropertyNumberField v-model="boxGeometryDraft.width" label="宽" :min="selectedStyledBoxMinWidth" @commit="commitGroupGeometry" />
+          <PropertyNumberField v-model="boxGeometryDraft.height" label="高" :min="selectedStyledBoxMinHeight" @commit="commitGroupGeometry" />
         </div>
       </PropertyGroup>
 
       <PropertyGroup
-        v-if="selectedBox.type === 'group'"
+        v-if="showStyledBoxProperties"
         title="填充样式"
         :collapsed="collapsedGroups.groupFill"
         @toggle="toggleGroup('groupFill')"
@@ -893,7 +924,7 @@ function isEdgeRouteType(value: unknown): value is EdgeRouteType {
       </PropertyGroup>
 
       <PropertyGroup
-        v-if="selectedBox.type === 'group'"
+        v-if="showStyledBoxProperties"
         title="边框样式"
         :collapsed="collapsedGroups.groupBorder"
         @toggle="toggleGroup('groupBorder')"
@@ -906,7 +937,7 @@ function isEdgeRouteType(value: unknown): value is EdgeRouteType {
       </PropertyGroup>
 
       <PropertyGroup
-        v-if="selectedBox.type === 'group'"
+        v-if="showStyledBoxProperties"
         title="标题样式"
         :collapsed="collapsedGroups.groupTitle"
         @toggle="toggleGroup('groupTitle')"
@@ -919,7 +950,7 @@ function isEdgeRouteType(value: unknown): value is EdgeRouteType {
       </PropertyGroup>
 
       <PropertyGroup
-        v-if="selectedBox.type === 'group'"
+        v-if="showStyledBoxProperties"
         title="内容布局"
         :collapsed="collapsedGroups.groupLayout"
         @toggle="toggleGroup('groupLayout')"

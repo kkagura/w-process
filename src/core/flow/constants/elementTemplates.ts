@@ -2,6 +2,11 @@ import type { BoxTemplate, ElementTemplate } from '../types/flow'
 
 export const boxTemplates: BoxTemplate[] = [
   {
+    type: 'layer',
+    label: '架构层',
+    defaultSize: { width: 760, height: 180 },
+  },
+  {
     type: 'swimlane',
     label: '水平泳道',
     orientation: 'horizontal',

@@ -60,6 +60,11 @@ import {
   MIN_GROUP_WIDTH,
   translateBoxData,
 } from './scene/group'
+import {
+  createArchitectureLayerData,
+  MIN_ARCHITECTURE_LAYER_HEIGHT,
+  MIN_ARCHITECTURE_LAYER_WIDTH,
+} from './scene/architectureLayer'
 
 const TOOLBAR_ZOOM_FACTOR = 1.2
 const DEFAULT_VIEWPORT = { x: 0, y: 0, zoom: 1 }
@@ -383,7 +388,10 @@ export class FlowEditorCore {
 
   updateGroupGeometry(boxId: BoxId, rect: Rect) {
     const box = this.scene.getBoxData(boxId)
-    if (!box || box.type !== 'group') return
+    if (!box || (box.type !== 'group' && box.type !== 'layer')) return
+
+    const minWidth = box.type === 'layer' ? MIN_ARCHITECTURE_LAYER_WIDTH : MIN_GROUP_WIDTH
+    const minHeight = box.type === 'layer' ? MIN_ARCHITECTURE_LAYER_HEIGHT : MIN_GROUP_HEIGHT
 
     const position = {
       x: Number.isFinite(rect.x) ? rect.x : box.position.x,
@@ -396,8 +404,8 @@ export class FlowEditorCore {
     const next = {
       ...moved,
       size: {
-        width: Math.max(MIN_GROUP_WIDTH, Number.isFinite(rect.width) ? rect.width : box.size.width),
-        height: Math.max(MIN_GROUP_HEIGHT, Number.isFinite(rect.height) ? rect.height : box.size.height),
+        width: Math.max(minWidth, Number.isFinite(rect.width) ? rect.width : box.size.width),
+        height: Math.max(minHeight, Number.isFinite(rect.height) ? rect.height : box.size.height),
       },
     }
     if (
@@ -617,6 +625,20 @@ export class FlowEditorCore {
   }
 
   private createBoxFromTemplate(template: BoxTemplate, center: Point) {
+    if (template.type === 'layer') {
+      const data = createArchitectureLayerData({
+        label: template.label,
+        size: template.defaultSize,
+        props: template.defaultProps,
+        position: {
+          x: center.x - template.defaultSize.width / 2,
+          y: center.y - template.defaultSize.height / 2,
+        },
+      })
+      this.history.execute(new CreateBoxCommand(data))
+      return
+    }
+
     const width = template.orientation === 'horizontal'
       ? DEFAULT_SWIMLANE_CROSS_SIZE
       : template.laneCount * VERTICAL_LANE_SIZE
@@ -658,7 +680,7 @@ export class FlowEditorCore {
 
   private updateBoxProps(boxId: BoxId, propKey: string, propValue: Record<string, unknown>) {
     const box = this.scene.getBoxData(boxId)
-    if (!box || box.type !== 'group') return
+    if (!box || (box.type !== 'group' && box.type !== 'layer')) return
 
     const currentValue = isRecord(box.props?.[propKey]) ? box.props[propKey] : {}
     const nextValue = {
@@ -727,6 +749,20 @@ function parseBoxTemplate(value: string): BoxTemplate | null {
   try {
     const parsed: unknown = JSON.parse(value)
     if (!isRecord(parsed)) return null
+    if (parsed.type === 'layer') {
+      if (typeof parsed.label !== 'string' || !isRecord(parsed.defaultSize)) return null
+      const width = parsed.defaultSize.width
+      const height = parsed.defaultSize.height
+      if (typeof width !== 'number' || !Number.isFinite(width) || width <= 0) return null
+      if (typeof height !== 'number' || !Number.isFinite(height) || height <= 0) return null
+      return {
+        type: 'layer',
+        label: parsed.label,
+        defaultSize: { width, height },
+        defaultProps: isRecord(parsed.defaultProps) ? parsed.defaultProps : undefined,
+      }
+    }
+
     if (parsed.type !== 'swimlane') return null
     if (parsed.orientation !== 'horizontal' && parsed.orientation !== 'vertical') return null
     if (typeof parsed.label !== 'string' || typeof parsed.laneCount !== 'number') return null

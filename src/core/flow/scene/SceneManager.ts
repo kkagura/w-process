@@ -634,7 +634,7 @@ export class SceneManager {
   getDropTargetBoxId(point: Point) {
     const boxes = [...this.getBoxes()].reverse()
     for (const box of boxes) {
-      if (box.type !== 'lane' && box.type !== 'group') continue
+      if (box.type !== 'lane' && box.type !== 'group' && box.type !== 'layer') continue
       const view = this.registry.getBoxView(box.type)
       if (view.containsContentPoint(box, point)) return box.id
     }

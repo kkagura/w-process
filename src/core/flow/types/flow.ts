@@ -44,12 +44,21 @@ export interface ElementTemplate {
 
 export type SwimlaneOrientation = 'horizontal' | 'vertical'
 
-export interface BoxTemplate {
+export interface SwimlaneBoxTemplate {
   type: 'swimlane'
   label: string
   orientation: SwimlaneOrientation
   laneCount: number
 }
+
+export interface ArchitectureLayerBoxTemplate {
+  type: 'layer'
+  label: string
+  defaultSize: Size
+  defaultProps?: Record<string, unknown>
+}
+
+export type BoxTemplate = SwimlaneBoxTemplate | ArchitectureLayerBoxTemplate
 
 export interface FlowPort {
   id: PortId
@@ -143,7 +152,7 @@ export type SceneElementData = FlowNode | BoxData
 
 export interface BoxData {
   id: BoxId
-  type: 'root' | 'group' | 'swimlane' | 'lane' | 'subflow'
+  type: 'root' | 'group' | 'layer' | 'swimlane' | 'lane' | 'subflow'
   label?: string
   position: Point
   size: Size

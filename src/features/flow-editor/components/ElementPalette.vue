@@ -30,6 +30,18 @@ function handleBoxDragStart(event: DragEvent, template: BoxTemplate) {
     event.dataTransfer.effectAllowed = 'copy'
   }
 }
+
+function getBoxTemplateKey(template: BoxTemplate) {
+  return template.type === 'swimlane'
+    ? `${template.type}-${template.orientation}`
+    : template.type
+}
+
+function getBoxTemplateIconClass(template: BoxTemplate) {
+  return template.type === 'swimlane'
+    ? `element-icon--swimlane-${template.orientation}`
+    : 'element-icon--layer'
+}
 </script>
 
 <template>
@@ -40,7 +52,7 @@ function handleBoxDragStart(event: DragEvent, template: BoxTemplate) {
       <div class="element-list">
         <button
           v-for="template in boxTemplates"
-          :key="template.orientation"
+          :key="getBoxTemplateKey(template)"
           :aria-label="template.label"
           class="element-item"
           draggable="true"
@@ -50,7 +62,7 @@ function handleBoxDragStart(event: DragEvent, template: BoxTemplate) {
         >
           <span
             class="element-icon"
-            :class="`element-icon--swimlane-${template.orientation}`"
+            :class="getBoxTemplateIconClass(template)"
             aria-hidden="true"
           />
           <span class="element-label" aria-hidden="true">{{ template.label }}</span>
@@ -307,6 +319,25 @@ function handleBoxDragStart(event: DragEvent, template: BoxTemplate) {
   border-radius: 2px;
   height: 24px;
   width: 32px;
+}
+
+.element-icon--layer {
+  background: #eef8ff;
+  border-color: #7dd3fc;
+  border-radius: 5px;
+  height: 24px;
+  width: 32px;
+}
+
+.element-icon--layer::before {
+  color: #475569;
+  content: '层';
+  font-size: 9px;
+  font-weight: 700;
+  left: 5px;
+  line-height: 1;
+  position: absolute;
+  top: 4px;
 }
 
 .element-icon--swimlane-horizontal {

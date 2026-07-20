@@ -79,7 +79,7 @@ export class CanvasRenderer {
     this.drawNodes(ctx, context)
     this.drawSelectedNodeBounds(ctx, context)
     this.drawResizeHandles(ctx, context)
-    this.drawSwimlaneResizeHandles(ctx, context)
+    this.drawBoxResizeHandles(ctx, context)
     this.drawRotateHandle(ctx, context)
     this.drawActiveSwimlaneDivider(ctx, context)
     this.drawSnapGuides(ctx, context)
@@ -311,12 +311,12 @@ export class CanvasRenderer {
     ctx.restore()
   }
 
-  private drawSwimlaneResizeHandles(ctx: CanvasRenderingContext2D, context: RenderContext) {
+  private drawBoxResizeHandles(ctx: CanvasRenderingContext2D, context: RenderContext) {
     const selection = context.scene.getSelection()
     if (selection.items.length !== 1 || selection.primary?.type !== 'box') return
 
     const box = context.scene.getBoxData(selection.primary.id)
-    if (!box || box.type !== 'swimlane') return
+    if (!box || (box.type !== 'swimlane' && box.type !== 'layer')) return
 
     const viewport = context.scene.getViewport()
     const theme = context.scene.getTheme()
