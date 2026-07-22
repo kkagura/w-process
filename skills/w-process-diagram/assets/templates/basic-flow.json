@@ -1,0 +1,63 @@
+{
+  "root": {
+    "id": "root",
+    "type": "root",
+    "label": "根容器",
+    "position": { "x": 0, "y": 0 },
+    "size": { "width": 0, "height": 0 },
+    "children": [
+      {
+        "id": "start",
+        "type": "start",
+        "label": "开始",
+        "position": { "x": 20, "y": 72 },
+        "size": { "width": 120, "height": 48 },
+        "rotation": 0,
+        "ports": [
+          { "id": "start-right", "nodeId": "start", "templateId": "right", "label": "右侧端口", "offset": { "x": 120, "y": 24 } }
+        ],
+        "props": {}
+      },
+      {
+        "id": "task-process",
+        "type": "task",
+        "label": "处理任务",
+        "position": { "x": 240, "y": 60 },
+        "size": { "width": 160, "height": 72 },
+        "rotation": 0,
+        "ports": [
+          { "id": "task-process-left", "nodeId": "task-process", "templateId": "left", "label": "左侧端口", "offset": { "x": 0, "y": 36 } },
+          { "id": "task-process-right", "nodeId": "task-process", "templateId": "right", "label": "右侧端口", "offset": { "x": 160, "y": 36 } }
+        ],
+        "props": {}
+      },
+      {
+        "id": "end",
+        "type": "end",
+        "label": "结束",
+        "position": { "x": 500, "y": 72 },
+        "size": { "width": 120, "height": 48 },
+        "rotation": 0,
+        "ports": [
+          { "id": "end-left", "nodeId": "end", "templateId": "left", "label": "左侧端口", "offset": { "x": 0, "y": 24 } }
+        ],
+        "props": {}
+      }
+    ]
+  },
+  "edges": [
+    {
+      "id": "edge-start-process",
+      "source": { "nodeId": "start", "portId": "start-right" },
+      "target": { "nodeId": "task-process", "portId": "task-process-left" },
+      "props": { "route": { "type": "orthogonal" } }
+    },
+    {
+      "id": "edge-process-end",
+      "source": { "nodeId": "task-process", "portId": "task-process-right" },
+      "target": { "nodeId": "end", "portId": "end-left" },
+      "props": { "route": { "type": "orthogonal" } }
+    }
+  ],
+  "viewport": { "x": 0, "y": 0, "zoom": 1 }
+}

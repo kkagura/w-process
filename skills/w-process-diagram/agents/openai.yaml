@@ -1,0 +1,4 @@
+interface:
+  display_name: "W Process 绘图"
+  short_description: "根据自然语言生成并渲染 W Process 流程图"
+  default_prompt: "使用 $w-process-diagram 根据我的描述创建并渲染一张流程图。"

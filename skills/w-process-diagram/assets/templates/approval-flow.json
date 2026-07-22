@@ -1,0 +1,125 @@
+{
+  "root": {
+    "id": "root",
+    "type": "root",
+    "label": "根容器",
+    "position": { "x": 0, "y": 0 },
+    "size": { "width": 0, "height": 0 },
+    "children": [
+      {
+        "id": "start",
+        "type": "start",
+        "label": "开始",
+        "position": { "x": 20, "y": 196 },
+        "size": { "width": 120, "height": 48 },
+        "rotation": 0,
+        "ports": [
+          { "id": "start-right", "nodeId": "start", "templateId": "right", "label": "右侧端口", "offset": { "x": 120, "y": 24 } }
+        ],
+        "props": {}
+      },
+      {
+        "id": "task-submit",
+        "type": "task",
+        "label": "提交申请",
+        "position": { "x": 220, "y": 184 },
+        "size": { "width": 160, "height": 72 },
+        "rotation": 0,
+        "ports": [
+          { "id": "task-submit-left", "nodeId": "task-submit", "templateId": "left", "label": "左侧端口", "offset": { "x": 0, "y": 36 } },
+          { "id": "task-submit-right", "nodeId": "task-submit", "templateId": "right", "label": "右侧端口", "offset": { "x": 160, "y": 36 } }
+        ],
+        "props": {}
+      },
+      {
+        "id": "decision-approved",
+        "type": "decision",
+        "label": "审批通过？",
+        "position": { "x": 480, "y": 172 },
+        "size": { "width": 144, "height": 96 },
+        "rotation": 0,
+        "ports": [
+          { "id": "decision-approved-top", "nodeId": "decision-approved", "templateId": "top", "label": "上方端口", "offset": { "x": 72, "y": 0 } },
+          { "id": "decision-approved-right", "nodeId": "decision-approved", "templateId": "right", "label": "是 / 右侧端口", "offset": { "x": 144, "y": 48 } },
+          { "id": "decision-approved-bottom", "nodeId": "decision-approved", "templateId": "bottom", "label": "下方端口", "offset": { "x": 72, "y": 96 } },
+          { "id": "decision-approved-left", "nodeId": "decision-approved", "templateId": "left", "label": "否 / 左侧端口", "offset": { "x": 0, "y": 48 } }
+        ],
+        "props": {}
+      },
+      {
+        "id": "task-execute",
+        "type": "task",
+        "label": "执行申请",
+        "position": { "x": 720, "y": 120 },
+        "size": { "width": 160, "height": 72 },
+        "rotation": 0,
+        "ports": [
+          { "id": "task-execute-left", "nodeId": "task-execute", "templateId": "left", "label": "左侧端口", "offset": { "x": 0, "y": 36 } },
+          { "id": "task-execute-right", "nodeId": "task-execute", "templateId": "right", "label": "右侧端口", "offset": { "x": 160, "y": 36 } }
+        ],
+        "props": {}
+      },
+      {
+        "id": "end-approved",
+        "type": "end",
+        "label": "已完成",
+        "position": { "x": 980, "y": 132 },
+        "size": { "width": 120, "height": 48 },
+        "rotation": 0,
+        "ports": [
+          { "id": "end-approved-left", "nodeId": "end-approved", "templateId": "left", "label": "左侧端口", "offset": { "x": 0, "y": 24 } }
+        ],
+        "props": {}
+      },
+      {
+        "id": "end-rejected",
+        "type": "end",
+        "label": "已驳回",
+        "position": { "x": 720, "y": 340 },
+        "size": { "width": 120, "height": 48 },
+        "rotation": 0,
+        "ports": [
+          { "id": "end-rejected-left", "nodeId": "end-rejected", "templateId": "left", "label": "左侧端口", "offset": { "x": 0, "y": 24 } }
+        ],
+        "props": {}
+      }
+    ]
+  },
+  "edges": [
+    {
+      "id": "edge-start-submit",
+      "source": { "nodeId": "start", "portId": "start-right" },
+      "target": { "nodeId": "task-submit", "portId": "task-submit-left" },
+      "label": "发起",
+      "props": { "route": { "type": "orthogonal" } }
+    },
+    {
+      "id": "edge-submit-decision",
+      "source": { "nodeId": "task-submit", "portId": "task-submit-right" },
+      "target": { "nodeId": "decision-approved", "portId": "decision-approved-left" },
+      "label": "审批",
+      "props": { "route": { "type": "orthogonal" } }
+    },
+    {
+      "id": "edge-decision-execute",
+      "source": { "nodeId": "decision-approved", "portId": "decision-approved-right" },
+      "target": { "nodeId": "task-execute", "portId": "task-execute-left" },
+      "label": "通过",
+      "props": { "route": { "type": "orthogonal" } }
+    },
+    {
+      "id": "edge-execute-end",
+      "source": { "nodeId": "task-execute", "portId": "task-execute-right" },
+      "target": { "nodeId": "end-approved", "portId": "end-approved-left" },
+      "props": { "route": { "type": "orthogonal" } }
+    },
+    {
+      "id": "edge-decision-rejected",
+      "source": { "nodeId": "decision-approved", "portId": "decision-approved-bottom" },
+      "target": { "nodeId": "end-rejected", "portId": "end-rejected-left" },
+      "label": "驳回",
+      "props": { "route": { "type": "orthogonal" } }
+    }
+  ],
+  "viewport": { "x": 0, "y": 0, "zoom": 1 }
+}

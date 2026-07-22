@@ -1,0 +1,116 @@
+{
+  "root": {
+    "id": "root",
+    "type": "root",
+    "label": "根容器",
+    "position": { "x": 0, "y": 0 },
+    "size": { "width": 0, "height": 0 },
+    "children": [
+      {
+        "id": "swimlane-order",
+        "type": "swimlane",
+        "label": "订单处理流程",
+        "position": { "x": 20, "y": 20 },
+        "size": { "width": 1020, "height": 356 },
+        "props": { "orientation": "horizontal", "headerSize": 36 },
+        "children": [
+          {
+            "id": "lane-user",
+            "type": "lane",
+            "label": "用户",
+            "position": { "x": 20, "y": 56 },
+            "size": { "width": 1020, "height": 160 },
+            "props": { "orientation": "horizontal", "labelSize": 96 },
+            "children": [
+              {
+                "id": "start",
+                "type": "start",
+                "label": "开始",
+                "position": { "x": 140, "y": 112 },
+                "size": { "width": 120, "height": 48 },
+                "rotation": 0,
+                "ports": [
+                  { "id": "start-right", "nodeId": "start", "templateId": "right", "label": "右侧端口", "offset": { "x": 120, "y": 24 } }
+                ],
+                "props": {}
+              },
+              {
+                "id": "task-submit-order",
+                "type": "task",
+                "label": "提交订单",
+                "position": { "x": 360, "y": 100 },
+                "size": { "width": 160, "height": 72 },
+                "rotation": 0,
+                "ports": [
+                  { "id": "task-submit-order-left", "nodeId": "task-submit-order", "templateId": "left", "label": "左侧端口", "offset": { "x": 0, "y": 36 } },
+                  { "id": "task-submit-order-right", "nodeId": "task-submit-order", "templateId": "right", "label": "右侧端口", "offset": { "x": 160, "y": 36 } }
+                ],
+                "props": {}
+              }
+            ]
+          },
+          {
+            "id": "lane-system",
+            "type": "lane",
+            "label": "订单系统",
+            "position": { "x": 20, "y": 216 },
+            "size": { "width": 1020, "height": 160 },
+            "props": { "orientation": "horizontal", "labelSize": 96 },
+            "children": [
+              {
+                "id": "decision-stock",
+                "type": "decision",
+                "label": "库存充足？",
+                "position": { "x": 580, "y": 248 },
+                "size": { "width": 144, "height": 96 },
+                "rotation": 0,
+                "ports": [
+                  { "id": "decision-stock-top", "nodeId": "decision-stock", "templateId": "top", "label": "上方端口", "offset": { "x": 72, "y": 0 } },
+                  { "id": "decision-stock-right", "nodeId": "decision-stock", "templateId": "right", "label": "是 / 右侧端口", "offset": { "x": 144, "y": 48 } },
+                  { "id": "decision-stock-bottom", "nodeId": "decision-stock", "templateId": "bottom", "label": "下方端口", "offset": { "x": 72, "y": 96 } },
+                  { "id": "decision-stock-left", "nodeId": "decision-stock", "templateId": "left", "label": "否 / 左侧端口", "offset": { "x": 0, "y": 48 } }
+                ],
+                "props": {}
+              },
+              {
+                "id": "end",
+                "type": "end",
+                "label": "处理完成",
+                "position": { "x": 820, "y": 272 },
+                "size": { "width": 120, "height": 48 },
+                "rotation": 0,
+                "ports": [
+                  { "id": "end-left", "nodeId": "end", "templateId": "left", "label": "左侧端口", "offset": { "x": 0, "y": 24 } }
+                ],
+                "props": {}
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "edges": [
+    {
+      "id": "edge-start-submit",
+      "source": { "nodeId": "start", "portId": "start-right" },
+      "target": { "nodeId": "task-submit-order", "portId": "task-submit-order-left" },
+      "props": { "route": { "type": "orthogonal" } }
+    },
+    {
+      "id": "edge-submit-stock",
+      "source": { "nodeId": "task-submit-order", "portId": "task-submit-order-right" },
+      "target": { "nodeId": "decision-stock", "portId": "decision-stock-left" },
+      "label": "进入处理",
+      "props": { "route": { "type": "orthogonal" } }
+    },
+    {
+      "id": "edge-stock-end",
+      "source": { "nodeId": "decision-stock", "portId": "decision-stock-right" },
+      "target": { "nodeId": "end", "portId": "end-left" },
+      "label": "是",
+      "props": { "route": { "type": "orthogonal" } }
+    }
+  ],
+  "viewport": { "x": 0, "y": 0, "zoom": 1 }
+}

@@ -1,0 +1,125 @@
+{
+  "root": {
+    "id": "root",
+    "type": "root",
+    "label": "根容器",
+    "position": { "x": 0, "y": 0 },
+    "size": { "width": 0, "height": 0 },
+    "children": [
+      {
+        "id": "layer-client",
+        "type": "layer",
+        "label": "客户端层",
+        "position": { "x": 20, "y": 20 },
+        "size": { "width": 840, "height": 220 },
+        "props": {},
+        "children": [
+          {
+            "id": "service-web",
+            "type": "icon-service",
+            "label": "Web 应用",
+            "position": { "x": 100, "y": 80 },
+            "size": { "width": 120, "height": 112 },
+            "rotation": 0,
+            "ports": [
+              { "id": "service-web-top", "nodeId": "service-web", "templateId": "top", "label": "上方端口", "offset": { "x": 60, "y": 0 } },
+              { "id": "service-web-right", "nodeId": "service-web", "templateId": "right", "label": "右侧端口", "offset": { "x": 120, "y": 56 } },
+              { "id": "service-web-bottom", "nodeId": "service-web", "templateId": "bottom", "label": "下方端口", "offset": { "x": 60, "y": 112 } },
+              { "id": "service-web-left", "nodeId": "service-web", "templateId": "left", "label": "左侧端口", "offset": { "x": 0, "y": 56 } }
+            ],
+            "props": {}
+          }
+        ]
+      },
+      {
+        "id": "layer-service",
+        "type": "layer",
+        "label": "服务层",
+        "position": { "x": 20, "y": 300 },
+        "size": { "width": 840, "height": 220 },
+        "props": {},
+        "children": [
+          {
+            "id": "service-gateway",
+            "type": "icon-service",
+            "label": "API 网关",
+            "position": { "x": 100, "y": 360 },
+            "size": { "width": 120, "height": 112 },
+            "rotation": 0,
+            "ports": [
+              { "id": "service-gateway-top", "nodeId": "service-gateway", "templateId": "top", "label": "上方端口", "offset": { "x": 60, "y": 0 } },
+              { "id": "service-gateway-right", "nodeId": "service-gateway", "templateId": "right", "label": "右侧端口", "offset": { "x": 120, "y": 56 } },
+              { "id": "service-gateway-bottom", "nodeId": "service-gateway", "templateId": "bottom", "label": "下方端口", "offset": { "x": 60, "y": 112 } },
+              { "id": "service-gateway-left", "nodeId": "service-gateway", "templateId": "left", "label": "左侧端口", "offset": { "x": 0, "y": 56 } }
+            ],
+            "props": {}
+          },
+          {
+            "id": "service-order",
+            "type": "icon-service",
+            "label": "订单服务",
+            "position": { "x": 360, "y": 360 },
+            "size": { "width": 120, "height": 112 },
+            "rotation": 0,
+            "ports": [
+              { "id": "service-order-top", "nodeId": "service-order", "templateId": "top", "label": "上方端口", "offset": { "x": 60, "y": 0 } },
+              { "id": "service-order-right", "nodeId": "service-order", "templateId": "right", "label": "右侧端口", "offset": { "x": 120, "y": 56 } },
+              { "id": "service-order-bottom", "nodeId": "service-order", "templateId": "bottom", "label": "下方端口", "offset": { "x": 60, "y": 112 } },
+              { "id": "service-order-left", "nodeId": "service-order", "templateId": "left", "label": "左侧端口", "offset": { "x": 0, "y": 56 } }
+            ],
+            "props": {}
+          }
+        ]
+      },
+      {
+        "id": "layer-data",
+        "type": "layer",
+        "label": "数据层",
+        "position": { "x": 20, "y": 580 },
+        "size": { "width": 840, "height": 220 },
+        "props": {},
+        "children": [
+          {
+            "id": "data-orders",
+            "type": "data",
+            "label": "订单数据",
+            "position": { "x": 340, "y": 660 },
+            "size": { "width": 160, "height": 72 },
+            "rotation": 0,
+            "ports": [
+              { "id": "data-orders-top", "nodeId": "data-orders", "templateId": "top", "label": "上方端口", "offset": { "x": 80, "y": 0 } },
+              { "id": "data-orders-right", "nodeId": "data-orders", "templateId": "right", "label": "右侧端口", "offset": { "x": 160, "y": 36 } },
+              { "id": "data-orders-bottom", "nodeId": "data-orders", "templateId": "bottom", "label": "下方端口", "offset": { "x": 80, "y": 72 } },
+              { "id": "data-orders-left", "nodeId": "data-orders", "templateId": "left", "label": "左侧端口", "offset": { "x": 0, "y": 36 } }
+            ],
+            "props": {}
+          }
+        ]
+      }
+    ]
+  },
+  "edges": [
+    {
+      "id": "edge-web-gateway",
+      "source": { "nodeId": "service-web", "portId": "service-web-bottom" },
+      "target": { "nodeId": "service-gateway", "portId": "service-gateway-top" },
+      "label": "HTTPS",
+      "props": { "route": { "type": "orthogonal" } }
+    },
+    {
+      "id": "edge-gateway-order",
+      "source": { "nodeId": "service-gateway", "portId": "service-gateway-right" },
+      "target": { "nodeId": "service-order", "portId": "service-order-left" },
+      "label": "路由",
+      "props": { "route": { "type": "orthogonal" } }
+    },
+    {
+      "id": "edge-order-data",
+      "source": { "nodeId": "service-order", "portId": "service-order-bottom" },
+      "target": { "nodeId": "data-orders", "portId": "data-orders-top" },
+      "label": "读写",
+      "props": { "route": { "type": "orthogonal" } }
+    }
+  ],
+  "viewport": { "x": 0, "y": 0, "zoom": 1 }
+}

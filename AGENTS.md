@@ -237,3 +237,26 @@ pnpm run build
 - `renderFlowImage()` 保持无文件系统副作用；CLI 层单独负责读取 JSON、写入 PNG、错误输出和退出码。
 - Node 渲染首版只支持 PNG，并且必须在创建原生 Canvas 前校验最大宽高和最大物理像素数。
 - Node renderer 默认注册 OFL-1.1 授权的 Noto Sans SC 完整 TTF；新增字体只能进入 Node 适配包，不能进入 `flow-core`。
+
+## 15. Skill 同步维护规则
+
+项目内的 `skills/w-process-diagram` 是 w-process 功能面向智能体的使用契约。对编辑器、`flow-core`、Node renderer、CLI 或场景数据能力的任何功能修改，都必须在同一任务中检查并同步更新该 Skill；未完成 Skill 同步时，不得将功能任务视为完成。
+
+同步时至少检查：
+
+- `skills/w-process-diagram/SKILL.md`：触发范围、执行流程、CLI 调用方式、渲染选项和失败处理是否仍然准确。
+- `skills/w-process-diagram/references/flow-document.md`：DTO 字段、序列化规则、校验约束和连线引用方式是否变化。
+- `skills/w-process-diagram/references/elements.md`：节点、容器、端口、默认尺寸、注册类型和连接规则是否变化。
+- `skills/w-process-diagram/references/layout.md`：布局、间距、容器内容区和视觉检查规则是否变化。
+- `skills/w-process-diagram/assets/templates/`：现有模板是否仍能覆盖并正确演示修改后的能力；新增重要图形能力时必须增加或调整对应模板。
+- `skills/w-process-diagram/agents/openai.yaml`：Skill 的展示名称、描述和默认提示是否与能力范围一致。
+
+典型同步要求：
+
+- 新增或修改节点、容器、端口、默认尺寸时，同步更新元素目录和受影响模板。
+- 修改 `FlowDocument`、导入导出或运行时校验规则时，同步更新数据约定和全部受影响模板。
+- 修改布局、连线路由、文字渲染或容器边界规则时，同步更新布局说明并重新检查生成图片。
+- 修改 CLI 命令、参数、默认值、输出格式或错误码时，同步更新 `SKILL.md` 的调用与失败处理说明。
+- 新增 Skill 可表达的重要图形类别时，同步更新 frontmatter 触发描述、图形选择规则和模板。
+
+完成同步后必须运行 Skill 校验，并使用当前 Node CLI 渲染所有受影响模板。涉及视觉变化时，还必须查看生成图片，确认文字、节点、容器和连线正常。Skill 源码只在项目内维护，智能体不得擅自安装到用户的全局 Skill 目录。

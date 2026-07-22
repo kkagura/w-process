@@ -145,3 +145,4 @@
 - [ ] 增加 monorepo 通用 CI、Node 渲染冒烟测试和跨运行时图片快照测试
 - [x] 为 `flow-core` 配置 tsdown neutral ESM 构建、声明文件与独立类型检查
 - [x] 为 `flow-node-renderer` 配置 tsdown Node ESM 构建、声明文件与独立类型检查
+- [x] 在项目内增加 `w-process-diagram` Skill，支持自然语言生成场景 JSON、调用 CLI 渲染并检查 PNG
