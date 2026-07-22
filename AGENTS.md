@@ -214,3 +214,22 @@ pnpm run build
 - 如果实现的功能不在清单中，但属于重要编辑器能力，应追加到 `TODO.md` 并标记为 `[x]`。
 - 如果新增了明确的后续功能拆分，也应补充到 `TODO.md` 的待实现部分。
 - 更新清单时只改与本次功能相关的条目，不要重排无关事项。
+
+## 14. Monorepo 目标边界
+
+项目目标形态采用 pnpm workspace：
+
+- `packages/flow-core`：同构场景与渲染核心，不依赖 Vue、DOM、Node.js 文件系统或具体 Canvas 实现。
+- `apps/web`：Vue 浏览器编辑器，负责 `HTMLCanvasElement`、浏览器事件、DOM 生命周期和页面展示。
+- `packages/flow-node-renderer`：Node.js 图片渲染适配，负责 Canvas 创建、字体注册、图层合成和图片编码。
+
+依赖只能从 `web`、`flow-node-renderer` 指向 `flow-core`，不得反向依赖。Node Canvas 原生依赖只能声明在 `flow-node-renderer` 中，不得进入 `flow-core` 或 `web`。
+
+拆包时必须保持每一步可构建；GitHub Pages 只构建 `@w-process/web` 及其依赖并上传 `apps/web/dist`，通用 CI 另行验证全部 workspace 包。
+
+库包构建约束：
+
+- `flow-core` 使用 tsdown 输出 neutral、纯 ESM JavaScript 和声明文件。
+- `flow-node-renderer` 使用 tsdown 输出 Node.js、纯 ESM JavaScript 和声明文件，`@napi-rs/canvas` 必须保持 external。
+- 两个库包都必须独立运行 `tsc --noEmit`；tsdown 构建不能替代类型检查。
+- Node 原生 TypeScript 只用于内部辅助脚本，正式包入口必须指向构建后的 JavaScript，不直接发布 `.ts` 源码。
