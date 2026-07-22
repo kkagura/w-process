@@ -54,7 +54,7 @@ export class CircleNodeView extends BaseNodeView<CircleNode> {
       },
     })
 
-    drawPorts(ctx, this, node, context)
+    if (context.showPorts) drawPorts(ctx, this, node, context)
     ctx.restore()
   }
 

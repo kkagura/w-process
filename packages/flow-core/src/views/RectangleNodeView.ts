@@ -49,7 +49,7 @@ export class RectangleNodeView extends BaseNodeView<RectangleNode> {
       },
     })
 
-    drawPorts(ctx, this, node, context)
+    if (context.showPorts) drawPorts(ctx, this, node, context)
     ctx.restore()
   }
 }

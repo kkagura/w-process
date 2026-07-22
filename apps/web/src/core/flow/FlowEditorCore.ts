@@ -542,6 +542,7 @@ export class FlowEditorCore {
     this.renderer.renderBackground({
       layers: this.layers,
       scene: this.scene,
+      options: { mode: 'editor' },
       interaction: {
         draggingNodeId: this.interaction.getDraggingNodeId(),
         draggingBoxId: this.interaction.getDraggingBoxId(),
@@ -559,6 +560,7 @@ export class FlowEditorCore {
     this.renderer.renderMain({
       layers: this.layers,
       scene: this.scene,
+      options: { mode: 'editor' },
       interaction: {
         draggingNodeId: this.interaction.getDraggingNodeId(),
         draggingBoxId: this.interaction.getDraggingBoxId(),

@@ -59,7 +59,7 @@ export class SubflowNodeView extends BaseNodeView<SubflowNode> {
       },
     })
 
-    drawPorts(ctx, this, node, context)
+    if (context.showPorts) drawPorts(ctx, this, node, context)
     ctx.restore()
   }
 }

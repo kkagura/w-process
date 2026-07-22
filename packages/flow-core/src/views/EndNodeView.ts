@@ -58,7 +58,7 @@ export class EndNodeView extends BaseNodeView<EndNode> {
       },
     })
 
-    drawPorts(ctx, this, node, context)
+    if (context.showPorts) drawPorts(ctx, this, node, context)
     ctx.restore()
   }
 

@@ -1,7 +1,7 @@
 import type { ElementRegistry } from '../elements/ElementRegistry'
 import type { BaseNode } from '../elements/BaseNode'
 import type { SceneManager } from '../scene/SceneManager'
-import type { FlowTheme, NodeDrawContext, Point, Rect, SnapGuide, ViewportData } from '../types/flow'
+import type { FlowRenderOptions, FlowTheme, NodeDrawContext, Point, Rect, RenderMode, SnapGuide, ViewportData } from '../types/flow'
 import type { SwimlaneDividerHit } from '../scene/swimlane'
 import type { CanvasRenderSurface } from './CanvasRenderSurface'
 import { routeOrthogonalEdge } from '../routing/orthogonal'
@@ -40,6 +40,27 @@ export interface RenderContext {
   layers: CanvasRenderSurface
   scene: SceneManager
   interaction: CanvasInteractionState
+  options: FlowRenderOptions
+}
+
+export interface ResolvedFlowRenderOptions {
+  mode: RenderMode
+  showGrid: boolean
+  showPorts: boolean
+  showInteractionOverlays: boolean
+  background: string | 'transparent' | undefined
+}
+
+export function resolveFlowRenderOptions(options: FlowRenderOptions): ResolvedFlowRenderOptions {
+  const preview = options.mode === 'preview'
+
+  return {
+    mode: options.mode,
+    showGrid: options.showGrid ?? !preview,
+    showPorts: options.showPorts ?? !preview,
+    showInteractionOverlays: options.showInteractionOverlays ?? !preview,
+    background: options.background,
+  }
 }
 
 export class CanvasRenderer {
@@ -53,17 +74,23 @@ export class CanvasRenderer {
     const { width, height } = context.layers.getSize()
     const ctx = context.layers.backgroundContext
     const theme = context.scene.getTheme()
+    const options = resolveFlowRenderOptions(context.options)
 
     context.layers.resetTransform()
     context.layers.clearBackground()
-    ctx.fillStyle = theme.colors.canvas
-    ctx.fillRect(0, 0, width, height)
-    this.drawGrid(ctx, width, height, context.scene.getViewport(), theme)
+    if (options.background !== 'transparent') {
+      ctx.fillStyle = options.background ?? theme.colors.canvas
+      ctx.fillRect(0, 0, width, height)
+    }
+    if (options.showGrid) {
+      this.drawGrid(ctx, width, height, context.scene.getViewport(), theme)
+    }
   }
 
   renderMain(context: RenderContext) {
     const ctx = context.layers.mainContext
     const viewport = context.scene.getViewport()
+    const options = resolveFlowRenderOptions(context.options)
 
     context.layers.resetTransform()
     context.layers.clearMain()
@@ -72,29 +99,39 @@ export class CanvasRenderer {
     ctx.translate(viewport.x, viewport.y)
     ctx.scale(viewport.zoom, viewport.zoom)
 
-    this.drawBoxBackgrounds(ctx, context)
-    this.drawEdges(ctx, context)
-    this.drawPendingEdge(ctx, context)
-    this.drawBoxForegrounds(ctx, context)
-    this.drawNodes(ctx, context)
-    this.drawSelectedNodeBounds(ctx, context)
-    this.drawResizeHandles(ctx, context)
-    this.drawBoxResizeHandles(ctx, context)
-    this.drawRotateHandle(ctx, context)
-    this.drawActiveSwimlaneDivider(ctx, context)
-    this.drawSnapGuides(ctx, context)
-    this.drawSelectionRect(ctx, context)
+    this.drawBoxBackgrounds(ctx, context, options)
+    this.drawEdges(ctx, context, options)
+    if (options.showInteractionOverlays) {
+      this.drawPendingEdge(ctx, context)
+    }
+    this.drawBoxForegrounds(ctx, context, options)
+    this.drawNodes(ctx, context, options)
+    if (options.showInteractionOverlays) {
+      this.drawSelectedNodeBounds(ctx, context)
+      this.drawResizeHandles(ctx, context)
+      this.drawBoxResizeHandles(ctx, context)
+      this.drawRotateHandle(ctx, context)
+      this.drawActiveSwimlaneDivider(ctx, context)
+      this.drawSnapGuides(ctx, context)
+      this.drawSelectionRect(ctx, context)
+    }
 
     ctx.restore()
   }
 
-  private drawEdges(ctx: CanvasRenderingContext2D, context: RenderContext) {
+  private drawEdges(
+    ctx: CanvasRenderingContext2D,
+    context: RenderContext,
+    options: ResolvedFlowRenderOptions,
+  ) {
     for (const edge of context.scene.getEdges()) {
-      const edgeContext = context.scene.createEdgeDrawContext(edge)
+      const edgeContext = context.scene.createEdgeDrawContext(edge, options.mode)
       if (!edgeContext) continue
 
       const edgeView = this.registry.getEdgeView(edge.id)
-      edgeView.draw(ctx, edge, edgeContext)
+      edgeView.draw(ctx, edge, options.showInteractionOverlays
+        ? edgeContext
+        : { ...edgeContext, selected: false, hovered: false })
     }
   }
 
@@ -152,42 +189,65 @@ export class CanvasRenderer {
     ctx.restore()
   }
 
-  private drawBoxBackgrounds(ctx: CanvasRenderingContext2D, context: RenderContext) {
+  private drawBoxBackgrounds(
+    ctx: CanvasRenderingContext2D,
+    context: RenderContext,
+    options: ResolvedFlowRenderOptions,
+  ) {
     for (const box of context.scene.getBoxes()) {
       const boxView = this.registry.getBoxView(box.type)
-      boxView.drawBackground(ctx, box, this.createBoxDrawContext(box.id, context))
+      boxView.drawBackground(ctx, box, this.createBoxDrawContext(box.id, context, options))
     }
   }
 
-  private drawBoxForegrounds(ctx: CanvasRenderingContext2D, context: RenderContext) {
+  private drawBoxForegrounds(
+    ctx: CanvasRenderingContext2D,
+    context: RenderContext,
+    options: ResolvedFlowRenderOptions,
+  ) {
     for (const box of context.scene.getBoxes()) {
       const boxView = this.registry.getBoxView(box.type)
-      boxView.drawForeground(ctx, box, this.createBoxDrawContext(box.id, context))
+      boxView.drawForeground(ctx, box, this.createBoxDrawContext(box.id, context, options))
     }
   }
 
-  private createBoxDrawContext(boxId: string, context: RenderContext) {
+  private createBoxDrawContext(
+    boxId: string,
+    context: RenderContext,
+    options: ResolvedFlowRenderOptions,
+  ) {
     return {
-      selected: context.scene.isSelected({ type: 'box' as const, id: boxId }),
-      hovered: context.scene.isHovered({ type: 'box' as const, id: boxId }),
-      dropTarget: context.interaction.dropTargetBoxId === boxId,
+      renderMode: options.mode,
+      selected: options.showInteractionOverlays && context.scene.isSelected({ type: 'box' as const, id: boxId }),
+      hovered: options.showInteractionOverlays && context.scene.isHovered({ type: 'box' as const, id: boxId }),
+      dropTarget: options.showInteractionOverlays && context.interaction.dropTargetBoxId === boxId,
       theme: context.scene.getTheme(),
       viewport: context.scene.getViewport(),
     }
   }
 
-  private drawNodes(ctx: CanvasRenderingContext2D, context: RenderContext) {
+  private drawNodes(
+    ctx: CanvasRenderingContext2D,
+    context: RenderContext,
+    options: ResolvedFlowRenderOptions,
+  ) {
     for (const node of context.scene.getNodes()) {
       const nodeView = this.registry.getNodeView(node.type)
-      nodeView.draw(ctx, node, this.createNodeDrawContext(node, context))
+      nodeView.draw(ctx, node, this.createNodeDrawContext(node, context, options))
     }
   }
 
-  private createNodeDrawContext(node: BaseNode, context: RenderContext): NodeDrawContext {
+  private createNodeDrawContext(
+    node: BaseNode,
+    context: RenderContext,
+    options: ResolvedFlowRenderOptions,
+  ): NodeDrawContext {
     return {
-      selected: context.scene.isSelected({ type: 'node', id: node.id }),
-      hovered: context.scene.isHovered({ type: 'node', id: node.id }),
-      dragging: context.interaction.draggingNodeId === node.id,
+      renderMode: options.mode,
+      showPorts: options.showPorts,
+      selected: options.showInteractionOverlays && context.scene.isSelected({ type: 'node', id: node.id }),
+      hovered: options.showInteractionOverlays && context.scene.isHovered({ type: 'node', id: node.id }),
+      dragging: options.showInteractionOverlays && context.interaction.draggingNodeId === node.id,
       connecting: false,
       disabled: false,
       theme: context.scene.getTheme(),

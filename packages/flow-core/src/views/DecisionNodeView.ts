@@ -52,7 +52,7 @@ export class DecisionNodeView extends BaseNodeView<DecisionNode> {
       },
     })
 
-    drawPorts(ctx, this, node, context)
+    if (context.showPorts) drawPorts(ctx, this, node, context)
     ctx.restore()
   }
 

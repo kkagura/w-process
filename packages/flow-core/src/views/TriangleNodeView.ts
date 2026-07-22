@@ -52,7 +52,7 @@ export class TriangleNodeView extends BaseNodeView<TriangleNode> {
       },
     })
 
-    drawPorts(ctx, this, node, context)
+    if (context.showPorts) drawPorts(ctx, this, node, context)
     ctx.restore()
   }
 

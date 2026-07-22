@@ -51,7 +51,7 @@ export class DataNodeView extends BaseNodeView<DataNode> {
       },
     })
 
-    drawPorts(ctx, this, node, context)
+    if (context.showPorts) drawPorts(ctx, this, node, context)
     ctx.restore()
   }
 

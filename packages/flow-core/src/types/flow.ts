@@ -256,7 +256,19 @@ export interface FlowTheme {
   }
 }
 
+export type RenderMode = 'editor' | 'preview'
+
+export interface FlowRenderOptions {
+  mode: RenderMode
+  showGrid?: boolean
+  showPorts?: boolean
+  showInteractionOverlays?: boolean
+  background?: string | 'transparent'
+}
+
 export interface NodeDrawContext {
+  renderMode: RenderMode
+  showPorts: boolean
   selected: boolean
   hovered: boolean
   dragging: boolean
@@ -267,6 +279,7 @@ export interface NodeDrawContext {
 }
 
 export interface BoxDrawContext {
+  renderMode: RenderMode
   selected: boolean
   hovered: boolean
   dropTarget: boolean
@@ -275,6 +288,7 @@ export interface BoxDrawContext {
 }
 
 export interface EdgeDrawContext {
+  renderMode: RenderMode
   selected: boolean
   hovered: boolean
   sourcePoint: Point

@@ -135,9 +135,10 @@
 - [ ] 连接规则测试
 - [x] 建立 pnpm workspace，并将 Vue 应用迁移到 `apps/web`
 - [x] 抽取同构场景与渲染核心到 `packages/flow-core`
+- [x] 增加 `editor` / `preview` 渲染模式，preview 默认隐藏端口和编辑器交互覆盖层
 - [ ] 抽象跨浏览器与 Node.js 的 `CanvasRenderSurface`
 - [ ] 创建 `packages/flow-node-renderer`，支持根据场景 JSON 生成图片 Buffer
-- [ ] 为 Node.js 图片导出增加固定字体、导出模式和尺寸安全限制
+- [ ] 为 Node.js 图片导出增加固定字体、preview 模式接入和尺寸安全限制
 - [x] 调整 GitHub Pages workflow，仅构建 Web 包并上传 `apps/web/dist`
 - [ ] 增加 monorepo 通用 CI、Node 渲染冒烟测试和跨运行时图片快照测试
 - [x] 为 `flow-core` 配置 tsdown neutral ESM 构建、声明文件与独立类型检查

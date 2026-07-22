@@ -24,6 +24,7 @@ import type {
   SelectableRef,
   SelectionState,
   Rect,
+  RenderMode,
   SceneElementData,
   ViewportData,
 } from '../types/flow'
@@ -763,7 +764,7 @@ export class SceneManager {
     return view.getPortPosition(node, port)
   }
 
-  createEdgeDrawContext(edge: BaseEdge) {
+  createEdgeDrawContext(edge: BaseEdge, renderMode: RenderMode = 'editor') {
     const sourcePoint = this.getEndpointPoint(edge.source)
     const targetPoint = this.getEndpointPoint(edge.target)
     if (!sourcePoint || !targetPoint) return null
@@ -771,6 +772,7 @@ export class SceneManager {
     const targetRect = this.getNodeRect(edge.target.nodeId)
 
     return {
+      renderMode,
       selected: this.isSelected({ type: 'edge', id: edge.id }),
       hovered: this.isHovered({ type: 'edge', id: edge.id }),
       sourcePoint,

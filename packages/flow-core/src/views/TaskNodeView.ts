@@ -48,15 +48,17 @@ export class TaskNodeView extends BaseNodeView<TaskNode> {
       },
     })
 
-    for (const port of node.getPorts()) {
-      const portPosition = this.getLocalPortPosition(node, port)
-      ctx.beginPath()
-      ctx.arc(portPosition.x, portPosition.y, 5, 0, Math.PI * 2)
-      ctx.fillStyle = context.theme.colors.portFill
-      ctx.fill()
-      ctx.lineWidth = 2
-      ctx.strokeStyle = '#ffffff'
-      ctx.stroke()
+    if (context.showPorts) {
+      for (const port of node.getPorts()) {
+        const portPosition = this.getLocalPortPosition(node, port)
+        ctx.beginPath()
+        ctx.arc(portPosition.x, portPosition.y, 5, 0, Math.PI * 2)
+        ctx.fillStyle = context.theme.colors.portFill
+        ctx.fill()
+        ctx.lineWidth = 2
+        ctx.strokeStyle = '#ffffff'
+        ctx.stroke()
+      }
     }
 
     ctx.restore()

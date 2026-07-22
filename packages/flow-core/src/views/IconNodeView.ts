@@ -62,7 +62,7 @@ export class IconNodeView extends BaseNodeView<IconNode> {
       },
     })
 
-    drawPorts(ctx, this, node, context)
+    if (context.showPorts) drawPorts(ctx, this, node, context)
     ctx.restore()
   }
 }
