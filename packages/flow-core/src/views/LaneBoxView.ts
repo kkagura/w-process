@@ -1,6 +1,7 @@
 import type { LaneBox } from '../scene/LaneBox'
 import { getLaneContentRect, getLaneOrientation } from '../scene/swimlane'
 import type { BoxDrawContext, Point, Rect } from '../types/flow'
+import { DEFAULT_CANVAS_FONT_FAMILY } from '../renderer/TextRenderer'
 import { containsPoint } from '../utils/geometry'
 import { BaseBoxView } from './BaseBoxView'
 
@@ -62,7 +63,7 @@ export class LaneBoxView extends BaseBoxView<LaneBox> {
     ctx.stroke()
 
     ctx.fillStyle = '#334155'
-    ctx.font = `600 ${12 / viewport.zoom}px "Microsoft YaHei", sans-serif`
+    ctx.font = `600 ${12 / viewport.zoom}px ${DEFAULT_CANVAS_FONT_FAMILY}`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     if (orientation === 'horizontal') {

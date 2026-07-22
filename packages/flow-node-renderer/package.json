@@ -1,0 +1,38 @@
+{
+  "name": "@w-process/flow-node-renderer",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "w-process-render": "./dist/cli.mjs"
+  },
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "build": "pnpm run typecheck && tsdown",
+    "dev": "tsdown --watch",
+    "prepack": "pnpm run build",
+    "render": "node dist/cli.mjs",
+    "test": "pnpm --filter @w-process/flow-core run build && pnpm run build && node --test test/render.test.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@expo-google-fonts/noto-sans-sc": "^0.4.3",
+    "@napi-rs/canvas": "^1.0.2",
+    "@w-process/flow-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.3",
+    "tsdown": "^0.22.13",
+    "typescript": "~6.0.2",
+    "unrun": "^0.3.1"
+  }
+}

@@ -7,6 +7,7 @@ import {
   getGroupTitleStyle,
 } from '../scene/group'
 import type { BoxDrawContext, Point } from '../types/flow'
+import { DEFAULT_CANVAS_FONT_FAMILY } from '../renderer/TextRenderer'
 import { containsPoint } from '../utils/geometry'
 import { BaseBoxView } from './BaseBoxView'
 
@@ -58,7 +59,7 @@ export class GroupBoxView extends BaseBoxView<GroupBox> {
 
     ctx.setLineDash([])
     ctx.fillStyle = title.color
-    ctx.font = `600 ${title.fontSize / viewport.zoom}px "Microsoft YaHei", sans-serif`
+    ctx.font = `600 ${title.fontSize / viewport.zoom}px ${DEFAULT_CANVAS_FONT_FAMILY}`
     ctx.textAlign = 'left'
     ctx.textBaseline = 'middle'
     ctx.fillText(box.label || '分组', header.x + 10 / viewport.zoom, header.y + header.height / 2)

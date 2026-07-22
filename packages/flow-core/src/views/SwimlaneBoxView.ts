@@ -1,5 +1,6 @@
 import type { SwimlaneBox } from '../scene/SwimlaneBox'
 import type { BoxDrawContext, Point } from '../types/flow'
+import { DEFAULT_CANVAS_FONT_FAMILY } from '../renderer/TextRenderer'
 import { containsPoint } from '../utils/geometry'
 import { BaseBoxView } from './BaseBoxView'
 import { SWIMLANE_HEADER_SIZE } from '../scene/swimlane'
@@ -46,7 +47,7 @@ export class SwimlaneBoxView extends BaseBoxView<SwimlaneBox> {
     ctx.stroke()
 
     ctx.fillStyle = '#0f172a'
-    ctx.font = `700 ${13 / viewport.zoom}px "Microsoft YaHei", sans-serif`
+    ctx.font = `700 ${13 / viewport.zoom}px ${DEFAULT_CANVAS_FONT_FAMILY}`
     ctx.textAlign = 'left'
     ctx.textBaseline = 'middle'
     ctx.fillText(box.label || '泳道', rect.x + 12 / viewport.zoom, rect.y + SWIMLANE_HEADER_SIZE / 2)

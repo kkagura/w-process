@@ -6,8 +6,11 @@
   "scripts": {
     "dev": "pnpm --filter @w-process/web run dev",
     "build": "pnpm -r run build",
+    "build:node": "pnpm --filter \"...@w-process/flow-node-renderer\" run build",
     "build:web": "pnpm --filter \"...@w-process/web\" run build",
     "preview": "pnpm --filter @w-process/web run preview",
+    "render": "node packages/flow-node-renderer/dist/cli.mjs",
+    "test": "pnpm -r --if-present run test",
     "typecheck": "pnpm -r run typecheck"
   }
 }

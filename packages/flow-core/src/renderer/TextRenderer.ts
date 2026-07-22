@@ -34,9 +34,11 @@ export interface DrawTextBlockOptions {
   style?: Partial<TextStyle>
 }
 
+export const DEFAULT_CANVAS_FONT_FAMILY = '"Noto Sans SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+
 const DEFAULT_TEXT_STYLE: TextStyle = {
   fontSize: 14,
-  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  fontFamily: DEFAULT_CANVAS_FONT_FAMILY,
   fontWeight: '600',
   fontStyle: 'normal',
   color: '#111827',

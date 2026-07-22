@@ -136,10 +136,12 @@
 - [x] 建立 pnpm workspace，并将 Vue 应用迁移到 `apps/web`
 - [x] 抽取同构场景与渲染核心到 `packages/flow-core`
 - [x] 增加 `editor` / `preview` 渲染模式，preview 默认隐藏端口和编辑器交互覆盖层
-- [ ] 抽象跨浏览器与 Node.js 的 `CanvasRenderSurface`
-- [ ] 创建 `packages/flow-node-renderer`，支持根据场景 JSON 生成图片 Buffer
-- [ ] 为 Node.js 图片导出增加固定字体、preview 模式接入和尺寸安全限制
+- [x] 抽象跨浏览器与 Node.js 的 `CanvasRenderSurface`
+- [x] 创建 `packages/flow-node-renderer`，支持根据场景 JSON 生成图片 Buffer
+- [x] 增加 `w-process-render <scene.json>` CLI，支持输出路径、边距、像素倍率、背景、网格、端口和字体参数
+- [x] 为 Node.js 图片导出增加固定字体、preview 模式接入和尺寸安全限制
+- [x] 增加 Node renderer 程序化 API 与 CLI PNG 冒烟测试
 - [x] 调整 GitHub Pages workflow，仅构建 Web 包并上传 `apps/web/dist`
 - [ ] 增加 monorepo 通用 CI、Node 渲染冒烟测试和跨运行时图片快照测试
 - [x] 为 `flow-core` 配置 tsdown neutral ESM 构建、声明文件与独立类型检查
-- [ ] 为 `flow-node-renderer` 配置 tsdown Node ESM 构建、声明文件与独立类型检查
+- [x] 为 `flow-node-renderer` 配置 tsdown Node ESM 构建、声明文件与独立类型检查

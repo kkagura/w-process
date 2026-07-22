@@ -233,3 +233,7 @@ pnpm run build
 - `flow-node-renderer` 使用 tsdown 输出 Node.js、纯 ESM JavaScript 和声明文件，`@napi-rs/canvas` 必须保持 external。
 - 两个库包都必须独立运行 `tsc --noEmit`；tsdown 构建不能替代类型检查。
 - Node 原生 TypeScript 只用于内部辅助脚本，正式包入口必须指向构建后的 JavaScript，不直接发布 `.ts` 源码。
+- Node CLI 命令统一为 `w-process-render <scene.json>`，正式入口指向 `flow-node-renderer/dist/cli.mjs`。
+- `renderFlowImage()` 保持无文件系统副作用；CLI 层单独负责读取 JSON、写入 PNG、错误输出和退出码。
+- Node 渲染首版只支持 PNG，并且必须在创建原生 Canvas 前校验最大宽高和最大物理像素数。
+- Node renderer 默认注册 OFL-1.1 授权的 Noto Sans SC 完整 TTF；新增字体只能进入 Node 适配包，不能进入 `flow-core`。

@@ -8,6 +8,7 @@ import {
   getArchitectureLayerTitleStyle,
 } from '../scene/architectureLayer'
 import type { BoxDrawContext, Point, Rect } from '../types/flow'
+import { DEFAULT_CANVAS_FONT_FAMILY } from '../renderer/TextRenderer'
 import { containsPoint } from '../utils/geometry'
 import { BaseBoxView } from './BaseBoxView'
 
@@ -66,7 +67,7 @@ export class ArchitectureLayerBoxView extends BaseBoxView<ArchitectureLayerBox> 
 
     ctx.setLineDash([])
     ctx.fillStyle = title.color
-    ctx.font = `700 ${title.fontSize / viewport.zoom}px "Microsoft YaHei", sans-serif`
+    ctx.font = `700 ${title.fontSize / viewport.zoom}px ${DEFAULT_CANVAS_FONT_FAMILY}`
     ctx.textAlign = 'left'
     ctx.textBaseline = 'middle'
     ctx.fillText(box.label || '架构层', header.x + 14 / viewport.zoom, header.y + header.height / 2)

@@ -1,5 +1,6 @@
 import type { BaseEdge } from '../elements/BaseEdge'
 import type { EdgeDrawContext, EdgeLineDash, EdgeLineStyleData, EdgeRouteData, EdgeRouteType, Point } from '../types/flow'
+import { DEFAULT_CANVAS_FONT_FAMILY } from '../renderer/TextRenderer'
 import { distanceToSegment } from '../utils/geometry'
 import { hitTestOrthogonalPath, routeOrthogonalEdge } from '../routing/orthogonal'
 
@@ -86,7 +87,7 @@ export class BaseEdgeView<TEdge extends BaseEdge = BaseEdge> {
     const paddingY = 3 / context.viewport.zoom
 
     ctx.save()
-    ctx.font = `500 ${fontSize}px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
+    ctx.font = `500 ${fontSize}px ${DEFAULT_CANVAS_FONT_FAMILY}`
     const width = ctx.measureText(label).width
     const height = fontSize + paddingY * 2
     const x = point.x - width / 2 - paddingX
