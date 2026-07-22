@@ -133,11 +133,12 @@
 - [ ] 吸附算法测试
 - [ ] 历史命令测试
 - [ ] 连接规则测试
-- [ ] 建立 pnpm workspace，并将 Vue 应用迁移到 `apps/web`
-- [ ] 抽取同构场景与渲染核心到 `packages/flow-core`
+- [x] 建立 pnpm workspace，并将 Vue 应用迁移到 `apps/web`
+- [x] 抽取同构场景与渲染核心到 `packages/flow-core`
 - [ ] 抽象跨浏览器与 Node.js 的 `CanvasRenderSurface`
 - [ ] 创建 `packages/flow-node-renderer`，支持根据场景 JSON 生成图片 Buffer
 - [ ] 为 Node.js 图片导出增加固定字体、导出模式和尺寸安全限制
-- [ ] 调整 GitHub Pages workflow，仅构建 Web 包并上传 `apps/web/dist`
+- [x] 调整 GitHub Pages workflow，仅构建 Web 包并上传 `apps/web/dist`
 - [ ] 增加 monorepo 通用 CI、Node 渲染冒烟测试和跨运行时图片快照测试
-- [ ] 为 `flow-core` 和 `flow-node-renderer` 配置 tsdown ESM 构建、声明文件与独立类型检查
+- [x] 为 `flow-core` 配置 tsdown neutral ESM 构建、声明文件与独立类型检查
+- [ ] 为 `flow-node-renderer` 配置 tsdown Node ESM 构建、声明文件与独立类型检查

@@ -1,5 +1,28 @@
-# Vue 3 + TypeScript + Vite
+# w-process
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+基于 Vue 3、TypeScript 与 Canvas 的 Web 流程图编辑器。项目使用 pnpm workspace 管理：
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+- `apps/web`：浏览器编辑器、Vue UI 与浏览器事件适配。
+- `packages/flow-core`：场景模型、命令、布局、路由与 Canvas 绘制核心。
+
+当前第一版拆分不包含 Node.js 图片渲染包。
+
+## 开发
+
+```bash
+pnpm install
+pnpm dev
+```
+
+## 验证与构建
+
+```bash
+pnpm typecheck
+pnpm build
+```
+
+只构建 Web 应用及其依赖：
+
+```bash
+pnpm build:web
+```

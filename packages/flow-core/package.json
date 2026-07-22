@@ -1,0 +1,23 @@
+{
+  "name": "@w-process/flow-core",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "pnpm run typecheck && tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsdown": "^0.22.13",
+    "typescript": "~6.0.2",
+    "unrun": "^0.3.1"
+  }
+}
