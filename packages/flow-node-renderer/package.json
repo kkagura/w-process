@@ -1,7 +1,7 @@
 {
   "name": "@w-process/flow-node-renderer",
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
+  "description": "Node.js API and CLI for rendering w-process scene JSON documents to PNG",
   "type": "module",
   "files": [
     "dist"
@@ -16,6 +16,27 @@
   "engines": {
     "node": ">=22.18"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kkagura/w-process.git",
+    "directory": "packages/flow-node-renderer"
+  },
+  "homepage": "https://github.com/kkagura/w-process#readme",
+  "bugs": {
+    "url": "https://github.com/kkagura/w-process/issues"
+  },
+  "keywords": [
+    "w-process",
+    "flowchart",
+    "canvas",
+    "diagram",
+    "png",
+    "cli"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "build": "pnpm run typecheck && tsdown",
     "dev": "tsdown --watch",
@@ -27,7 +48,7 @@
   "dependencies": {
     "@expo-google-fonts/noto-sans-sc": "^0.4.3",
     "@napi-rs/canvas": "^1.0.2",
-    "@w-process/flow-core": "workspace:*"
+    "@w-process/flow-core": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^24.12.3",

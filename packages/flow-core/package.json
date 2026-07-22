@@ -1,8 +1,9 @@
 {
   "name": "@w-process/flow-core",
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
+  "description": "Framework-agnostic scene, layout, routing, and Canvas rendering core for w-process",
   "type": "module",
+  "sideEffects": false,
   "files": [
     "dist"
   ],
@@ -10,9 +11,30 @@
     ".": "./dist/index.js",
     "./package.json": "./package.json"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kkagura/w-process.git",
+    "directory": "packages/flow-core"
+  },
+  "homepage": "https://github.com/kkagura/w-process#readme",
+  "bugs": {
+    "url": "https://github.com/kkagura/w-process/issues"
+  },
+  "keywords": [
+    "w-process",
+    "flowchart",
+    "canvas",
+    "diagram",
+    "typescript"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "build": "pnpm run typecheck && tsdown",
     "dev": "tsdown --watch",
+    "prepack": "pnpm run build",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

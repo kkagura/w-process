@@ -146,3 +146,4 @@
 - [x] 为 `flow-core` 配置 tsdown neutral ESM 构建、声明文件与独立类型检查
 - [x] 为 `flow-node-renderer` 配置 tsdown Node ESM 构建、声明文件与独立类型检查
 - [x] 在项目内增加 `w-process-diagram` Skill，支持自然语言生成场景 JSON、调用 CLI 渲染并检查 PNG
+- [ ] 将 `@w-process/flow-core` 与 `@w-process/flow-node-renderer` 以 `0.0.1` 发布到 npm 官方仓库并验证全局安装

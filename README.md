@@ -69,3 +69,15 @@ const png = await renderFlowImage(document, {
 ```
 
 Node 渲染器默认注册 OFL-1.1 授权的 Noto Sans SC 400、600、700 字重，保证中文文本可以稳定绘制。
+
+### npm 全局安装
+
+正式发布包要求 Node.js 22.18 及以上版本：
+
+```bash
+npm install --global @w-process/flow-node-renderer@0.0.1
+w-process-render --help
+w-process-render ./scene.json --output ./scene.png
+```
+
+程序化使用时安装 `@w-process/flow-node-renderer`；其公开依赖 `@w-process/flow-core` 会由 npm 自动安装。
