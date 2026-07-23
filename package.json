@@ -1,7 +1,7 @@
 {
   "name": "w-process-workspace",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.2",
   "packageManager": "pnpm@10.34.1",
   "scripts": {
     "dev": "pnpm --filter @w-process/web run dev",

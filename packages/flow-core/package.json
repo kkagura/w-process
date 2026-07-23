@@ -1,6 +1,6 @@
 {
   "name": "@w-process/flow-core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Framework-agnostic scene, layout, routing, and Canvas rendering core for w-process",
   "type": "module",
   "sideEffects": false,

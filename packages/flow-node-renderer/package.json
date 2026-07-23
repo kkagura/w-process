@@ -1,6 +1,6 @@
 {
   "name": "@w-process/flow-node-renderer",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Node.js API and CLI for rendering w-process scene JSON documents to PNG",
   "type": "module",
   "files": [
