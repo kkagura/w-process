@@ -347,6 +347,72 @@ export const basicShapeTemplates: ElementTemplate[] = [
       },
     },
   },
+  {
+    type: 'shape-arrow-single',
+    label: '单向箭头',
+    defaultSize: { width: 160, height: 72 },
+    ports: [
+      { id: 'top', label: '上方端口', offset: { x: 80, y: 20.16 } },
+      { id: 'right', label: '右侧端口', offset: { x: 160, y: 36 } },
+      { id: 'bottom', label: '下方端口', offset: { x: 80, y: 51.84 } },
+      { id: 'left', label: '左侧端口', offset: { x: 0, y: 36 } },
+    ],
+    defaultProps: {
+      textStyle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#3730a3',
+        align: 'center',
+        verticalAlign: 'middle',
+        lineHeight: 18,
+        padding: 6,
+        maxLines: 1,
+        overflow: 'ellipsis',
+      },
+      fillStyle: {
+        color: '#eef2ff',
+        opacity: 1,
+      },
+      borderStyle: {
+        color: '#4f46e5',
+        width: 1.5,
+        dash: 'solid',
+      },
+    },
+  },
+  {
+    type: 'shape-arrow-double',
+    label: '双向箭头',
+    defaultSize: { width: 160, height: 72 },
+    ports: [
+      { id: 'top', label: '上方端口', offset: { x: 80, y: 20.16 } },
+      { id: 'right', label: '右侧端口', offset: { x: 160, y: 36 } },
+      { id: 'bottom', label: '下方端口', offset: { x: 80, y: 51.84 } },
+      { id: 'left', label: '左侧端口', offset: { x: 0, y: 36 } },
+    ],
+    defaultProps: {
+      textStyle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#3730a3',
+        align: 'center',
+        verticalAlign: 'middle',
+        lineHeight: 18,
+        padding: 6,
+        maxLines: 1,
+        overflow: 'ellipsis',
+      },
+      fillStyle: {
+        color: '#eef2ff',
+        opacity: 1,
+      },
+      borderStyle: {
+        color: '#4f46e5',
+        width: 1.5,
+        dash: 'solid',
+      },
+    },
+  },
 ]
 
 export const iconNodeTemplates: ElementTemplate[] = [

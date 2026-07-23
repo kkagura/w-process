@@ -274,6 +274,23 @@ function getBoxTemplateIconClass(template: BoxTemplate) {
   top: 3px;
 }
 
+.element-icon--shape-arrow-single,
+.element-icon--shape-arrow-double {
+  background: #c7d2fe;
+  border: 0;
+  border-radius: 0;
+  height: 22px;
+  width: 32px;
+}
+
+.element-icon--shape-arrow-single {
+  clip-path: polygon(0 31%, 66% 31%, 66% 0, 100% 50%, 66% 100%, 66% 69%, 0 69%);
+}
+
+.element-icon--shape-arrow-double {
+  clip-path: polygon(0 50%, 24% 0, 24% 31%, 76% 31%, 76% 0, 100% 50%, 76% 100%, 76% 69%, 24% 69%, 24% 100%);
+}
+
 .element-icon--icon-service {
   background: #dbeafe;
   border-color: #2563eb;

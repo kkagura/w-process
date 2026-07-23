@@ -21,6 +21,34 @@ export function distanceToSegment(point: Point, start: Point, end: Point) {
   })
 }
 
+export function hitTestPolygon(point: Point, polygon: Point[], tolerance = 0) {
+  if (polygon.length < 3) return false
+
+  for (let index = 0; index < polygon.length; index += 1) {
+    const start = polygon[index]
+    const end = polygon[(index + 1) % polygon.length]
+    if (distanceToSegment(point, start, end) <= tolerance) return true
+  }
+
+  let inside = false
+  for (
+    let current = 0, previous = polygon.length - 1;
+    current < polygon.length;
+    previous = current, current += 1
+  ) {
+    const start = polygon[current]
+    const end = polygon[previous]
+    const crossesY = (start.y > point.y) !== (end.y > point.y)
+    if (!crossesY) continue
+
+    const intersectionX = start.x
+      + ((point.y - start.y) * (end.x - start.x)) / (end.y - start.y)
+    if (point.x < intersectionX) inside = !inside
+  }
+
+  return inside
+}
+
 export function containsPoint(rect: Rect, point: Point) {
   return point.x >= rect.x
     && point.x <= rect.x + rect.width

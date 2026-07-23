@@ -1,5 +1,6 @@
 import { BaseEdge } from './BaseEdge'
 import { BaseNode } from './BaseNode'
+import { ArrowNode } from './ArrowNode'
 import { CircleNode } from './CircleNode'
 import { DataNode } from './DataNode'
 import { DecisionNode } from './DecisionNode'
@@ -26,6 +27,7 @@ import { GroupBoxView } from '../views/GroupBoxView'
 import { ArchitectureLayerBoxView } from '../views/ArchitectureLayerBoxView'
 import { BaseEdgeView } from '../views/BaseEdgeView'
 import { BaseNodeView } from '../views/BaseNodeView'
+import { ArrowNodeView } from '../views/ArrowNodeView'
 import { CircleNodeView } from '../views/CircleNodeView'
 import { DataNodeView } from '../views/DataNodeView'
 import { DecisionNodeView } from '../views/DecisionNodeView'
@@ -97,6 +99,14 @@ export class ElementRegistry {
     registry.registerNode('shape-triangle', {
       node: TriangleNode,
       view: TriangleNodeView,
+    })
+    registry.registerNode('shape-arrow-single', {
+      node: ArrowNode,
+      view: ArrowNodeView,
+    })
+    registry.registerNode('shape-arrow-double', {
+      node: ArrowNode,
+      view: ArrowNodeView,
     })
     registry.registerNode('icon-service', {
       node: IconNode,

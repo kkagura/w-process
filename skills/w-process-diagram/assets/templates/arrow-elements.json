@@ -1,0 +1,43 @@
+{
+  "root": {
+    "id": "root",
+    "type": "root",
+    "label": "根容器",
+    "position": { "x": 0, "y": 0 },
+    "size": { "width": 0, "height": 0 },
+    "children": [
+      {
+        "id": "arrow-single",
+        "type": "shape-arrow-single",
+        "label": "单向流转",
+        "position": { "x": 20, "y": 36 },
+        "size": { "width": 200, "height": 80 },
+        "rotation": 0,
+        "ports": [
+          { "id": "arrow-single-top", "nodeId": "arrow-single", "templateId": "top", "label": "上方端口", "offset": { "x": 100, "y": 22.4 } },
+          { "id": "arrow-single-right", "nodeId": "arrow-single", "templateId": "right", "label": "右侧端口", "offset": { "x": 200, "y": 40 } },
+          { "id": "arrow-single-bottom", "nodeId": "arrow-single", "templateId": "bottom", "label": "下方端口", "offset": { "x": 100, "y": 57.6 } },
+          { "id": "arrow-single-left", "nodeId": "arrow-single", "templateId": "left", "label": "左侧端口", "offset": { "x": 0, "y": 40 } }
+        ],
+        "props": {}
+      },
+      {
+        "id": "arrow-double",
+        "type": "shape-arrow-double",
+        "label": "双向同步",
+        "position": { "x": 300, "y": 36 },
+        "size": { "width": 220, "height": 80 },
+        "rotation": 0,
+        "ports": [
+          { "id": "arrow-double-top", "nodeId": "arrow-double", "templateId": "top", "label": "上方端口", "offset": { "x": 110, "y": 22.4 } },
+          { "id": "arrow-double-right", "nodeId": "arrow-double", "templateId": "right", "label": "右侧端口", "offset": { "x": 220, "y": 40 } },
+          { "id": "arrow-double-bottom", "nodeId": "arrow-double", "templateId": "bottom", "label": "下方端口", "offset": { "x": 110, "y": 57.6 } },
+          { "id": "arrow-double-left", "nodeId": "arrow-double", "templateId": "left", "label": "左侧端口", "offset": { "x": 0, "y": 40 } }
+        ],
+        "props": {}
+      }
+    ]
+  },
+  "edges": [],
+  "viewport": { "x": 0, "y": 0, "zoom": 1 }
+}
