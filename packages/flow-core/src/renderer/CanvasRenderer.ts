@@ -242,13 +242,25 @@ export class CanvasRenderer {
     context: RenderContext,
     options: ResolvedFlowRenderOptions,
   ): NodeDrawContext {
+    const selected = options.showInteractionOverlays
+      && context.scene.isSelected({ type: 'node', id: node.id })
+    const hovered = options.showInteractionOverlays
+      && context.scene.isHovered({ type: 'node', id: node.id })
+    const connecting = options.showInteractionOverlays
+      && context.interaction.pendingEdge !== null
+
     return {
       renderMode: options.mode,
-      showPorts: options.showPorts,
-      selected: options.showInteractionOverlays && context.scene.isSelected({ type: 'node', id: node.id }),
-      hovered: options.showInteractionOverlays && context.scene.isHovered({ type: 'node', id: node.id }),
+      showPorts: options.showPorts && (
+        options.mode === 'preview'
+        || selected
+        || hovered
+        || connecting
+      ),
+      selected,
+      hovered,
       dragging: options.showInteractionOverlays && context.interaction.draggingNodeId === node.id,
-      connecting: false,
+      connecting,
       disabled: false,
       theme: context.scene.getTheme(),
       viewport: context.scene.getViewport(),

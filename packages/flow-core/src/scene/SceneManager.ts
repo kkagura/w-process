@@ -49,6 +49,12 @@ export interface SceneElementLocation {
   index: number
 }
 
+export type PortHitTestMode = 'visible' | 'all' | 'none'
+
+export interface SceneHitTestOptions {
+  portMode?: PortHitTestMode
+}
+
 export class SceneManager {
   private rootBox = new RootBox()
   private edgeLayer = new EdgeLayer()
@@ -565,14 +571,23 @@ export class SceneManager {
     this.select(null)
   }
 
-  hitTest(point: Point): HitTestResult {
+  hitTest(point: Point, options: SceneHitTestOptions = {}): HitTestResult {
     const nodes = [...this.getNodes()].reverse()
+    const portMode = options.portMode ?? 'visible'
 
-    for (const node of nodes) {
-      const view = this.registry.getNodeView(node.type)
-      const port = view.hitTestPort(node, point)
-      if (port) {
-        return { type: 'port', nodeId: node.id, portId: port.id }
+    if (portMode !== 'none') {
+      for (const node of nodes) {
+        if (
+          portMode === 'visible'
+          && !this.isSelected({ type: 'node', id: node.id })
+          && !this.isHovered({ type: 'node', id: node.id })
+        ) continue
+
+        const view = this.registry.getNodeView(node.type)
+        const port = view.hitTestPort(node, point)
+        if (port) {
+          return { type: 'port', nodeId: node.id, portId: port.id }
+        }
       }
     }
 

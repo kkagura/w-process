@@ -134,7 +134,7 @@ export class InteractionController {
     const sourcePoint = this.options.scene.getEndpointPoint(this.mode.source)
     if (!sourcePoint) return null
 
-    const hit = this.options.scene.hitTest(this.mode.current)
+    const hit = this.options.scene.hitTest(this.mode.current, { portMode: 'all' })
     const target = hit?.type === 'port'
       ? { nodeId: hit.nodeId, portId: hit.portId }
       : null
@@ -937,7 +937,7 @@ export class InteractionController {
   }
 
   private createEdgeFromConnection(mode: Extract<InteractionMode, { type: 'connecting' }>) {
-    const hit = this.options.scene.hitTest(mode.current)
+    const hit = this.options.scene.hitTest(mode.current, { portMode: 'all' })
     if (hit?.type !== 'port') return
 
     const target: Endpoint = {
