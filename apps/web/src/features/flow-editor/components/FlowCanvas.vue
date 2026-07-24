@@ -29,6 +29,7 @@ interface Emits {
   resetView: []
   fitContent: []
   copySceneJson: []
+  importSceneJson: [file: File]
   save: []
 }
 
@@ -124,6 +125,7 @@ function updateCanvasSize() {
         @reset-view="emit('resetView')"
         @fit-content="emit('fitContent')"
         @copy-scene-json="emit('copySceneJson')"
+        @import-scene-json="emit('importSceneJson', $event)"
         @save="emit('save')"
       />
       <CanvasStatusBar

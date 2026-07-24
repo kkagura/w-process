@@ -841,8 +841,11 @@ export class SceneManager {
   }
 
   load(document: FlowDocument) {
-    this.rootBox = this.registry.createBox(document.root) as RootBox
-    this.edgeLayer = this.registry.createEdgeLayer(document.edges)
+    const nextRootBox = this.registry.createBox(document.root) as RootBox
+    const nextEdgeLayer = this.registry.createEdgeLayer(document.edges)
+
+    this.rootBox = nextRootBox
+    this.edgeLayer = nextEdgeLayer
     this.viewport = document.viewport ?? { x: 0, y: 0, zoom: 1 }
     this.selection = createSelectionState()
     this.hovered = null

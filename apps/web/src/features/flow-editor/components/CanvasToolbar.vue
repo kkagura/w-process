@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { shallowRef, watch } from 'vue'
+import { shallowRef, useTemplateRef, watch } from 'vue'
 import type { SelectionArrangeAction } from '@w-process/flow-core'
 
 interface Props {
@@ -29,6 +29,7 @@ interface Emits {
   resetView: []
   fitContent: []
   copySceneJson: []
+  importSceneJson: [file: File]
   save: []
 }
 
@@ -41,6 +42,7 @@ interface ArrangeActionItem {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 const isArrangeMenuOpen = shallowRef(false)
+const importFileInput = useTemplateRef<HTMLInputElement>('importFileInput')
 
 const arrangeActions: ArrangeActionItem[] = [
   { action: 'align-vertical-center', label: '垂直中心对齐', minNodes: 2 },
@@ -79,6 +81,18 @@ function handleArrangeAction(item: ArrangeActionItem) {
 
   emit('arrangeSelection', item.action)
   closeArrangeMenu()
+}
+
+function openImportFilePicker() {
+  importFileInput.value?.click()
+}
+
+function handleImportFileChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+
+  if (file) emit('importSceneJson', file)
 }
 </script>
 
@@ -215,6 +229,21 @@ function handleArrangeAction(item: ArrangeActionItem) {
     </button>
     <button
       class="toolbar-button"
+      type="button"
+      title="从 JSON 文件导入场景"
+      @click="openImportFilePicker"
+    >
+      导入 JSON
+    </button>
+    <input
+      ref="importFileInput"
+      class="import-file-input"
+      type="file"
+      accept=".json,application/json"
+      @change="handleImportFileChange"
+    >
+    <button
+      class="toolbar-button"
       :class="{ 'toolbar-button-dirty': dirty }"
       type="button"
       title="Save"
@@ -308,5 +337,9 @@ function handleArrangeAction(item: ArrangeActionItem) {
 .toolbar-button:disabled {
   color: #94a3b8;
   cursor: not-allowed;
+}
+
+.import-file-input {
+  display: none;
 }
 </style>

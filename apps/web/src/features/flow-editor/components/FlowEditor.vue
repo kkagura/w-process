@@ -6,6 +6,7 @@ import PropertyPanel from './PropertyPanel.vue'
 import ToastContainer from './toast/ToastContainer.vue'
 import { useFlowEditorCore } from '../composables/useFlowEditorCore'
 import { useToast } from '../composables/useToast'
+import { parseFlowDocumentJson } from '../utils/flowDocumentFile'
 import type { FlowEditorApi, SaveFeedback } from '../types'
 import type { FlowEditorCanvasElements } from '../composables/useFlowEditorCore'
 import type { EditorFeedbackEvent } from '@w-process/flow-core'
@@ -112,6 +113,25 @@ async function copySceneJson() {
   }
 }
 
+async function importSceneJson(file: File) {
+  try {
+    const document = parseFlowDocumentJson(await file.text())
+    importDocument(document)
+    showToast({
+      type: 'success',
+      message: `已导入 ${file.name}`,
+    })
+  }
+  catch (error) {
+    showToast({
+      type: 'error',
+      message: error instanceof SyntaxError
+        ? '导入失败：文件不是有效的 JSON'
+        : `导入失败：${getErrorMessage(error)}`,
+    })
+  }
+}
+
 function handleFeedback(event: EditorFeedbackEvent) {
   if (event.type === 'clipboard-copied') {
     showToast({
@@ -197,6 +217,12 @@ function handleSaveFeedback(feedback: SaveFeedback) {
 function formatEdgeSuffix(edgeCount: number) {
   return edgeCount > 0 ? `，${edgeCount} 条连线` : ''
 }
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error && error.message
+    ? error.message
+    : '流程图数据无效'
+}
 </script>
 
 <template>
@@ -220,6 +246,7 @@ function formatEdgeSuffix(edgeCount: number) {
       @reset-view="resetView"
       @fit-content="fitContent"
       @copy-scene-json="copySceneJson"
+      @import-scene-json="importSceneJson"
       @save="emit('saveRequested')"
     />
     <PropertyPanel
